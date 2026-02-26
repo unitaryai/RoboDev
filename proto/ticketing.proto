@@ -1,0 +1,118 @@
+// Copyright 2026 The RoboDev Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package ticketing defines the TicketingBackend plugin interface.
+// Ticketing backends are responsible for polling external issue trackers
+// (GitHub Issues, Jira, Linear, Shortcut, etc.) for tickets that are
+// ready for automated processing, and updating their state as work
+// progresses through the TaskRun lifecycle.
+
+syntax = "proto3";
+
+package robodev.v1;
+
+option go_package = "github.com/robodev-inc/robodev/proto/v1;v1";
+
+import "common.proto";
+
+// TicketingBackend is the interface that all ticketing plugins must implement.
+// Built-in backends (GitHub Issues) are compiled into the controller binary;
+// external backends (Jira, Shortcut, Linear) run as gRPC subprocesses via
+// hashicorp/go-plugin.
+service TicketingBackend {
+  // Handshake performs version negotiation between the controller and plugin.
+  // The controller calls this at startup and after any plugin restart. If the
+  // interface_version is incompatible, the controller refuses to load the plugin.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+
+  // PollReadyTickets returns tickets that are labelled and ready for
+  // automated processing. The controller calls this on a configurable
+  // interval (default: 30 seconds). Implementations should filter by
+  // the configured label set and return only tickets not already in progress.
+  rpc PollReadyTickets(PollReadyTicketsRequest) returns (PollReadyTicketsResponse);
+
+  // MarkInProgress transitions the ticket to an "in progress" state in the
+  // external tracker. This typically involves updating labels, assignees,
+  // or status fields. Called when the controller creates a K8s Job for the ticket.
+  rpc MarkInProgress(MarkInProgressRequest) returns (MarkInProgressResponse);
+
+  // MarkComplete transitions the ticket to a "completed" state and attaches
+  // the task result (merge request URL, summary, cost). Called when the
+  // agent job succeeds.
+  rpc MarkComplete(MarkCompleteRequest) returns (MarkCompleteResponse);
+
+  // MarkFailed transitions the ticket to a "failed" state with the failure
+  // reason. Called when the agent job fails or is terminated by the
+  // progress watchdog.
+  rpc MarkFailed(MarkFailedRequest) returns (MarkFailedResponse);
+
+  // AddComment posts a comment on the ticket. Used for progress updates,
+  // human-in-the-loop questions, and diagnostic information.
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+}
+
+// PollReadyTicketsRequest configures the polling behaviour.
+message PollReadyTicketsRequest {
+  // labels filters tickets to those matching all specified labels.
+  repeated string labels = 1;
+
+  // max_results limits the number of tickets returned per poll. Defaults
+  // to a backend-specific limit if zero.
+  int32 max_results = 2;
+}
+
+// PollReadyTicketsResponse contains the tickets ready for processing.
+message PollReadyTicketsResponse {
+  // tickets is the list of tickets ready for automated processing.
+  repeated Ticket tickets = 1;
+}
+
+// MarkInProgressRequest identifies the ticket to transition.
+message MarkInProgressRequest {
+  // ticket_id is the external system identifier for the ticket.
+  string ticket_id = 1;
+}
+
+// MarkInProgressResponse is intentionally empty; errors are conveyed
+// via gRPC status codes.
+message MarkInProgressResponse {}
+
+// MarkCompleteRequest attaches the execution result to the ticket.
+message MarkCompleteRequest {
+  // ticket_id is the external system identifier for the ticket.
+  string ticket_id = 1;
+
+  // result is the structured outcome of the agent execution.
+  TaskResult result = 2;
+}
+
+// MarkCompleteResponse is intentionally empty; errors are conveyed
+// via gRPC status codes.
+message MarkCompleteResponse {}
+
+// MarkFailedRequest records the failure reason on the ticket.
+message MarkFailedRequest {
+  // ticket_id is the external system identifier for the ticket.
+  string ticket_id = 1;
+
+  // reason is a human-readable explanation of why the task failed.
+  string reason = 2;
+}
+
+// MarkFailedResponse is intentionally empty; errors are conveyed
+// via gRPC status codes.
+message MarkFailedResponse {}
+
+// AddCommentRequest posts a comment on the specified ticket.
+message AddCommentRequest {
+  // ticket_id is the external system identifier for the ticket.
+  string ticket_id = 1;
+
+  // comment is the text to post as a comment. Supports markdown
+  // if the backend supports it.
+  string comment = 2;
+}
+
+// AddCommentResponse is intentionally empty; errors are conveyed
+// via gRPC status codes.
+message AddCommentResponse {}

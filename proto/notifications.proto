@@ -1,0 +1,85 @@
+// Copyright 2026 The RoboDev Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package notifications defines the NotificationChannel plugin interface.
+// Notification channels are fire-and-forget: they deliver messages to
+// external systems (Slack, Discord, Teams, email, etc.) but do not wait
+// for or handle responses. For interactive workflows, see the
+// HumanApprovalBackend in approval.proto.
+
+syntax = "proto3";
+
+package robodev.v1;
+
+option go_package = "github.com/robodev-inc/robodev/proto/v1;v1";
+
+import "common.proto";
+
+// NotificationChannel is the interface that all notification plugins must
+// implement. Multiple channels can be active simultaneously (e.g. Slack
+// and email). Built-in channels (Slack) are compiled into the controller
+// binary; external channels run as gRPC subprocesses.
+service NotificationChannel {
+  // Handshake performs version negotiation between the controller and plugin.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+
+  // Notify sends a free-form message associated with a ticket. Used for
+  // progress updates, warnings, and diagnostic information during execution.
+  rpc Notify(NotifyRequest) returns (NotifyResponse);
+
+  // NotifyStart sends a notification when the controller begins processing
+  // a ticket (i.e. a K8s Job is created). Implementations should format
+  // this as a "work started" message with a link to the ticket.
+  rpc NotifyStart(NotifyStartRequest) returns (NotifyStartResponse);
+
+  // NotifyComplete sends a notification when processing finishes, whether
+  // successfully or with failure. The result contains the merge request URL,
+  // summary, cost, and other details for the notification.
+  rpc NotifyComplete(NotifyCompleteRequest) returns (NotifyCompleteResponse);
+}
+
+// NotifyRequest carries a free-form message and associated ticket context.
+message NotifyRequest {
+  // message is the notification text to deliver. May contain markdown.
+  string message = 1;
+
+  // ticket provides context about the ticket this notification relates to.
+  Ticket ticket = 2;
+}
+
+// NotifyResponse is intentionally empty; errors are conveyed via gRPC
+// status codes.
+message NotifyResponse {}
+
+// NotifyStartRequest signals the start of processing for a ticket.
+message NotifyStartRequest {
+  // ticket is the ticket that is now being processed.
+  Ticket ticket = 1;
+
+  // task_run_id is the unique identifier for this execution attempt.
+  string task_run_id = 2;
+
+  // engine is the name of the execution engine handling this ticket
+  // (e.g. "claude-code", "codex").
+  string engine = 3;
+}
+
+// NotifyStartResponse is intentionally empty; errors are conveyed via gRPC
+// status codes.
+message NotifyStartResponse {}
+
+// NotifyCompleteRequest signals the completion of processing for a ticket.
+message NotifyCompleteRequest {
+  // ticket is the ticket that has finished processing.
+  Ticket ticket = 1;
+
+  // task_run_id is the unique identifier for this execution attempt.
+  string task_run_id = 2;
+
+  // result is the structured outcome of the agent execution.
+  TaskResult result = 3;
+}
+
+// NotifyCompleteResponse is intentionally empty; errors are conveyed via
+// gRPC status codes.
+message NotifyCompleteResponse {}

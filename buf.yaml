@@ -1,0 +1,18 @@
+version: v2
+modules:
+  - path: proto
+    name: buf.build/robodev/robodev
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_DIRECTORY_MATCH
+    # Service names follow the domain model (Backend, Channel, Engine) rather
+    # than the generic "Service" suffix convention.
+    - SERVICE_SUFFIX
+    # The Handshake RPC intentionally reuses HandshakeRequest/HandshakeResponse
+    # across all services as a shared version negotiation pattern.
+    - RPC_REQUEST_RESPONSE_UNIQUE
+breaking:
+  use:
+    - FILE

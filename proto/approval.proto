@@ -1,0 +1,81 @@
+// Copyright 2026 The RoboDev Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package approval defines the HumanApprovalBackend plugin interface.
+// Approval backends handle event-driven human-in-the-loop interactions.
+// When an agent needs human input (e.g. clarification, authorisation to
+// proceed), the controller transitions the TaskRun to NeedsHuman state
+// and delegates the question to the approval backend. The backend
+// delivers the question (e.g. via Slack interactive message) and the
+// human's response is returned via a webhook/callback that resumes the flow.
+
+syntax = "proto3";
+
+package robodev.v1;
+
+option go_package = "github.com/robodev-inc/robodev/proto/v1;v1";
+
+import "common.proto";
+
+// HumanApprovalBackend is the interface that all approval plugins must
+// implement. Unlike NotificationChannel (fire-and-forget), this interface
+// handles bidirectional interactions where the controller waits for a
+// human response. Built-in backends (Slack approval) are compiled into
+// the controller binary; external backends run as gRPC subprocesses.
+service HumanApprovalBackend {
+  // Handshake performs version negotiation between the controller and plugin.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+
+  // RequestApproval sends a question or approval request to a human.
+  // The backend is responsible for delivering the question through its
+  // channel (Slack interactive message, PagerDuty incident, email, etc.)
+  // and returning the response via the configured callback mechanism.
+  // This RPC returns once the request has been successfully dispatched
+  // (not when the human responds).
+  rpc RequestApproval(RequestApprovalRequest) returns (RequestApprovalResponse);
+
+  // CancelPending cancels any outstanding approval requests for the given
+  // task run. Called when the progress watchdog terminates a NeedsHuman
+  // job, or when the task run is cancelled for any other reason. The
+  // backend should clean up the pending question (e.g. update the Slack
+  // message to indicate the request is no longer active).
+  rpc CancelPending(CancelPendingRequest) returns (CancelPendingResponse);
+}
+
+// RequestApprovalRequest carries the question and context for a
+// human-in-the-loop interaction.
+message RequestApprovalRequest {
+  // question is the text to present to the human decision-maker.
+  string question = 1;
+
+  // ticket provides context about the ticket this question relates to.
+  Ticket ticket = 2;
+
+  // task_run_id is the unique identifier for the execution attempt that
+  // triggered this question. Used to correlate the human response back
+  // to the correct TaskRun.
+  string task_run_id = 3;
+
+  // options is a list of valid responses the human can choose from.
+  // If empty, a free-text response is expected.
+  repeated string options = 4;
+}
+
+// RequestApprovalResponse confirms that the approval request was
+// successfully dispatched to the human channel.
+message RequestApprovalResponse {
+  // request_id is a backend-specific identifier for this approval request,
+  // used to correlate callbacks and for cancellation.
+  string request_id = 1;
+}
+
+// CancelPendingRequest identifies the task run whose pending approval
+// requests should be cancelled.
+message CancelPendingRequest {
+  // task_run_id is the unique identifier for the execution attempt.
+  string task_run_id = 1;
+}
+
+// CancelPendingResponse is intentionally empty; errors are conveyed
+// via gRPC status codes.
+message CancelPendingResponse {}

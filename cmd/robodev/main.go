@@ -2,11 +2,20 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log/slog"
+	"net/http"
 	"os"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/robodev-inc/robodev/internal/config"
+	"github.com/robodev-inc/robodev/internal/controller"
 
 	// Register metrics with the default Prometheus registry.
 	_ "github.com/robodev-inc/robodev/internal/metrics"
@@ -14,8 +23,10 @@ import (
 
 func main() {
 	var (
-		configPath  = flag.String("config", "/etc/robodev/config.yaml", "path to the RoboDev configuration file")
-		metricsAddr = flag.String("metrics-addr", ":8080", "address for the Prometheus metrics endpoint")
+		configPath   = flag.String("config", "/etc/robodev/config.yaml", "path to the RoboDev configuration file")
+		metricsAddr  = flag.String("metrics-addr", ":8080", "address for the Prometheus metrics and health endpoints")
+		pollInterval = flag.Duration("poll-interval", 30*time.Second, "interval between ticketing backend polls")
+		namespace    = flag.String("namespace", "robodev", "kubernetes namespace for job creation")
 	)
 	flag.Parse()
 
@@ -27,6 +38,8 @@ func main() {
 	logger.Info("starting robodev controller",
 		"config", *configPath,
 		"metrics_addr", *metricsAddr,
+		"poll_interval", *pollInterval,
+		"namespace", *namespace,
 	)
 
 	cfg, err := config.Load(*configPath)
@@ -40,7 +53,74 @@ func main() {
 		"default_engine", cfg.Engines.Default,
 	)
 
-	// TODO: initialise controller-runtime manager, register reconciler,
-	// start metrics server, and begin reconciliation loop.
-	logger.Info("controller initialisation complete — reconciliation loop not yet implemented")
+	// Readiness flag — set to true once the controller is fully initialised.
+	var ready atomic.Bool
+
+	// Set up HTTP server for metrics and health probes.
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, _ *http.Request) {
+		if ready.Load() {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("not ready"))
+		}
+	})
+
+	srv := &http.Server{
+		Addr:              *metricsAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	// Start the HTTP server in a goroutine.
+	go func() {
+		logger.Info("starting metrics and health server", "addr", *metricsAddr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("metrics server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Create the reconciler.
+	reconciler := controller.NewReconciler(cfg, logger,
+		controller.WithNamespace(*namespace),
+	)
+
+	// Mark as ready.
+	ready.Store(true)
+	logger.Info("controller initialised and ready")
+
+	// Set up signal handling for graceful shutdown.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		sig := <-sigCh
+		logger.Info("received signal, shutting down", "signal", sig)
+		cancel()
+	}()
+
+	// Run the reconciliation loop.
+	if err := reconciler.Run(ctx, *pollInterval); err != nil && err != context.Canceled {
+		logger.Error("reconciler exited with error", "error", err)
+		os.Exit(1)
+	}
+
+	// Gracefully shut down the HTTP server.
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("http server shutdown error", "error", err)
+	}
+
+	logger.Info("robodev controller stopped")
 }

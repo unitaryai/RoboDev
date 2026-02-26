@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt vet tidy clean help
+.PHONY: build test lint fmt vet tidy clean help proto-gen proto-lint
 
 BINARY := bin/robodev
 GO := go
@@ -24,6 +24,12 @@ vet: ## Run go vet
 
 tidy: ## Run go mod tidy
 	$(GO) mod tidy
+
+proto-lint: ## Lint protobuf definitions with buf
+	buf lint
+
+proto-gen: ## Generate Go code from protobuf definitions
+	buf generate
 
 clean: ## Remove build artefacts
 	rm -rf bin/

@@ -1,0 +1,109 @@
+// Copyright 2026 The RoboDev Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package common defines shared messages used across all RoboDev plugin
+// interfaces. This includes the version handshake messages (used by every
+// plugin service) and core domain types (Ticket, TaskResult) that are
+// referenced by multiple plugin interfaces.
+
+syntax = "proto3";
+
+package robodev.v1;
+
+option go_package = "github.com/robodev-inc/robodev/proto/v1;v1";
+
+import "google/protobuf/struct.proto";
+
+// HandshakeRequest is sent by the controller to initiate version negotiation
+// with a plugin. Every plugin service includes a Handshake RPC that uses
+// this message.
+message HandshakeRequest {
+  // interface_version is the version the controller expects.
+  int32 interface_version = 1;
+}
+
+// HandshakeResponse is returned by the plugin with its identity and
+// supported interface version. If the interface_version is incompatible
+// with what the controller expects, the controller refuses to load the
+// plugin and logs a descriptive error pointing to the migration guide.
+message HandshakeResponse {
+  // interface_version is the version this plugin implements. Bumped on
+  // breaking changes to the protobuf service definition.
+  int32 interface_version = 1;
+
+  // plugin_name is a human-readable identifier for this plugin
+  // (e.g. "github-issues", "slack", "vault").
+  string plugin_name = 2;
+
+  // plugin_version is the semver version of the plugin binary
+  // (e.g. "1.2.0").
+  string plugin_version = 3;
+}
+
+// Ticket represents a unit of work from an external issue tracker.
+message Ticket {
+  // id is the unique identifier in the external system (e.g. "42", "PROJ-123").
+  string id = 1;
+
+  // title is the ticket summary or title.
+  string title = 2;
+
+  // description is the full ticket body or description. May contain
+  // markdown or plain text depending on the backend.
+  string description = 3;
+
+  // ticket_type classifies the work (e.g. "bug_fix", "dependency_upgrade",
+  // "test_fix", "documentation"). Used by guard rails to select permission
+  // profiles.
+  string ticket_type = 4;
+
+  // labels are the tags or labels attached to the ticket in the external
+  // system.
+  repeated string labels = 5;
+
+  // repo_url is the repository URL associated with this ticket, if any.
+  string repo_url = 6;
+
+  // external_url is the web URL to view the ticket in the external system.
+  string external_url = 7;
+
+  // raw contains the original, unprocessed ticket data from the external
+  // system. Useful for plugins that need access to backend-specific fields
+  // not captured by the common schema.
+  google.protobuf.Struct raw = 8;
+}
+
+// TaskResult is the structured outcome of an agent execution, written to
+// /workspace/result.json by the engine.
+message TaskResult {
+  // success indicates whether the agent completed its task successfully.
+  bool success = 1;
+
+  // merge_request_url is the URL of the created pull/merge request, if any.
+  string merge_request_url = 2;
+
+  // branch_name is the git branch the agent worked on.
+  string branch_name = 3;
+
+  // summary is a human-readable description of what the agent did.
+  string summary = 4;
+
+  // token_usage tracks token consumption for cost accounting.
+  TokenUsage token_usage = 5;
+
+  // cost_estimate_usd is the estimated cost of this execution in US dollars.
+  double cost_estimate_usd = 6;
+
+  // exit_code carries semantic meaning: 0=success, 1=agent failure,
+  // 2=guard rail blocked.
+  int32 exit_code = 7;
+}
+
+// TokenUsage tracks token consumption for cost accounting.
+message TokenUsage {
+  // input_tokens is the number of input tokens consumed.
+  int64 input_tokens = 1;
+
+  // output_tokens is the number of output tokens consumed.
+  int64 output_tokens = 2;
+}

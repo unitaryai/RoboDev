@@ -1,0 +1,171 @@
+// Copyright 2026 The RoboDev Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package scm defines the SCMBackend plugin interface.
+// SCM (Source Code Management) backends handle git hosting operations:
+// creating branches, opening pull/merge requests, and querying their
+// status. This abstracts over different hosting platforms (GitHub,
+// GitLab, Bitbucket, etc.) so the controller can manage code changes
+// without coupling to a specific provider.
+
+syntax = "proto3";
+
+package robodev.v1;
+
+option go_package = "github.com/robodev-inc/robodev/proto/v1;v1";
+
+import "common.proto";
+
+// SCMBackend is the interface that all source code management plugins must
+// implement. Built-in backends (GitHub via gh CLI, GitLab via glab CLI) are
+// compiled into the controller binary; external backends run as gRPC
+// subprocesses.
+service SCMBackend {
+  // Handshake performs version negotiation between the controller and plugin.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+
+  // CreateBranch creates a new git branch in the remote repository.
+  // The agent typically creates branches locally, but this RPC is
+  // available for workflows where the controller manages branch creation
+  // (e.g. when using the SCM API rather than git CLI).
+  rpc CreateBranch(CreateBranchRequest) returns (CreateBranchResponse);
+
+  // CreatePullRequest opens a pull request (GitHub) or merge request
+  // (GitLab) for the agent's changes. Called after the agent completes
+  // successfully and pushes its branch.
+  rpc CreatePullRequest(CreatePullRequestRequest) returns (CreatePullRequestResponse);
+
+  // GetPullRequestStatus retrieves the current status of a pull/merge
+  // request, including CI checks, review state, and mergeability.
+  rpc GetPullRequestStatus(GetPullRequestStatusRequest) returns (GetPullRequestStatusResponse);
+}
+
+// CreateBranchRequest specifies the branch to create.
+message CreateBranchRequest {
+  // repo_url is the repository URL.
+  string repo_url = 1;
+
+  // branch_name is the name of the branch to create.
+  string branch_name = 2;
+
+  // base_ref is the commit, branch, or tag to base the new branch on.
+  // Defaults to the repository's default branch if empty.
+  string base_ref = 3;
+}
+
+// CreateBranchResponse confirms the branch creation.
+message CreateBranchResponse {
+  // sha is the commit SHA at the tip of the newly created branch.
+  string sha = 1;
+}
+
+// CreatePullRequestRequest specifies the pull/merge request to create.
+message CreatePullRequestRequest {
+  // repo_url is the repository URL.
+  string repo_url = 1;
+
+  // title is the pull request title.
+  string title = 2;
+
+  // body is the pull request description. Supports markdown.
+  string body = 3;
+
+  // head_branch is the source branch containing the changes.
+  string head_branch = 4;
+
+  // base_branch is the target branch to merge into. Defaults to the
+  // repository's default branch if empty.
+  string base_branch = 5;
+
+  // labels are labels to apply to the pull request.
+  repeated string labels = 6;
+
+  // draft indicates whether to create the pull request as a draft.
+  bool draft = 7;
+}
+
+// CreatePullRequestResponse contains the created pull request details.
+message CreatePullRequestResponse {
+  // pull_request_url is the web URL of the created pull/merge request.
+  string pull_request_url = 1;
+
+  // pull_request_id is the backend-specific identifier (e.g. PR number).
+  string pull_request_id = 2;
+}
+
+// GetPullRequestStatusRequest identifies the pull request to query.
+message GetPullRequestStatusRequest {
+  // repo_url is the repository URL.
+  string repo_url = 1;
+
+  // pull_request_id is the backend-specific identifier (e.g. PR number).
+  string pull_request_id = 2;
+}
+
+// GetPullRequestStatusResponse contains the current pull request state.
+message GetPullRequestStatusResponse {
+  // state is the current state of the pull request.
+  PullRequestState state = 1;
+
+  // mergeable indicates whether the pull request can be merged (no
+  // conflicts, all required checks passing).
+  bool mergeable = 2;
+
+  // ci_status is the aggregate status of CI checks.
+  CIStatus ci_status = 3;
+
+  // review_status is the aggregate status of code reviews.
+  ReviewStatus review_status = 4;
+
+  // pull_request_url is the web URL of the pull/merge request.
+  string pull_request_url = 5;
+}
+
+// PullRequestState represents the lifecycle state of a pull/merge request.
+enum PullRequestState {
+  // PULL_REQUEST_STATE_UNSPECIFIED is the default value.
+  PULL_REQUEST_STATE_UNSPECIFIED = 0;
+
+  // PULL_REQUEST_STATE_OPEN indicates the PR is open and active.
+  PULL_REQUEST_STATE_OPEN = 1;
+
+  // PULL_REQUEST_STATE_CLOSED indicates the PR was closed without merging.
+  PULL_REQUEST_STATE_CLOSED = 2;
+
+  // PULL_REQUEST_STATE_MERGED indicates the PR was merged.
+  PULL_REQUEST_STATE_MERGED = 3;
+
+  // PULL_REQUEST_STATE_DRAFT indicates the PR is open but marked as draft.
+  PULL_REQUEST_STATE_DRAFT = 4;
+}
+
+// CIStatus represents the aggregate status of CI checks on a pull request.
+enum CIStatus {
+  // CI_STATUS_UNSPECIFIED is the default value.
+  CI_STATUS_UNSPECIFIED = 0;
+
+  // CI_STATUS_PENDING indicates CI checks are still running.
+  CI_STATUS_PENDING = 1;
+
+  // CI_STATUS_PASSING indicates all CI checks have passed.
+  CI_STATUS_PASSING = 2;
+
+  // CI_STATUS_FAILING indicates one or more CI checks have failed.
+  CI_STATUS_FAILING = 3;
+}
+
+// ReviewStatus represents the aggregate status of code reviews.
+enum ReviewStatus {
+  // REVIEW_STATUS_UNSPECIFIED is the default value.
+  REVIEW_STATUS_UNSPECIFIED = 0;
+
+  // REVIEW_STATUS_PENDING indicates reviews have been requested but
+  // not yet submitted.
+  REVIEW_STATUS_PENDING = 1;
+
+  // REVIEW_STATUS_APPROVED indicates all required reviewers have approved.
+  REVIEW_STATUS_APPROVED = 2;
+
+  // REVIEW_STATUS_CHANGES_REQUESTED indicates a reviewer has requested changes.
+  REVIEW_STATUS_CHANGES_REQUESTED = 3;
+}

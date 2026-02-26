@@ -1,0 +1,162 @@
+// Copyright 2026 The RoboDev Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package engine defines the ExecutionEngine plugin interface.
+// Execution engines wrap AI coding tools (Claude Code, OpenAI Codex,
+// Aider, etc.) and are responsible for translating tasks into
+// engine-agnostic ExecutionSpecs. The core JobBuilder then translates
+// these specs into Kubernetes Jobs or other runtime constructs.
+// This decoupling enables testing without a cluster and opens the
+// door to non-K8s runtimes (Docker, Podman) in future.
+
+syntax = "proto3";
+
+package robodev.v1;
+
+option go_package = "github.com/robodev-inc/robodev/proto/v1;v1";
+
+import "common.proto";
+
+// ExecutionEngine is the interface that all engine plugins must implement.
+// Built-in engines (Claude Code, Codex) are compiled into the controller
+// binary; external engines run as gRPC subprocesses. Each engine knows
+// how to construct the appropriate container command, environment, and
+// prompt for its AI coding tool.
+service ExecutionEngine {
+  // Handshake performs version negotiation between the controller and plugin.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+
+  // BuildExecutionSpec returns a runtime-agnostic execution specification.
+  // The core JobBuilder handles translation to K8s Jobs, Docker containers,
+  // etc. The spec includes the container image, command, environment
+  // variables, resource requirements, and volumes.
+  rpc BuildExecutionSpec(BuildExecutionSpecRequest) returns (BuildExecutionSpecResponse);
+
+  // BuildPrompt constructs the task prompt for this engine. Different engines
+  // require different prompt formats (e.g. Claude Code uses markdown with
+  // CLAUDE.md context, Codex uses AGENTS.md, Aider uses conventions.md).
+  rpc BuildPrompt(BuildPromptRequest) returns (BuildPromptResponse);
+}
+
+// Task represents a unit of work to be performed by an engine.
+message Task {
+  // id is the unique task identifier.
+  string id = 1;
+
+  // ticket_id is the external ticket system identifier.
+  string ticket_id = 2;
+
+  // title is the task title.
+  string title = 3;
+
+  // description is the full task description.
+  string description = 4;
+
+  // repo_url is the repository URL to work on.
+  string repo_url = 5;
+
+  // labels are the task labels, used for guard rail profile selection.
+  repeated string labels = 6;
+
+  // metadata contains additional key-value pairs for engine-specific
+  // configuration.
+  map<string, string> metadata = 7;
+}
+
+// EngineConfig holds engine-specific configuration from robodev-config.yaml.
+message EngineConfig {
+  // image is the container image for the execution engine.
+  string image = 1;
+
+  // resource_requests specifies the minimum CPU and memory required.
+  Resources resource_requests = 2;
+
+  // resource_limits specifies the maximum CPU and memory allowed.
+  Resources resource_limits = 3;
+
+  // timeout_seconds is the maximum execution duration.
+  int32 timeout_seconds = 4;
+
+  // env contains additional environment variables to inject into the
+  // execution container.
+  map<string, string> env = 5;
+}
+
+// Resources describes CPU and memory requirements.
+message Resources {
+  // cpu is the CPU requirement (e.g. "500m", "2").
+  string cpu = 1;
+
+  // memory is the memory requirement (e.g. "512Mi", "4Gi").
+  string memory = 2;
+}
+
+// VolumeMount describes a volume to mount into the execution container.
+message VolumeMount {
+  // name is the volume name, matching a volume definition in the pod spec.
+  string name = 1;
+
+  // mount_path is the path inside the container where the volume is mounted.
+  string mount_path = 2;
+
+  // read_only indicates whether the volume should be mounted read-only.
+  bool read_only = 3;
+}
+
+// ExecutionSpec is an engine-agnostic description of what to run.
+// The core JobBuilder translates this into a K8s Job, Docker container,
+// or other runtime construct.
+message ExecutionSpec {
+  // image is the container image to run.
+  string image = 1;
+
+  // command is the entrypoint command and arguments.
+  repeated string command = 2;
+
+  // env contains environment variables to set in the container.
+  map<string, string> env = 3;
+
+  // secret_env maps environment variable names to secret references.
+  // The JobBuilder resolves these via the SecretsBackend.
+  map<string, string> secret_env = 4;
+
+  // resource_requests specifies the minimum CPU and memory required.
+  Resources resource_requests = 5;
+
+  // resource_limits specifies the maximum CPU and memory allowed.
+  Resources resource_limits = 6;
+
+  // volumes lists volumes to mount into the container.
+  repeated VolumeMount volumes = 7;
+
+  // active_deadline_seconds is the maximum time the job can run before
+  // being terminated by Kubernetes.
+  int32 active_deadline_seconds = 8;
+}
+
+// BuildExecutionSpecRequest carries the task and engine configuration.
+message BuildExecutionSpecRequest {
+  // task is the unit of work to build a spec for.
+  Task task = 1;
+
+  // config is the engine-specific configuration.
+  EngineConfig config = 2;
+}
+
+// BuildExecutionSpecResponse contains the generated execution specification.
+message BuildExecutionSpecResponse {
+  // spec is the runtime-agnostic execution specification.
+  ExecutionSpec spec = 1;
+}
+
+// BuildPromptRequest carries the task to build a prompt for.
+message BuildPromptRequest {
+  // task is the unit of work to build a prompt for.
+  Task task = 1;
+}
+
+// BuildPromptResponse contains the generated prompt.
+message BuildPromptResponse {
+  // prompt is the constructed prompt text for the AI coding tool.
+  string prompt = 1;
+}

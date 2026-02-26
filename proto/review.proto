@@ -1,0 +1,164 @@
+// Copyright 2026 The RoboDev Authors.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package review defines the ReviewBackend plugin interface.
+// Review backends integrate with code review systems (CodeRabbit,
+// native LLM-based review, custom review pipelines) to provide
+// quality gates that evaluate agent-produced diffs before they are
+// merged. The quality gate is deliberately read-only: it reviews
+// output but cannot modify the repository.
+
+syntax = "proto3";
+
+package robodev.v1;
+
+option go_package = "github.com/robodev-inc/robodev/proto/v1;v1";
+
+import "common.proto";
+
+// ReviewBackend is the interface that all code review plugins must
+// implement. The controller invokes this after an agent completes
+// successfully, passing the diff for review. The backend returns a
+// GateResult with a pass/fail verdict, review comments, and optional
+// security findings. Built-in backends (CodeRabbit) are compiled into
+// the controller binary; external backends run as gRPC subprocesses.
+service ReviewBackend {
+  // Handshake performs version negotiation between the controller and plugin.
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+
+  // ReviewDiff submits a diff for code review. The backend analyses the
+  // changes and returns a structured review result. This may involve
+  // calling an external service (CodeRabbit API) or running a local
+  // analysis pipeline.
+  rpc ReviewDiff(ReviewDiffRequest) returns (ReviewDiffResponse);
+
+  // GetGateResult retrieves the quality gate result for a previously
+  // submitted review. Useful when the review is asynchronous (e.g.
+  // waiting for an external service to complete its analysis).
+  rpc GetGateResult(GetGateResultRequest) returns (GetGateResultResponse);
+}
+
+// ReviewDiffRequest carries the diff and context for code review.
+message ReviewDiffRequest {
+  // task_run_id is the unique identifier for the execution attempt.
+  string task_run_id = 1;
+
+  // ticket provides context about the ticket this review relates to.
+  Ticket ticket = 2;
+
+  // diff is the unified diff produced by the agent. This is the primary
+  // input for the review.
+  string diff = 3;
+
+  // branch_name is the git branch containing the changes.
+  string branch_name = 4;
+
+  // repo_url is the repository URL where the changes were made.
+  string repo_url = 5;
+
+  // result is the structured execution result from the agent.
+  TaskResult result = 6;
+}
+
+// ReviewDiffResponse contains the initial acknowledgement or synchronous
+// review result.
+message ReviewDiffResponse {
+  // review_id is a backend-specific identifier for this review, used
+  // to retrieve asynchronous results via GetGateResult.
+  string review_id = 1;
+
+  // gate_result is the review verdict. Populated immediately for
+  // synchronous backends; may be empty for asynchronous backends
+  // that require a follow-up GetGateResult call.
+  GateResult gate_result = 2;
+}
+
+// GetGateResultRequest identifies a previously submitted review.
+message GetGateResultRequest {
+  // review_id is the backend-specific identifier returned by ReviewDiff.
+  string review_id = 1;
+}
+
+// GetGateResultResponse contains the quality gate verdict.
+message GetGateResultResponse {
+  // gate_result is the review verdict.
+  GateResult gate_result = 1;
+}
+
+// GateResult is the structured verdict from a quality gate review.
+message GateResult {
+  // passed indicates whether the diff meets the quality bar.
+  bool passed = 1;
+
+  // summary is a human-readable overview of the review outcome.
+  string summary = 2;
+
+  // comments is a list of specific review comments attached to the diff.
+  repeated ReviewComment comments = 3;
+
+  // security_findings is a list of security issues detected during review.
+  repeated SecurityFinding security_findings = 4;
+
+  // score is an optional numeric quality score (0-100). Backends that
+  // support scoring can use this for more granular pass/fail thresholds.
+  int32 score = 5;
+}
+
+// ReviewComment is a specific observation attached to a location in the diff.
+message ReviewComment {
+  // file_path is the path of the file this comment applies to.
+  string file_path = 1;
+
+  // line is the line number in the file (1-indexed).
+  int32 line = 2;
+
+  // severity classifies the importance of the comment.
+  Severity severity = 3;
+
+  // message is the review comment text.
+  string message = 4;
+
+  // suggestion is an optional code suggestion to replace the flagged lines.
+  string suggestion = 5;
+}
+
+// SecurityFinding represents a security issue detected during review.
+message SecurityFinding {
+  // rule_id identifies the security rule that was triggered
+  // (e.g. "CWE-79", "secret-in-diff").
+  string rule_id = 1;
+
+  // severity classifies the importance of the finding.
+  Severity severity = 2;
+
+  // file_path is the path of the file where the issue was found.
+  string file_path = 3;
+
+  // line is the line number in the file (1-indexed).
+  int32 line = 4;
+
+  // description explains the security issue.
+  string description = 5;
+
+  // cwe_id is the Common Weakness Enumeration identifier, if applicable.
+  string cwe_id = 6;
+}
+
+// Severity classifies the importance of review comments and security findings.
+enum Severity {
+  // SEVERITY_UNSPECIFIED is the default value.
+  SEVERITY_UNSPECIFIED = 0;
+
+  // SEVERITY_INFO is informational; no action required.
+  SEVERITY_INFO = 1;
+
+  // SEVERITY_WARNING indicates a potential issue that should be reviewed.
+  SEVERITY_WARNING = 2;
+
+  // SEVERITY_ERROR indicates a definite issue that must be addressed.
+  SEVERITY_ERROR = 3;
+
+  // SEVERITY_CRITICAL indicates a severe issue (e.g. security vulnerability)
+  // that blocks merging.
+  SEVERITY_CRITICAL = 4;
+}
