@@ -1,0 +1,41 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "robodev.fullname" . }}-agent
+  labels:
+    {{- include "robodev.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: agent
+      app.kubernetes.io/managed-by: robodev
+  policyTypes:
+    - Ingress
+    - Egress
+  # Deny ALL ingress — agent pods should not accept any inbound connections
+  ingress: []
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow HTTPS (443) for API calls (GitHub, LLM providers, package registries)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow SSH (22) for git clone/push over SSH
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 22
+    {{- with .Values.networkPolicy.agent }}
+    {{- if .extraEgressRules }}
+    {{- toYaml .extraEgressRules | nindent 4 }}
+    {{- end }}
+    {{- end }}
+{{- end }}

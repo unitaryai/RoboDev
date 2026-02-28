@@ -1,0 +1,75 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "robodev.fullname" . }}-controller
+  labels:
+    {{- include "robodev.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "robodev.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow webhook ingress (if webhooks are enabled)
+    {{- if and .Values.webhook .Values.webhook.enabled }}
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.webhook.port | default 8081 }}
+      {{- with .Values.networkPolicy.controller }}
+      {{- if .webhookSourceCIDR }}
+      from:
+        - ipBlock:
+            cidr: {{ .webhookSourceCIDR }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    # Allow metrics scraping
+    {{- if .Values.metrics.enabled }}
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.metrics.port | default 8080 }}
+      {{- with .Values.networkPolicy.controller }}
+      {{- if .metricsSourceSelector }}
+      from:
+        - podSelector:
+            matchLabels:
+              {{- toYaml .metricsSourceSelector | nindent 14 }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- with .Values.networkPolicy.controller }}
+    {{- if .extraIngressRules }}
+    {{- toYaml .extraIngressRules | nindent 4 }}
+    {{- end }}
+    {{- end }}
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow HTTPS for external API calls (ticketing, notifications, SCM, LLM)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow communication with Kubernetes API server
+    - to:
+        - ipBlock:
+            cidr: {{ ((.Values.networkPolicy.controller).kubeAPIServerCIDR) | default "0.0.0.0/0" }}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+    {{- with .Values.networkPolicy.controller }}
+    {{- if .extraEgressRules }}
+    {{- toYaml .extraEgressRules | nindent 4 }}
+    {{- end }}
+    {{- end }}
+{{- end }}

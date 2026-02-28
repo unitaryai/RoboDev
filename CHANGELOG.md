@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenCode engine (`pkg/engine/opencode/`) implementing `ExecutionEngine` for the OpenCode CLI
 - Command: `opencode --non-interactive --message <prompt>`, context file: `AGENTS.md`
 - Supports Anthropic, OpenAI, and Google model providers
+- OpenCode engine Dockerfile (`docker/engine-opencode/`) with `node:22-slim` base, OpenCode CLI, and non-root user
+- OpenCode entrypoint script with repo cloning, multi-provider support, and semantic exit codes
 - Makefile targets: `docker-build-engine-opencode`, `docker-build-dev-engine-opencode`
 
 #### Cline Execution Engine
@@ -43,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command: `cline --headless --task <prompt> --output-format json`, context file: `.clinerules`
 - Supports Anthropic, OpenAI, Google, and AWS Bedrock model providers
 - Optional MCP (Model Context Protocol) support via `WithMCPEnabled` option and `--mcp` flag
+- Cline engine Dockerfile (`docker/engine-cline/`) with `node:22-slim` base, headless CLI, and non-root user
+- Cline entrypoint script with repo cloning, MCP toggle (`MCP_ENABLED`), JSON output, and semantic exit codes
 - Makefile targets: `docker-build-engine-cline`, `docker-build-dev-engine-cline`
 
 #### Shortcut Ticketing Backend
@@ -70,7 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Controller NetworkPolicy (`networkpolicy-controller.yaml`): allow webhook and metrics ingress, egress to DNS, HTTPS, and K8s API
 - PodDisruptionBudget (`pdb.yaml`): configurable `minAvailable` / `maxUnavailable`, defaults to `minAvailable: 1`
 - All templates gated by `networkPolicy.enabled` and `pdb.enabled` values
-- New Helm values: `webhook`, `networkPolicy`, `pdb` sections
+- Webhook Service template (`service-webhook.yaml`) exposing webhook port separately from metrics
+- Webhook Ingress template (`ingress.yaml`) with className, annotations, hosts, paths, and TLS support
+- Webhook container port added to controller Deployment template (conditional on `webhook.enabled`)
+- New Helm values: `webhook` (with `service`, `ingress` sub-config), `networkPolicy`, `pdb` sections
 
 #### GitHub Backend Filtering
 - GitHub ticketing backend now supports filtering by assignee, milestone, and issue state in addition to labels
