@@ -115,6 +115,30 @@ func (s *Server) handleSlack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check for RoboDev approval callback actions. Actions with IDs
+	// matching "robodev_approve_*" or "robodev_reject_*" are approval
+	// responses — log them and extract the task run ID for future
+	// resolution wiring. Full approval resolution is not yet implemented.
+	for _, action := range payload.Actions {
+		if strings.HasPrefix(action.ActionID, "robodev_approve_") {
+			taskRunID := strings.TrimPrefix(action.ActionID, "robodev_approve_")
+			s.logger.Info("received approval callback",
+				slog.String("task_run_id", taskRunID),
+				slog.String("action", "approve"),
+				slog.String("user", payload.User.Username),
+				slog.String("value", action.Value),
+			)
+		} else if strings.HasPrefix(action.ActionID, "robodev_reject_") {
+			taskRunID := strings.TrimPrefix(action.ActionID, "robodev_reject_")
+			s.logger.Info("received rejection callback",
+				slog.String("task_run_id", taskRunID),
+				slog.String("action", "reject"),
+				slog.String("user", payload.User.Username),
+				slog.String("value", action.Value),
+			)
+		}
+	}
+
 	// Build a minimal ticket from the interaction. The approval backend
 	// typically handles the full callback flow; here we create a ticket
 	// stub so the event handler can route it.

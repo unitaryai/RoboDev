@@ -63,6 +63,14 @@ CLAUDE_ARGS=(
     --max-turns "${MAX_TURNS:-50}"
 )
 
+# ---- Environment variable stripping ----
+# When ENV_STRIPPING is enabled, remove sensitive credentials from the
+# environment after they have been consumed by the shell. This limits
+# exposure if the agent process is compromised.
+if [[ "${ENV_STRIPPING:-false}" == "true" ]]; then
+    unset ANTHROPIC_API_KEY
+fi
+
 # ---- Execute Claude Code ----
 echo "Running Claude Code agent..."
 EXIT_CODE=0

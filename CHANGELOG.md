@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Local Development Mode (Docker Compose)
+- DockerBuilder (`internal/jobbuilder/docker.go`) implementing `controller.JobBuilder` for local Docker execution — produces K8s Job objects annotated with `robodev.io/execution-backend: local`
+- Builder selection in `cmd/robodev/main.go`: reads `execution.backend` config to choose between standard ("job"), sandbox, or local Docker builder
+- Noop ticketing file-watcher mode: `NewWithTaskFile` constructor reads tasks from a local YAML file, enabling local development without a real ticketing provider
+- `FileTask` struct for YAML task definitions with ID, title, description, repo URL, and labels
+- `docker-compose.yaml` for running the controller outside Kubernetes with config and workspace volume mounts
+- Makefile targets: `compose-up` and `compose-down` for Docker Compose lifecycle
+- Table-driven tests for DockerBuilder (backend annotation, security context, volumes, env vars, resources)
+- Tests for noop file-watcher (valid YAML, empty file, malformed YAML, missing file, in-progress filtering)
+
+#### Governance: Approval Workflows, Audit Trail, and TaskRun Store
+- TaskRunStore interface (`internal/taskrun/store.go`) with `Save`, `Get`, `List`, and `ListByTicketID` methods for persistent TaskRun storage
+- MemoryStore in-memory implementation of TaskRunStore with thread-safe operations
+- Approval gates configuration: `approval_gates` list and `approval_cost_threshold_usd` in GuardRailsConfig (values: "pre_start", "high_cost", "pre_merge")
+- Pre-start approval gate: when "pre_start" is configured, TaskRun transitions Queued → NeedsHuman instead of launching a K8s Job, requiring human approval before execution begins
+- Pre-merge approval gate: when "pre_merge" is configured, completed jobs transition Running → NeedsHuman instead of marking the ticket complete, requiring human approval before merge
+- TaskRunStoreConfig with backend selection ("memory", "sqlite", "postgres") and SQLite path configuration — future durable backends can implement the TaskRunStore interface
+- Reconciler now persists TaskRun state to the store after every state transition (creation, approval hold, running, completion, failure, retry)
+- `WithTaskRunStore` reconciler option; defaults to MemoryStore when not provided
+- Slack webhook handler now parses `robodev_approve_*` and `robodev_reject_*` action IDs from approval callbacks, extracting task run IDs and logging structured approval/rejection events (stub for future resolution wiring)
+- Queued → NeedsHuman added as a valid state transition in the TaskRun state machine
+- Table-driven tests for MemoryStore (save/get, list, filter by ticket ID, not-found error)
+- Controller tests for pre-start approval gate blocking job creation, pre-merge gate holding completion, and store persistence verification
+- Config loading tests for new governance fields (approval gates, cost threshold, taskrun store backend)
+
+#### Integration Test Suite
+- Comprehensive three-tier integration test architecture: Tier 1 (E2E against Kind cluster), Tier 2 (in-process with fake K8s client), Tier 3 (in-process, no K8s)
+- No-op ticketing backend (`pkg/plugin/ticketing/noop/`) as fallback for webhook-only and test deployments — prevents nil-pointer panics when no ticketing backend is configured
+- Tier 3 tests: engine spec validation across all 5 engines, JobBuilder security hardening verification
+- Tier 2 tests: full reconciler pipeline, webhook-to-reconciler integration, TaskRun state machine lifecycle, guard rails with real reconciler wiring, secret resolver parsing and policy enforcement
+- Tier 1 E2E tests: webhook signature validation (GitHub HMAC-SHA256), container security contexts, Helm resource verification, NetworkPolicy rules, Prometheus metrics endpoints
+- Test orchestration script (`hack/run-integration-tests.sh`) producing markdown reports suitable for `claude -p` analysis
+- Test Helm values overlay (`hack/values-test.yaml`) with webhook secrets and NetworkPolicy enabled
+- Makefile targets: `deploy-test`, `integration-test`, `test-report`, `test-all`
+
 #### Webhook Receiver & Event-Driven Ingestion
 - HTTP webhook server (`internal/webhook/`) with route handlers for GitHub, GitLab, Slack, Shortcut, and a configurable generic handler
 - GitHub HMAC-SHA256 signature validation (`X-Hub-Signature-256`), issue event parsing for `opened` and `labeled` actions

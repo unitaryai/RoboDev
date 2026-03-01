@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/unitaryai/robodev/internal/agentstream"
 	"github.com/unitaryai/robodev/internal/taskrun"
 )
 
@@ -468,6 +469,53 @@ func (w *Watchdog) checkTelemetryFailure(
 func (w *Watchdog) isInGracePeriod(tr *taskrun.TaskRun) bool {
 	grace := time.Duration(w.config.ResearchGracePeriodMinutes) * time.Minute
 	return time.Since(tr.CreatedAt) < grace
+}
+
+// ConsumeStreamEvent updates the TaskRun's telemetry fields based on a
+// parsed stream event from the agent. This provides a real-time signal
+// alongside the periodic heartbeat checks.
+func (w *Watchdog) ConsumeStreamEvent(tr *taskrun.TaskRun, event *agentstream.StreamEvent) {
+	if tr == nil || event == nil {
+		return
+	}
+
+	switch ev := event.Parsed.(type) {
+	case *agentstream.ToolCallEvent:
+		tr.ToolCallsTotal++
+		if tr.LastToolName == ev.Tool {
+			tr.ConsecutiveIdenticalTools++
+		} else {
+			tr.ConsecutiveIdenticalTools = 1
+			tr.LastToolName = ev.Tool
+		}
+		w.logger.Debug("stream: tool call consumed",
+			"task_run_id", tr.ID,
+			"tool", ev.Tool,
+			"consecutive", tr.ConsecutiveIdenticalTools,
+		)
+
+	case *agentstream.CostEvent:
+		tr.TokensConsumed = ev.InputTokens + ev.OutputTokens
+		w.logger.Debug("stream: cost update consumed",
+			"task_run_id", tr.ID,
+			"input_tokens", ev.InputTokens,
+			"output_tokens", ev.OutputTokens,
+		)
+
+	case *agentstream.ContentDeltaEvent:
+		now := time.Now()
+		tr.HeartbeatAt = &now
+		w.logger.Debug("stream: heartbeat updated from content delta",
+			"task_run_id", tr.ID,
+		)
+
+	case *agentstream.ResultEvent:
+		w.logger.Info("stream: agent result received",
+			"task_run_id", tr.ID,
+			"success", ev.Success,
+			"summary", ev.Summary,
+		)
+	}
 }
 
 func (w *Watchdog) getOrCreateTickState(taskRunID string) *tickState {

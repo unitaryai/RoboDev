@@ -36,14 +36,78 @@ const (
 
 	// apiKeySecretName is the Kubernetes secret key for the Anthropic API key.
 	apiKeySecretName = "anthropic-api-key"
+
+	// DefaultTaskResultSchema is the JSON schema for structured task results
+	// returned by Claude Code when using --output-format stream-json with
+	// --json-schema. This enforces a well-typed TaskResult contract between
+	// the engine and the controller.
+	DefaultTaskResultSchema = `{
+  "type": "object",
+  "properties": {
+    "success": {"type": "boolean"},
+    "summary": {"type": "string"},
+    "merge_request_url": {"type": "string"},
+    "branch_name": {"type": "string"},
+    "tests_passed": {"type": "integer"},
+    "tests_failed": {"type": "integer"},
+    "tests_added": {"type": "integer"}
+  },
+  "required": ["success", "summary"]
+}`
 )
 
-// ClaudeCodeEngine implements engine.ExecutionEngine for the Claude Code CLI.
-type ClaudeCodeEngine struct{}
+// Option is a functional option for configuring a ClaudeCodeEngine.
+type Option func(*ClaudeCodeEngine)
 
-// New returns a new ClaudeCodeEngine.
-func New() *ClaudeCodeEngine {
-	return &ClaudeCodeEngine{}
+// WithFallbackModel sets the fallback model used when the primary model is
+// overloaded or unavailable (e.g. "haiku").
+func WithFallbackModel(model string) Option {
+	return func(e *ClaudeCodeEngine) {
+		e.fallbackModel = model
+	}
+}
+
+// WithToolWhitelist sets the list of tools the agent is allowed to use.
+// When set, only these tools will be available via --allowedTools.
+func WithToolWhitelist(tools []string) Option {
+	return func(e *ClaudeCodeEngine) {
+		e.toolWhitelist = tools
+	}
+}
+
+// WithJSONSchema sets the JSON schema for structured output. When set,
+// the engine uses --output-format stream-json with --json-schema instead
+// of the default --output-format json.
+func WithJSONSchema(schema string) Option {
+	return func(e *ClaudeCodeEngine) {
+		e.jsonSchema = schema
+	}
+}
+
+// WithTeamsConfig sets the agent teams configuration. When enabled, the
+// engine appends --agents flags and team-related environment variables
+// to the execution spec.
+func WithTeamsConfig(cfg TeamsConfig) Option {
+	return func(e *ClaudeCodeEngine) {
+		e.teamsConfig = cfg
+	}
+}
+
+// ClaudeCodeEngine implements engine.ExecutionEngine for the Claude Code CLI.
+type ClaudeCodeEngine struct {
+	fallbackModel string
+	toolWhitelist []string
+	jsonSchema    string
+	teamsConfig   TeamsConfig
+}
+
+// New returns a new ClaudeCodeEngine with the given functional options applied.
+func New(opts ...Option) *ClaudeCodeEngine {
+	e := &ClaudeCodeEngine{}
+	for _, opt := range opts {
+		opt(e)
+	}
+	return e
 }
 
 // Name returns the unique engine identifier.
@@ -79,19 +143,84 @@ func (e *ClaudeCodeEngine) BuildExecutionSpec(task engine.Task, config engine.En
 		timeout = defaultTimeoutSeconds
 	}
 
+	// Determine output format: stream-json when a schema is provided or
+	// streaming is explicitly enabled, otherwise plain json.
+	outputFormat := "json"
+	jsonSchema := config.JSONSchema
+	if jsonSchema == "" {
+		jsonSchema = e.jsonSchema
+	}
+	useStreaming := jsonSchema != "" || config.StreamingEnabled
+	if useStreaming {
+		outputFormat = "stream-json"
+	}
+
 	command := []string{
 		"claude",
 		"-p", prompt,
-		"--output-format", "json",
+		"--output-format", outputFormat,
 		"--max-turns", strconv.Itoa(defaultMaxTurns),
 		"--dangerously-skip-permissions",
 	}
+
+	// When streaming, add --verbose for richer event data (tool call
+	// details, cost breakdowns).
+	if useStreaming {
+		command = append(command, "--verbose")
+	}
+
+	if jsonSchema != "" {
+		command = append(command, "--json-schema", jsonSchema)
+	}
+
+	// Resolve fallback model: config takes precedence over engine-level default.
+	fallbackModel := config.FallbackModel
+	if fallbackModel == "" {
+		fallbackModel = e.fallbackModel
+	}
+	if fallbackModel != "" {
+		command = append(command, "--fallback-model", fallbackModel)
+	}
+
+	if config.NoSessionPersistence {
+		command = append(command, "--no-session-persistence")
+	}
+
+	if config.AppendSystemPrompt != "" {
+		command = append(command, "--append-system-prompt", config.AppendSystemPrompt)
+	}
+
+	// Resolve tool whitelist: config takes precedence over engine-level default.
+	toolWhitelist := config.ToolWhitelist
+	if len(toolWhitelist) == 0 {
+		toolWhitelist = e.toolWhitelist
+	}
+	if len(toolWhitelist) > 0 {
+		command = append(command, "--allowedTools", strings.Join(toolWhitelist, ","))
+	}
+
+	if len(config.ToolBlacklist) > 0 {
+		command = append(command, "--disallowedTools", strings.Join(config.ToolBlacklist, ","))
+	}
+
+	// Append agent teams flags when teams are enabled.
+	taskType := task.Metadata["task_type"]
+	teamFlags, err := BuildAgentFlags(e.teamsConfig, taskType)
+	if err != nil {
+		return nil, fmt.Errorf("building agent team flags: %w", err)
+	}
+	command = append(command, teamFlags...)
 
 	env := map[string]string{
 		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
 		"ROBODEV_TASK_ID":                          task.ID,
 		"ROBODEV_TICKET_ID":                        task.TicketID,
 		"ROBODEV_REPO_URL":                         task.RepoURL,
+	}
+
+	// Merge teams environment variables when teams are enabled.
+	for k, v := range TeamsEnvVars(e.teamsConfig) {
+		env[k] = v
 	}
 
 	// Merge any extra environment variables from the engine config.

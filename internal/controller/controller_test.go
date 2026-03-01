@@ -431,10 +431,11 @@ func TestHandleJobComplete(t *testing.T) {
 	_ = tr.Transition(taskrun.StateRunning)
 
 	r := &Reconciler{
-		config:    testConfig(),
-		logger:    logger,
-		ticketing: tb,
-		taskRuns:  map[string]*taskrun.TaskRun{"key-1": tr},
+		config:       testConfig(),
+		logger:       logger,
+		ticketing:    tb,
+		taskRuns:     map[string]*taskrun.TaskRun{"key-1": tr},
+		taskRunStore: taskrun.NewMemoryStore(),
 	}
 
 	ctx := context.Background()
@@ -454,10 +455,11 @@ func TestHandleJobFailed_WithRetry(t *testing.T) {
 	_ = tr.Transition(taskrun.StateRunning)
 
 	r := &Reconciler{
-		config:    testConfig(),
-		logger:    logger,
-		ticketing: tb,
-		taskRuns:  map[string]*taskrun.TaskRun{"key-1": tr},
+		config:       testConfig(),
+		logger:       logger,
+		ticketing:    tb,
+		taskRuns:     map[string]*taskrun.TaskRun{"key-1": tr},
+		taskRunStore: taskrun.NewMemoryStore(),
 	}
 
 	ctx := context.Background()
@@ -478,10 +480,11 @@ func TestHandleJobFailed_NoRetries(t *testing.T) {
 	tr.RetryCount = 1 // Already used the retry.
 
 	r := &Reconciler{
-		config:    testConfig(),
-		logger:    logger,
-		ticketing: tb,
-		taskRuns:  map[string]*taskrun.TaskRun{"key-1": tr},
+		config:       testConfig(),
+		logger:       logger,
+		ticketing:    tb,
+		taskRuns:     map[string]*taskrun.TaskRun{"key-1": tr},
+		taskRunStore: taskrun.NewMemoryStore(),
 	}
 
 	ctx := context.Background()
@@ -489,6 +492,161 @@ func TestHandleJobFailed_NoRetries(t *testing.T) {
 
 	assert.Equal(t, taskrun.StateFailed, tr.State)
 	assert.Contains(t, tb.markedFailed, "TICKET-1")
+}
+
+func TestProcessTicket_PreStartApprovalGate(t *testing.T) {
+	cfg := &config.Config{
+		Engines: config.EnginesConfig{Default: "claude-code"},
+		GuardRails: config.GuardRailsConfig{
+			MaxConcurrentJobs:     5,
+			MaxJobDurationMinutes: 120,
+			ApprovalGates:         []string{"pre_start"},
+		},
+	}
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	ticket := ticketing.Ticket{
+		ID:    "TICKET-GATE",
+		Title: "Fix the thing",
+	}
+
+	tb := newMockTicketing([]ticketing.Ticket{ticket})
+	eng := &mockEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithTicketing(tb),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	ctx := context.Background()
+	err := r.ProcessTicket(ctx, ticket)
+	require.NoError(t, err)
+
+	// Verify the TaskRun is held in NeedsHuman, not Running.
+	tr, ok := r.GetTaskRun("TICKET-GATE-1")
+	require.True(t, ok)
+	assert.Equal(t, taskrun.StateNeedsHuman, tr.State)
+	assert.Equal(t, "approve task start?", tr.HumanQuestion)
+
+	// Verify no K8s Job was created.
+	jobs, err := k8s.BatchV1().Jobs("test-ns").List(ctx, metav1.ListOptions{})
+	require.NoError(t, err)
+	assert.Empty(t, jobs.Items)
+
+	// Verify ticket was NOT marked in progress (no job started).
+	assert.Empty(t, tb.markedProgress)
+}
+
+func TestProcessTicket_NoApprovalGate(t *testing.T) {
+	cfg := testConfig() // No approval gates.
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	ticket := ticketing.Ticket{
+		ID:    "TICKET-NO-GATE",
+		Title: "Normal ticket",
+	}
+
+	tb := newMockTicketing([]ticketing.Ticket{ticket})
+	eng := &mockEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithTicketing(tb),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	ctx := context.Background()
+	err := r.ProcessTicket(ctx, ticket)
+	require.NoError(t, err)
+
+	// Verify the TaskRun is Running (not held).
+	tr, ok := r.GetTaskRun("TICKET-NO-GATE-1")
+	require.True(t, ok)
+	assert.Equal(t, taskrun.StateRunning, tr.State)
+
+	// Verify a K8s Job was created.
+	jobs, err := k8s.BatchV1().Jobs("test-ns").List(ctx, metav1.ListOptions{})
+	require.NoError(t, err)
+	assert.Len(t, jobs.Items, 1)
+}
+
+func TestProcessTicket_TaskRunStorePersistence(t *testing.T) {
+	cfg := testConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	store := taskrun.NewMemoryStore()
+
+	ticket := ticketing.Ticket{
+		ID:    "TICKET-STORE",
+		Title: "Test store persistence",
+	}
+
+	tb := newMockTicketing([]ticketing.Ticket{ticket})
+	eng := &mockEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithTicketing(tb),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+		WithTaskRunStore(store),
+	)
+
+	ctx := context.Background()
+	err := r.ProcessTicket(ctx, ticket)
+	require.NoError(t, err)
+
+	// Verify the TaskRun was persisted to the store.
+	runs, err := store.ListByTicketID(ctx, "TICKET-STORE")
+	require.NoError(t, err)
+	require.Len(t, runs, 1)
+	assert.Equal(t, taskrun.StateRunning, runs[0].State)
+}
+
+func TestHandleJobComplete_PreMergeGate(t *testing.T) {
+	cfg := &config.Config{
+		Engines: config.EnginesConfig{Default: "claude-code"},
+		GuardRails: config.GuardRailsConfig{
+			MaxConcurrentJobs:     5,
+			MaxJobDurationMinutes: 120,
+			ApprovalGates:         []string{"pre_merge"},
+		},
+	}
+	logger := testLogger()
+	tb := newMockTicketing(nil)
+	store := taskrun.NewMemoryStore()
+
+	tr := taskrun.New("tr-merge", "key-merge", "TICKET-MERGE", "claude-code")
+	_ = tr.Transition(taskrun.StateRunning)
+
+	r := &Reconciler{
+		config:       cfg,
+		logger:       logger,
+		ticketing:    tb,
+		taskRuns:     map[string]*taskrun.TaskRun{"key-merge": tr},
+		taskRunStore: store,
+	}
+
+	ctx := context.Background()
+	r.handleJobComplete(ctx, tr)
+
+	// Should be in NeedsHuman for pre-merge approval, not Succeeded.
+	assert.Equal(t, taskrun.StateNeedsHuman, tr.State)
+	assert.Equal(t, "approve merge of completed task?", tr.HumanQuestion)
+
+	// Ticket should NOT be marked complete yet.
+	assert.Empty(t, tb.markedComplete)
 }
 
 func TestRunContextCancellation(t *testing.T) {

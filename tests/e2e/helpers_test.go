@@ -4,8 +4,16 @@ package e2e
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"math/rand"
+	"net"
+	"net/http"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -13,6 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/stretchr/testify/require"
 )
 
 // testNamespace returns the namespace used for e2e tests.
@@ -121,4 +131,69 @@ func serviceEndpoint(t *testing.T, client kubernetes.Interface, ns, name string)
 
 	t.Fatalf("service %s/%s has no NodePort", ns, name)
 	return ""
+}
+
+// portForwardService starts kubectl port-forward to a service and returns the
+// local HTTP endpoint (e.g. "http://localhost:31234") and a cleanup function.
+func portForwardService(t *testing.T, ns, svcName string, svcPort int) (string, func()) {
+	t.Helper()
+
+	// Use a random local port to avoid collisions between parallel tests.
+	localPort := 30000 + rand.Intn(5000)
+	cmd := exec.Command("kubectl", "port-forward", "-n", ns,
+		fmt.Sprintf("svc/%s", svcName), fmt.Sprintf("%d:%d", localPort, svcPort))
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+	require.NoError(t, cmd.Start())
+
+	// Poll until the local port accepts connections.
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", localPort), 500*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+
+	endpoint := fmt.Sprintf("http://localhost:%d", localPort)
+	cleanup := func() {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+	}
+	return endpoint, cleanup
+}
+
+// webhookServiceName returns the name of the webhook receiver Service.
+func webhookServiceName() string { return "robodev-webhook" }
+
+// webhookSecret returns the HMAC secret used in e2e tests for the given source.
+func webhookSecret(source string) string {
+	secrets := map[string]string{
+		"github":   "e2e-test-github-secret",
+		"gitlab":   "e2e-test-gitlab-secret",
+		"slack":    "e2e-test-slack-secret",
+		"shortcut": "e2e-test-shortcut-secret",
+	}
+	return secrets[source]
+}
+
+// computeGitHubSignature computes the HMAC-SHA256 signature used by GitHub webhooks.
+func computeGitHubSignature(body []byte, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(body)
+	return "sha256=" + hex.EncodeToString(mac.Sum(nil))
+}
+
+// readMetricsBody fetches the /metrics endpoint from the given base URL and
+// returns the response body as a string.
+func readMetricsBody(t *testing.T, endpoint string) string {
+	t.Helper()
+	resp, err := http.Get(endpoint + "/metrics")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	return string(body)
 }

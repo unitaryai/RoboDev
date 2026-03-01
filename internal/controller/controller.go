@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/unitaryai/robodev/internal/agentstream"
 	"github.com/unitaryai/robodev/internal/config"
 	"github.com/unitaryai/robodev/internal/metrics"
 	"github.com/unitaryai/robodev/internal/taskrun"
@@ -31,17 +32,27 @@ type JobBuilder interface {
 // Reconciler orchestrates the full TaskRun lifecycle: polling tickets,
 // creating jobs, monitoring progress, and handling completion.
 type Reconciler struct {
-	config     *config.Config
-	logger     *slog.Logger
-	k8sClient  kubernetes.Interface
-	ticketing  ticketing.Backend
-	engines    map[string]engine.ExecutionEngine
-	notifiers  []notifications.Channel
-	jobBuilder JobBuilder
-	namespace  string
+	config         *config.Config
+	logger         *slog.Logger
+	k8sClient      kubernetes.Interface
+	ticketing      ticketing.Backend
+	engines        map[string]engine.ExecutionEngine
+	notifiers      []notifications.Channel
+	jobBuilder     JobBuilder
+	engineSelector EngineSelector
+	taskRunStore   taskrun.TaskRunStore
+	namespace      string
 
 	mu       sync.RWMutex
 	taskRuns map[string]*taskrun.TaskRun // keyed by idempotency key
+
+	// engineChains tracks the full ordered engine list per idempotency key,
+	// as determined at ticket processing time by the EngineSelector.
+	engineChains map[string][]string
+
+	// streamReaders tracks cancel functions for active stream readers,
+	// keyed by task run ID. Used to stop streaming when a job completes or fails.
+	streamReaders map[string]context.CancelFunc
 }
 
 // ReconcilerOption configures the Reconciler.
@@ -77,16 +88,34 @@ func WithNamespace(ns string) ReconcilerOption {
 	return func(r *Reconciler) { r.namespace = ns }
 }
 
+// WithEngineSelector sets a custom engine selector for fallback chain logic.
+func WithEngineSelector(es EngineSelector) ReconcilerOption {
+	return func(r *Reconciler) { r.engineSelector = es }
+}
+
+// WithTaskRunStore sets a persistent TaskRun store.
+func WithTaskRunStore(s taskrun.TaskRunStore) ReconcilerOption {
+	return func(r *Reconciler) { r.taskRunStore = s }
+}
+
 // NewReconciler creates a new Reconciler with the given configuration.
 func NewReconciler(cfg *config.Config, logger *slog.Logger, opts ...ReconcilerOption) *Reconciler {
 	r := &Reconciler{
-		config:   cfg,
-		logger:   logger,
-		engines:  make(map[string]engine.ExecutionEngine),
-		taskRuns: make(map[string]*taskrun.TaskRun),
+		config:        cfg,
+		logger:        logger,
+		engines:       make(map[string]engine.ExecutionEngine),
+		taskRuns:      make(map[string]*taskrun.TaskRun),
+		engineChains:  make(map[string][]string),
+		streamReaders: make(map[string]context.CancelFunc),
 	}
 	for _, opt := range opts {
 		opt(r)
+	}
+	if r.engineSelector == nil {
+		r.engineSelector = NewDefaultEngineSelector(cfg, r.engines)
+	}
+	if r.taskRunStore == nil {
+		r.taskRunStore = taskrun.NewMemoryStore()
 	}
 	return r
 }
@@ -202,12 +231,13 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 		return r.ticketing.MarkFailed(ctx, ticket.ID, fmt.Sprintf("guard rail violation: %v", err))
 	}
 
-	// Select engine.
-	engineName := r.config.Engines.Default
-	if engineName == "" {
-		engineName = "claude-code"
+	// Select engines using the configured selector (returns ordered fallback chain).
+	engineChain := r.engineSelector.SelectEngines(ticket)
+	if len(engineChain) == 0 {
+		return fmt.Errorf("no registered engines available for ticket %q", ticket.ID)
 	}
 
+	engineName := engineChain[0]
 	eng, ok := r.engines[engineName]
 	if !ok {
 		return fmt.Errorf("engine %q not registered", engineName)
@@ -220,6 +250,45 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 		ticket.ID,
 		engineName,
 	)
+	tr.CurrentEngine = engineName
+	tr.EngineAttempts = []string{engineName}
+
+	// Persist the newly created TaskRun.
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run to store",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	// Check pre-start approval gate: if configured, hold the TaskRun in
+	// NeedsHuman state instead of launching a job immediately.
+	if r.hasApprovalGate("pre_start") {
+		if err := tr.Transition(taskrun.StateNeedsHuman); err != nil {
+			return fmt.Errorf("transitioning task run to needs human: %w", err)
+		}
+		tr.HumanQuestion = "approve task start?"
+
+		r.mu.Lock()
+		r.taskRuns[idempotencyKey] = tr
+		r.engineChains[idempotencyKey] = engineChain
+		r.mu.Unlock()
+
+		if err := r.taskRunStore.Save(ctx, tr); err != nil {
+			r.logger.ErrorContext(ctx, "failed to save task run to store after approval gate",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+		}
+
+		metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateNeedsHuman)).Inc()
+
+		r.logger.InfoContext(ctx, "task run held for pre-start approval",
+			"ticket_id", ticket.ID,
+			"task_run_id", tr.ID,
+		)
+		return nil
+	}
 
 	// Build execution spec.
 	task := engine.Task{
@@ -265,10 +334,19 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 
 	tr.JobName = job.Name
 
-	// Store the TaskRun.
+	// Store the TaskRun and engine chain.
 	r.mu.Lock()
 	r.taskRuns[idempotencyKey] = tr
+	r.engineChains[idempotencyKey] = engineChain
 	r.mu.Unlock()
+
+	// Persist state after transition.
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run to store",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
 
 	// Update metrics.
 	metrics.ActiveJobs.Inc()
@@ -290,6 +368,11 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 				"error", err,
 			)
 		}
+	}
+
+	// Start stream reader for engines that support streaming output.
+	if engineName == "claude-code" && r.config.Streaming.Enabled {
+		r.startStreamReader(ctx, tr)
 	}
 
 	r.logger.InfoContext(ctx, "job created",
@@ -388,6 +471,37 @@ func (r *Reconciler) checkJobStatus(ctx context.Context, tr *taskrun.TaskRun) {
 
 // handleJobComplete processes a successfully completed job.
 func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun) {
+	r.cancelStreamReader(tr.ID)
+
+	// Check pre-merge approval gate: hold the TaskRun in NeedsHuman state
+	// before marking the ticket complete, so a human can review the output.
+	if r.hasApprovalGate("pre_merge") {
+		r.mu.Lock()
+		if err := tr.Transition(taskrun.StateNeedsHuman); err != nil {
+			r.mu.Unlock()
+			r.logger.ErrorContext(ctx, "failed to transition task run to needs human for pre-merge approval",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+			return
+		}
+		tr.HumanQuestion = "approve merge of completed task?"
+		r.mu.Unlock()
+
+		if err := r.taskRunStore.Save(ctx, tr); err != nil {
+			r.logger.ErrorContext(ctx, "failed to save task run to store",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+		}
+
+		r.logger.InfoContext(ctx, "task run held for pre-merge approval",
+			"task_run_id", tr.ID,
+			"ticket_id", tr.TicketID,
+		)
+		return
+	}
+
 	r.mu.Lock()
 	if err := tr.Transition(taskrun.StateSucceeded); err != nil {
 		r.mu.Unlock()
@@ -398,6 +512,13 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 		return
 	}
 	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run to store",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
 
 	metrics.ActiveJobs.Dec()
 	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateSucceeded)).Inc()
@@ -427,9 +548,47 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 	)
 }
 
-// handleJobFailed processes a failed job, retrying if allowed.
+// handleJobFailed processes a failed job, attempting engine fallback or
+// retrying with the same engine if allowed.
 func (r *Reconciler) handleJobFailed(ctx context.Context, tr *taskrun.TaskRun, reason string) {
+	r.cancelStreamReader(tr.ID)
+
 	r.mu.Lock()
+
+	// Check whether a fallback engine is available before exhausting retries.
+	chain := r.engineChains[tr.IdempotencyKey]
+	if len(chain) > len(tr.EngineAttempts) {
+		nextEngine := chain[len(tr.EngineAttempts)]
+		previousEngine := tr.CurrentEngine
+
+		if err := tr.Transition(taskrun.StateFailed); err != nil {
+			r.mu.Unlock()
+			return
+		}
+		tr.CurrentEngine = nextEngine
+		tr.EngineAttempts = append(tr.EngineAttempts, nextEngine)
+		if err := tr.Transition(taskrun.StateRetrying); err != nil {
+			r.mu.Unlock()
+			return
+		}
+		r.mu.Unlock()
+
+		if err := r.taskRunStore.Save(ctx, tr); err != nil {
+			r.logger.ErrorContext(ctx, "failed to save task run to store",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+		}
+
+		r.logger.InfoContext(ctx, "falling back to next engine",
+			"from", previousEngine,
+			"to", nextEngine,
+			"task_run", tr.ID,
+		)
+
+		r.launchFallbackJob(ctx, tr, nextEngine)
+		return
+	}
 
 	if tr.RetryCount < tr.MaxRetries {
 		if err := tr.Transition(taskrun.StateFailed); err != nil {
@@ -442,6 +601,13 @@ func (r *Reconciler) handleJobFailed(ctx context.Context, tr *taskrun.TaskRun, r
 			return
 		}
 		r.mu.Unlock()
+
+		if err := r.taskRunStore.Save(ctx, tr); err != nil {
+			r.logger.ErrorContext(ctx, "failed to save task run to store",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+		}
 
 		r.logger.InfoContext(ctx, "retrying task run",
 			"task_run_id", tr.ID,
@@ -456,6 +622,13 @@ func (r *Reconciler) handleJobFailed(ctx context.Context, tr *taskrun.TaskRun, r
 		return
 	}
 	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run to store",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
 
 	metrics.ActiveJobs.Dec()
 	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateFailed)).Inc()
@@ -473,6 +646,85 @@ func (r *Reconciler) handleJobFailed(ctx context.Context, tr *taskrun.TaskRun, r
 		"task_run_id", tr.ID,
 		"ticket_id", tr.TicketID,
 		"reason", reason,
+	)
+}
+
+// launchFallbackJob builds and creates a new K8s Job using the fallback
+// engine, then transitions the TaskRun back to Running.
+func (r *Reconciler) launchFallbackJob(ctx context.Context, tr *taskrun.TaskRun, engineName string) {
+	eng, ok := r.engines[engineName]
+	if !ok {
+		r.logger.ErrorContext(ctx, "fallback engine not registered",
+			"engine", engineName,
+			"task_run", tr.ID,
+		)
+		return
+	}
+
+	task := engine.Task{
+		ID:       tr.TicketID,
+		TicketID: tr.TicketID,
+	}
+
+	engineCfg := engine.EngineConfig{
+		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
+	}
+
+	spec, err := eng.BuildExecutionSpec(task, engineCfg)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to build fallback execution spec",
+			"engine", engineName,
+			"task_run", tr.ID,
+			"error", err,
+		)
+		return
+	}
+
+	if r.jobBuilder == nil {
+		return
+	}
+
+	// Use a unique job ID that includes the attempt number to avoid K8s
+	// name collisions with the previous engine's job.
+	jobID := fmt.Sprintf("%s-fb%d", tr.ID, len(tr.EngineAttempts))
+	job, err := r.jobBuilder.Build(jobID, engineName, spec)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to build fallback k8s job",
+			"engine", engineName,
+			"task_run", tr.ID,
+			"error", err,
+		)
+		return
+	}
+
+	if r.k8sClient != nil {
+		_, err = r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{})
+		if err != nil {
+			r.logger.ErrorContext(ctx, "failed to create fallback k8s job",
+				"engine", engineName,
+				"task_run", tr.ID,
+				"error", err,
+			)
+			return
+		}
+	}
+
+	r.mu.Lock()
+	if err := tr.Transition(taskrun.StateRunning); err != nil {
+		r.mu.Unlock()
+		r.logger.ErrorContext(ctx, "failed to transition task run to running after fallback",
+			"task_run", tr.ID,
+			"error", err,
+		)
+		return
+	}
+	tr.JobName = job.Name
+	r.mu.Unlock()
+
+	r.logger.InfoContext(ctx, "fallback job created",
+		"engine", engineName,
+		"job", job.Name,
+		"task_run_id", tr.ID,
 	)
 }
 
@@ -496,6 +748,90 @@ func (r *Reconciler) GetTaskRun(idempotencyKey string) (*taskrun.TaskRun, bool) 
 	defer r.mu.RUnlock()
 	tr, ok := r.taskRuns[idempotencyKey]
 	return tr, ok
+}
+
+// startStreamReader launches a background goroutine that reads NDJSON events
+// from the agent pod's logs and forwards them through the event pipeline.
+func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun) {
+	streamCtx, cancel := context.WithCancel(ctx)
+
+	r.mu.Lock()
+	r.streamReaders[tr.ID] = cancel
+	r.mu.Unlock()
+
+	go func() {
+		// Wait briefly for the pod to start before attempting to read logs.
+		select {
+		case <-streamCtx.Done():
+			return
+		case <-time.After(5 * time.Second):
+		}
+
+		eventCh := make(chan *agentstream.StreamEvent, 100)
+
+		reader := agentstream.NewReader(r.logger.With("component", "stream-reader", "task_run_id", tr.ID))
+		forwarder := agentstream.NewForwarder(
+			r.logger.With("component", "stream-forwarder", "task_run_id", tr.ID),
+		)
+
+		// Start the log reader in a separate goroutine.
+		go func() {
+			defer close(eventCh)
+			if r.k8sClient == nil {
+				return
+			}
+			if err := reader.ReadPodLogs(streamCtx, r.k8sClient, r.namespace, tr.JobName, "agent", eventCh); err != nil {
+				if streamCtx.Err() == nil {
+					r.logger.Warn("stream reader stopped with error",
+						"task_run_id", tr.ID,
+						"error", err,
+					)
+				}
+			}
+		}()
+
+		// Forward events until the channel is closed or context is cancelled.
+		if err := forwarder.Forward(streamCtx, eventCh); err != nil {
+			if streamCtx.Err() == nil {
+				r.logger.Warn("stream forwarder stopped with error",
+					"task_run_id", tr.ID,
+					"error", err,
+				)
+			}
+		}
+	}()
+
+	r.logger.Info("stream reader started",
+		"task_run_id", tr.ID,
+		"job", tr.JobName,
+	)
+}
+
+// cancelStreamReader stops the stream reader goroutine for the given task run
+// and removes it from the map. It is safe to call even if no reader exists.
+func (r *Reconciler) cancelStreamReader(taskRunID string) {
+	r.mu.Lock()
+	cancel, ok := r.streamReaders[taskRunID]
+	if ok {
+		delete(r.streamReaders, taskRunID)
+	}
+	r.mu.Unlock()
+
+	if ok {
+		cancel()
+		r.logger.Debug("stream reader cancelled", "task_run_id", taskRunID)
+	}
+}
+
+// hasApprovalGate returns true if the given gate name is present in the
+// configured approval gates list.
+func (r *Reconciler) hasApprovalGate(gate string) bool {
+	for _, g := range r.config.GuardRails.ApprovalGates {
+		if g == gate {
+			return true
+		}
+	}
+	return false
 }
 
 // matchGlob performs a simple glob match supporting * wildcards.

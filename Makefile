@@ -5,9 +5,10 @@
        docker-build-dev-engine-opencode docker-build-dev-engine-cline \
        helm-lint \
        check-prereqs kind-create kind-delete kind-load \
-       deploy undeploy local-up local-down local-redeploy \
+       deploy deploy-test undeploy local-up local-down local-redeploy \
        live-up live-redeploy live-deploy setup-secrets \
-       e2e-test logs
+       e2e-test integration-test test-report test-all logs \
+       compose-up compose-down
 
 BINARY := bin/robodev
 GO := go
@@ -157,9 +158,25 @@ local-down: undeploy kind-delete ## Tear down: uninstall release and delete clus
 
 local-redeploy: build docker-build-dev-controller kind-load deploy ## Fast rebuild and redeploy (reuses existing cluster)
 
+deploy-test: ## Deploy to kind cluster with test values overlay
+	helm upgrade --install $(HELM_RELEASE) charts/robodev/ \
+		--namespace $(HELM_NAMESPACE) \
+		-f charts/robodev/values.yaml \
+		-f hack/values-dev.yaml \
+		-f hack/values-test.yaml \
+		--wait --timeout 120s
+
 e2e-test: ## Run end-to-end tests against the kind cluster
 	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
 	$(GO) test -tags=e2e -count=1 $(GOFLAGS) ./tests/e2e/...
+
+integration-test: ## Run integration tests (Tier 2/3, no cluster needed)
+	$(GO) test -tags=integration -count=1 $(GOFLAGS) ./tests/integration/...
+
+test-report: ## Full orchestrated test run with markdown report
+	./hack/run-integration-tests.sh
+
+test-all: test integration-test ## Run unit + integration tests (no cluster needed)
 
 logs: ## Stream controller logs
 	kubectl logs -f -n $(HELM_NAMESPACE) -l app.kubernetes.io/name=robodev
@@ -186,5 +203,15 @@ live-up: build docker-build-dev-controller docker-build-dev-engine-claude-code k
 	@echo "  make local-down      — tear everything down"
 
 live-redeploy: build docker-build-dev-controller docker-build-dev-engine-claude-code kind-load live-deploy ## Fast rebuild and redeploy with live values (reuses cluster)
+
+# ---------------------------------------------------------------------------
+# Docker Compose (local development without K8s)
+# ---------------------------------------------------------------------------
+
+compose-up: ## Start local development environment via Docker Compose
+	docker compose up -d
+
+compose-down: ## Stop and remove local development containers
+	docker compose down
 
 .DEFAULT_GOAL := help

@@ -31,7 +31,7 @@ const (
 
 // validTransitions defines the allowed state transitions for a TaskRun.
 var validTransitions = map[State][]State{
-	StateQueued:     {StateRunning},
+	StateQueued:     {StateRunning, StateNeedsHuman},
 	StateRunning:    {StateNeedsHuman, StateSucceeded, StateFailed, StateTimedOut},
 	StateNeedsHuman: {StateRunning},
 	StateFailed:     {StateRetrying},
@@ -45,6 +45,8 @@ type TaskRun struct {
 	IdempotencyKey            string             `json:"idempotency_key"`
 	TicketID                  string             `json:"ticket_id"`
 	Engine                    string             `json:"engine"`
+	CurrentEngine             string             `json:"current_engine"`
+	EngineAttempts            []string           `json:"engine_attempts,omitempty"`
 	State                     State              `json:"state"`
 	JobName                   string             `json:"job_name,omitempty"`
 	CreatedAt                 time.Time          `json:"created_at"`

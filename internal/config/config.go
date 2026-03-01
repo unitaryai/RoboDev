@@ -16,6 +16,7 @@ type Config struct {
 	Notifications    NotificationsConfig  `yaml:"notifications"`
 	Secrets          SecretsConfig        `yaml:"secrets"`
 	Engines          EnginesConfig        `yaml:"engines"`
+	Execution        ExecutionConfig      `yaml:"execution"`
 	GuardRails       GuardRailsConfig     `yaml:"guardrails"`
 	PluginHealth     PluginHealthConfig   `yaml:"plugin_health"`
 	QualityGate      QualityGateConfig    `yaml:"quality_gate"`
@@ -25,6 +26,33 @@ type Config struct {
 	ProgressWatchdog WatchdogConfig       `yaml:"progress_watchdog"`
 	Webhook          WebhookConfig        `yaml:"webhook"`
 	SecretResolver   SecretResolverConfig `yaml:"secret_resolver"`
+	Streaming        StreamingConfig      `yaml:"streaming"`
+	TaskRunStore     TaskRunStoreConfig   `yaml:"taskrun_store"`
+}
+
+// ExecutionConfig configures how agent workloads are executed.
+type ExecutionConfig struct {
+	Backend string        `yaml:"backend"` // "job", "sandbox", or "local"
+	Sandbox SandboxConfig `yaml:"sandbox,omitempty"`
+}
+
+// SandboxConfig holds settings for gVisor-based sandboxed execution.
+type SandboxConfig struct {
+	RuntimeClass string         `yaml:"runtime_class"` // e.g. "gvisor", "kata"
+	WarmPool     WarmPoolConfig `yaml:"warm_pool,omitempty"`
+	EnvStripping bool           `yaml:"env_stripping"`
+}
+
+// WarmPoolConfig configures pre-warmed sandbox pools for faster startup.
+type WarmPoolConfig struct {
+	Enabled bool `yaml:"enabled"`
+	Size    int  `yaml:"size"`
+}
+
+// StreamingConfig configures real-time streaming of agent output events.
+type StreamingConfig struct {
+	Enabled           bool `yaml:"enabled"`
+	LiveNotifications bool `yaml:"live_notifications"`
 }
 
 // WebhookConfig configures the optional webhook receiver server.
@@ -111,12 +139,13 @@ type SecretsConfig struct {
 
 // EnginesConfig configures available execution engines.
 type EnginesConfig struct {
-	Default    string                  `yaml:"default"`
-	ClaudeCode *ClaudeCodeEngineConfig `yaml:"claude-code,omitempty"`
-	Codex      *CodexEngineConfig      `yaml:"codex,omitempty"`
-	Aider      *AiderEngineConfig      `yaml:"aider,omitempty"`
-	OpenCode   *OpenCodeEngineConfig   `yaml:"opencode,omitempty"`
-	Cline      *ClineEngineConfig      `yaml:"cline,omitempty"`
+	Default         string                  `yaml:"default"`
+	FallbackEngines []string                `yaml:"fallback_engines"`
+	ClaudeCode      *ClaudeCodeEngineConfig `yaml:"claude-code,omitempty"`
+	Codex           *CodexEngineConfig      `yaml:"codex,omitempty"`
+	Aider           *AiderEngineConfig      `yaml:"aider,omitempty"`
+	OpenCode        *OpenCodeEngineConfig   `yaml:"opencode,omitempty"`
+	Cline           *ClineEngineConfig      `yaml:"cline,omitempty"`
 }
 
 // OpenCodeEngineConfig holds OpenCode-specific engine settings.
@@ -136,9 +165,15 @@ type ClineEngineConfig struct {
 
 // ClaudeCodeEngineConfig holds Claude Code-specific engine settings.
 type ClaudeCodeEngineConfig struct {
-	Image      string           `yaml:"image,omitempty"`
-	Auth       AuthConfig       `yaml:"auth"`
-	AgentTeams AgentTeamsConfig `yaml:"agent_teams"`
+	Image                string           `yaml:"image,omitempty"`
+	Auth                 AuthConfig       `yaml:"auth"`
+	AgentTeams           AgentTeamsConfig `yaml:"agent_teams"`
+	FallbackModel        string           `yaml:"fallback_model,omitempty"`
+	ToolWhitelist        []string         `yaml:"tool_whitelist,omitempty"`
+	ToolBlacklist        []string         `yaml:"tool_blacklist,omitempty"`
+	JSONSchema           string           `yaml:"json_schema,omitempty"`
+	NoSessionPersistence bool             `yaml:"no_session_persistence,omitempty"`
+	AppendSystemPrompt   string           `yaml:"append_system_prompt,omitempty"`
 }
 
 // CodexEngineConfig holds OpenAI Codex-specific engine settings.
@@ -163,20 +198,50 @@ type AuthConfig struct {
 
 // AgentTeamsConfig configures experimental agent teams for Claude Code.
 type AgentTeamsConfig struct {
-	Enabled      bool   `yaml:"enabled"`
-	Mode         string `yaml:"mode"` // "in-process"
-	MaxTeammates int    `yaml:"max_teammates"`
+	Enabled      bool                `yaml:"enabled"`
+	Mode         string              `yaml:"mode"` // "in-process"
+	MaxTeammates int                 `yaml:"max_teammates"`
+	Agents       map[string]AgentDef `yaml:"agents,omitempty"`
+}
+
+// AgentDef defines a single agent within an agent team configuration.
+type AgentDef struct {
+	Role         string `yaml:"role"`
+	Model        string `yaml:"model,omitempty"`
+	Instructions string `yaml:"instructions,omitempty"`
 }
 
 // GuardRailsConfig configures controller-level safety boundaries.
 type GuardRailsConfig struct {
-	MaxCostPerJob                float64  `yaml:"max_cost_per_job"`
-	MaxConcurrentJobs            int      `yaml:"max_concurrent_jobs"`
-	MaxJobDurationMinutes        int      `yaml:"max_job_duration_minutes"`
-	AllowedRepos                 []string `yaml:"allowed_repos"`
-	BlockedFilePatterns          []string `yaml:"blocked_file_patterns"`
-	RequireHumanApprovalBeforeMR bool     `yaml:"require_human_approval_before_mr"`
-	AllowedTaskTypes             []string `yaml:"allowed_task_types"`
+	MaxCostPerJob                float64                      `yaml:"max_cost_per_job"`
+	MaxConcurrentJobs            int                          `yaml:"max_concurrent_jobs"`
+	MaxJobDurationMinutes        int                          `yaml:"max_job_duration_minutes"`
+	AllowedRepos                 []string                     `yaml:"allowed_repos"`
+	BlockedFilePatterns          []string                     `yaml:"blocked_file_patterns"`
+	RequireHumanApprovalBeforeMR bool                         `yaml:"require_human_approval_before_mr"`
+	AllowedTaskTypes             []string                     `yaml:"allowed_task_types"`
+	TaskProfiles                 map[string]TaskProfileConfig `yaml:"task_profiles,omitempty"`
+	ApprovalGates                []string                     `yaml:"approval_gates,omitempty"`
+	ApprovalCostThresholdUSD     float64                      `yaml:"approval_cost_threshold_usd,omitempty"`
+}
+
+// TaskRunStoreConfig configures the persistent TaskRun store backend.
+type TaskRunStoreConfig struct {
+	Backend string            `yaml:"backend"` // "memory", "sqlite", "postgres"
+	SQLite  SQLiteStoreConfig `yaml:"sqlite,omitempty"`
+}
+
+// SQLiteStoreConfig holds SQLite-specific store settings.
+type SQLiteStoreConfig struct {
+	Path string `yaml:"path"`
+}
+
+// TaskProfileConfig configures per-task-type behaviour such as workflow mode
+// and tool restrictions.
+type TaskProfileConfig struct {
+	Workflow      string   `yaml:"workflow,omitempty"`       // "tdd", "review-first", or "" for default
+	ToolWhitelist []string `yaml:"tool_whitelist,omitempty"` // allowed tool commands
+	ToolBlacklist []string `yaml:"tool_blacklist,omitempty"` // blocked tool commands
 }
 
 // PluginHealthConfig configures plugin health monitoring.

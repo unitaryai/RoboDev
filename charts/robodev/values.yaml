@@ -99,6 +99,15 @@ webhook:
     #    hosts:
     #      - webhooks.example.com
 
+# Sandbox — gVisor-based agent isolation with optional warm pools.
+sandbox:
+  enabled: false
+  runtimeClass: gvisor
+  warmPool:
+    enabled: false
+    size: 3
+  envStripping: true
+
 # NetworkPolicy — restrict ingress/egress for controller and agent pods.
 networkPolicy:
   enabled: false

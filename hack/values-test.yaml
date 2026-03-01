@@ -1,0 +1,33 @@
+image:
+  pullPolicy: Never
+  tag: dev
+leaderElection:
+  enabled: false
+resources:
+  limits:
+    cpu: "1"
+    memory: 512Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+service:
+  type: NodePort
+  nodePort: 30080
+config:
+  ticketing:
+    backend: ""
+  webhook:
+    enabled: true
+    github:
+      secret: e2e-test-github-secret
+    gitlab:
+      secret: e2e-test-gitlab-secret
+    slack:
+      secret: e2e-test-slack-secret
+    shortcut:
+      secret: e2e-test-shortcut-secret
+webhook:
+  enabled: true
+  port: 8081
+networkPolicy:
+  enabled: true

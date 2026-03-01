@@ -22,12 +22,14 @@ import (
 	"github.com/unitaryai/robodev/internal/config"
 	"github.com/unitaryai/robodev/internal/controller"
 	"github.com/unitaryai/robodev/internal/jobbuilder"
+	"github.com/unitaryai/robodev/internal/sandboxbuilder"
 	"github.com/unitaryai/robodev/internal/webhook"
 	"github.com/unitaryai/robodev/pkg/engine/claudecode"
 	"github.com/unitaryai/robodev/pkg/engine/cline"
 	"github.com/unitaryai/robodev/pkg/engine/opencode"
 	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
 	ghticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/github"
+	noopticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/noop"
 
 	// Notification backends — imported conditionally.
 	slacknotify "github.com/unitaryai/robodev/pkg/plugin/notifications/slack"
@@ -94,6 +96,18 @@ func main() {
 	} else if cfg.Ticketing.Backend != "" {
 		logger.Error("unsupported ticketing backend", "backend", cfg.Ticketing.Backend)
 		os.Exit(1)
+	} else {
+		// Check for a task_file in the ticketing config (file-watcher mode).
+		if taskFile, _, err := configStringOptional(cfg.Ticketing.Config, "task_file"); err != nil {
+			logger.Error("invalid task_file config", "error", err)
+			os.Exit(1)
+		} else if taskFile != "" {
+			opts = append(opts, controller.WithTicketing(noopticket.NewWithTaskFile(logger, taskFile)))
+			logger.Info("noop ticketing with file-watcher enabled", "task_file", taskFile)
+		} else {
+			opts = append(opts, controller.WithTicketing(noopticket.New()))
+			logger.Info("no ticketing backend configured, using noop fallback")
+		}
 	}
 
 	// --- Execution engines ---
@@ -133,7 +147,20 @@ func main() {
 	}
 
 	// --- Job builder ---
-	jb := jobbuilder.NewJobBuilder(*namespace)
+	var jb controller.JobBuilder
+	switch cfg.Execution.Backend {
+	case "local":
+		jb = jobbuilder.NewDockerBuilder(*namespace)
+		logger.Info("using local docker job builder")
+	case "sandbox":
+		jb = sandboxbuilder.New(*namespace, cfg.Execution.Sandbox)
+		logger.Info("using sandbox job builder",
+			"runtime_class", cfg.Execution.Sandbox.RuntimeClass,
+		)
+	default:
+		jb = jobbuilder.NewJobBuilder(*namespace)
+		logger.Info("using standard kubernetes job builder")
+	}
 	opts = append(opts, controller.WithJobBuilder(jb))
 
 	// --- Notification channels (non-critical) ---

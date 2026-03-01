@@ -34,6 +34,7 @@ func TestBuildExecutionSpec(t *testing.T) {
 
 	tests := []struct {
 		name    string
+		opts    []Option
 		task    engine.Task
 		config  engine.EngineConfig
 		check   func(t *testing.T, spec *engine.ExecutionSpec)
@@ -172,11 +173,304 @@ func TestBuildExecutionSpec(t *testing.T) {
 			config:  engine.EngineConfig{},
 			wantErr: true,
 		},
+
+		// --- New flag combination tests ---
+
+		{
+			name: "json schema from config switches to stream-json output",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+				JSONSchema:     `{"type":"object"}`,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--output-format")
+				assert.Contains(t, spec.Command, "stream-json")
+				assert.NotContains(t, spec.Command, "json")
+				assert.Contains(t, spec.Command, "--json-schema")
+				assert.Contains(t, spec.Command, `{"type":"object"}`)
+			},
+		},
+		{
+			name: "json schema from engine option switches to stream-json output",
+			opts: []Option{WithJSONSchema(DefaultTaskResultSchema)},
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--output-format")
+				assert.Contains(t, spec.Command, "stream-json")
+				assert.Contains(t, spec.Command, "--json-schema")
+				assert.Contains(t, spec.Command, DefaultTaskResultSchema)
+			},
+		},
+		{
+			name: "config json schema overrides engine option",
+			opts: []Option{WithJSONSchema(`{"type":"string"}`)},
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+				JSONSchema:     `{"type":"object"}`,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--json-schema")
+				assert.Contains(t, spec.Command, `{"type":"object"}`)
+				assert.NotContains(t, spec.Command, `{"type":"string"}`)
+			},
+		},
+		{
+			name: "no json schema uses plain json output",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "json")
+				assert.NotContains(t, spec.Command, "stream-json")
+				assert.NotContains(t, spec.Command, "--json-schema")
+			},
+		},
+		{
+			name: "fallback model from config",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+				FallbackModel:  "haiku",
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--fallback-model")
+				assert.Contains(t, spec.Command, "haiku")
+			},
+		},
+		{
+			name: "fallback model from engine option",
+			opts: []Option{WithFallbackModel("sonnet")},
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--fallback-model")
+				assert.Contains(t, spec.Command, "sonnet")
+			},
+		},
+		{
+			name: "config fallback model overrides engine option",
+			opts: []Option{WithFallbackModel("sonnet")},
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+				FallbackModel:  "haiku",
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--fallback-model")
+				assert.Contains(t, spec.Command, "haiku")
+				assert.NotContains(t, spec.Command, "sonnet")
+			},
+		},
+		{
+			name: "no fallback model omits flag",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.NotContains(t, spec.Command, "--fallback-model")
+			},
+		},
+		{
+			name: "no session persistence flag",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds:       3600,
+				NoSessionPersistence: true,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--no-session-persistence")
+			},
+		},
+		{
+			name: "no session persistence omitted when false",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.NotContains(t, spec.Command, "--no-session-persistence")
+			},
+		},
+		{
+			name: "append system prompt from config",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds:     3600,
+				AppendSystemPrompt: "Never modify production databases.",
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--append-system-prompt")
+				assert.Contains(t, spec.Command, "Never modify production databases.")
+			},
+		},
+		{
+			name: "append system prompt omitted when empty",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.NotContains(t, spec.Command, "--append-system-prompt")
+			},
+		},
+		{
+			name: "tool whitelist from config",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+				ToolWhitelist:  []string{"Read", "Write", "Bash"},
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--allowedTools")
+				assert.Contains(t, spec.Command, "Read,Write,Bash")
+			},
+		},
+		{
+			name: "tool whitelist from engine option",
+			opts: []Option{WithToolWhitelist([]string{"Read", "Grep"})},
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--allowedTools")
+				assert.Contains(t, spec.Command, "Read,Grep")
+			},
+		},
+		{
+			name: "config tool whitelist overrides engine option",
+			opts: []Option{WithToolWhitelist([]string{"Read", "Grep"})},
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+				ToolWhitelist:  []string{"Bash", "Write"},
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--allowedTools")
+				assert.Contains(t, spec.Command, "Bash,Write")
+				assert.NotContains(t, spec.Command, "Read,Grep")
+			},
+		},
+		{
+			name: "empty tool whitelist omits flag",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.NotContains(t, spec.Command, "--allowedTools")
+			},
+		},
+		{
+			name: "tool blacklist from config",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+				ToolBlacklist:  []string{"Bash", "NotebookEdit"},
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--disallowedTools")
+				assert.Contains(t, spec.Command, "Bash,NotebookEdit")
+			},
+		},
+		{
+			name: "empty tool blacklist omits flag",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.NotContains(t, spec.Command, "--disallowedTools")
+			},
+		},
+		// --- Streaming output tests ---
+
+		{
+			name: "streaming enabled without json schema uses stream-json and verbose",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds:   3600,
+				StreamingEnabled: true,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--output-format")
+				assert.Contains(t, spec.Command, "stream-json")
+				assert.Contains(t, spec.Command, "--verbose")
+				assert.NotContains(t, spec.Command, "--json-schema")
+			},
+		},
+		{
+			name: "streaming enabled with json schema uses stream-json verbose and schema",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds:   3600,
+				StreamingEnabled: true,
+				JSONSchema:       `{"type":"object"}`,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--output-format")
+				assert.Contains(t, spec.Command, "stream-json")
+				assert.Contains(t, spec.Command, "--verbose")
+				assert.Contains(t, spec.Command, "--json-schema")
+				assert.Contains(t, spec.Command, `{"type":"object"}`)
+			},
+		},
+		{
+			name: "streaming disabled without schema uses plain json and no verbose",
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds: 3600,
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "--output-format")
+				assert.Contains(t, spec.Command, "json")
+				assert.NotContains(t, spec.Command, "stream-json")
+				assert.NotContains(t, spec.Command, "--verbose")
+			},
+		},
+
+		{
+			name: "all flags combined",
+			opts: []Option{WithFallbackModel("default-fallback")},
+			task: baseTask,
+			config: engine.EngineConfig{
+				TimeoutSeconds:       3600,
+				FallbackModel:        "haiku",
+				JSONSchema:           DefaultTaskResultSchema,
+				NoSessionPersistence: true,
+				AppendSystemPrompt:   "Be careful.",
+				ToolWhitelist:        []string{"Read", "Write"},
+				ToolBlacklist:        []string{"Bash"},
+			},
+			check: func(t *testing.T, spec *engine.ExecutionSpec) {
+				assert.Contains(t, spec.Command, "stream-json")
+				assert.Contains(t, spec.Command, "--json-schema")
+				assert.Contains(t, spec.Command, "--verbose")
+				assert.Contains(t, spec.Command, "--fallback-model")
+				assert.Contains(t, spec.Command, "haiku")
+				assert.Contains(t, spec.Command, "--no-session-persistence")
+				assert.Contains(t, spec.Command, "--append-system-prompt")
+				assert.Contains(t, spec.Command, "Be careful.")
+				assert.Contains(t, spec.Command, "--allowedTools")
+				assert.Contains(t, spec.Command, "Read,Write")
+				assert.Contains(t, spec.Command, "--disallowedTools")
+				assert.Contains(t, spec.Command, "Bash")
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := New()
+			e := New(tt.opts...)
 			spec, err := e.BuildExecutionSpec(tt.task, tt.config)
 
 			if tt.wantErr {
@@ -189,6 +483,65 @@ func TestBuildExecutionSpec(t *testing.T) {
 			if tt.check != nil {
 				tt.check(t, spec)
 			}
+		})
+	}
+}
+
+func TestFunctionalOptions(t *testing.T) {
+	tests := []struct {
+		name  string
+		opts  []Option
+		check func(t *testing.T, e *ClaudeCodeEngine)
+	}{
+		{
+			name: "no options leaves defaults",
+			opts: nil,
+			check: func(t *testing.T, e *ClaudeCodeEngine) {
+				assert.Empty(t, e.fallbackModel)
+				assert.Empty(t, e.toolWhitelist)
+				assert.Empty(t, e.jsonSchema)
+			},
+		},
+		{
+			name: "WithFallbackModel sets fallback",
+			opts: []Option{WithFallbackModel("haiku")},
+			check: func(t *testing.T, e *ClaudeCodeEngine) {
+				assert.Equal(t, "haiku", e.fallbackModel)
+			},
+		},
+		{
+			name: "WithToolWhitelist sets whitelist",
+			opts: []Option{WithToolWhitelist([]string{"Read", "Write"})},
+			check: func(t *testing.T, e *ClaudeCodeEngine) {
+				assert.Equal(t, []string{"Read", "Write"}, e.toolWhitelist)
+			},
+		},
+		{
+			name: "WithJSONSchema sets schema",
+			opts: []Option{WithJSONSchema(DefaultTaskResultSchema)},
+			check: func(t *testing.T, e *ClaudeCodeEngine) {
+				assert.Equal(t, DefaultTaskResultSchema, e.jsonSchema)
+			},
+		},
+		{
+			name: "multiple options compose",
+			opts: []Option{
+				WithFallbackModel("sonnet"),
+				WithToolWhitelist([]string{"Bash"}),
+				WithJSONSchema(`{"type":"object"}`),
+			},
+			check: func(t *testing.T, e *ClaudeCodeEngine) {
+				assert.Equal(t, "sonnet", e.fallbackModel)
+				assert.Equal(t, []string{"Bash"}, e.toolWhitelist)
+				assert.Equal(t, `{"type":"object"}`, e.jsonSchema)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New(tt.opts...)
+			tt.check(t, e)
 		})
 	}
 }
