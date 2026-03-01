@@ -97,6 +97,24 @@ If a job fails and retries remain (default `max_retries: 1`), the controller tra
 
 Retry is useful for transient failures (API timeouts, rate limits). Persistent failures (invalid credentials, unsupported task) will fail again — the quality of error messages helps humans decide whether to retry manually.
 
+### Causal Diagnosis (Coming Soon)
+
+> **Status:** Scaffolding complete, integration pending. See `docs/roadmap.md` Phase I.
+
+RoboDev is building a causal diagnosis system (`internal/diagnosis/`) that replaces blind retries with informed corrective action. When a task fails, a diagnosis pipeline analyses the stream transcript, watchdog reason, and result data to classify the failure:
+
+| Failure Mode | Example | Corrective Action |
+|---|---|---|
+| `WrongApproach` | Agent edited wrong files | "Focus specifically on [scope]. Do not modify files outside [area]." |
+| `DependencyMissing` | `module not found` errors | "Before starting, ensure [dependency] is available." |
+| `TestMisunderstanding` | Agent modified test files | "Do not modify test files. The existing tests define expected behaviour." |
+| `ScopeCreep` | Too many files changed | "Limit changes to at most [N] files." |
+| `PermissionBlocked` | `EACCES` errors | "Try [alternative approach] that doesn't require elevated permissions." |
+| `ModelConfusion` | Repeated undo/redo cycles | "Take a step-by-step approach." |
+| `InfraFailure` | OOMKilled, timeout | Engine switch or resource adjustment |
+
+The diagnosis is injected into the retry prompt alongside the original task, and the system can optionally switch to a different engine if the failure is engine-specific.
+
 ## Heartbeats and Staleness
 
 Each TaskRun carries a `HeartbeatAt` timestamp. The agent container is expected to push heartbeats at regular intervals (via the PostToolUse hook). If the time since the last heartbeat exceeds `heartbeat_ttl_seconds` (default: 300), the TaskRun is considered stale and the watchdog may intervene.

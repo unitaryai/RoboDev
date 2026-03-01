@@ -9,6 +9,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Bleeding-Edge Agentic Engineering Features (Scaffolding)
+
+> **Note:** All seven features below have complete packages with types, core logic, unit tests, and integration tests. Config sections and Prometheus metrics are defined. However, none are wired into the controller yet — the reconciler, `main.go`, and prompt builder are unchanged. See `docs/roadmap.md` Phase I for the full integration plan.
+
+##### Controller-Level Process Reward Model (Feature 2) — Real-Time Agent Coaching
+- New `internal/prm/` package: rule-based step scoring from tool call patterns, trajectory tracking with pattern detection (sustained decline, plateau, oscillation, recovery), and intervention decision logic (continue/nudge/escalate)
+- `Scorer` evaluates rolling windows of tool calls: penalises repetition, rewards productive patterns (read→edit, edit→test), and tracks tool diversity
+- `Trajectory` detects patterns across score history with configurable window length
+- `InterventionDecider` triggers soft nudges (hint file at `/workspace/.robodev-hint.md`) or watchdog escalation based on score thresholds and trajectory patterns
+- `Evaluator` ties scoring, trajectory, and intervention into a single entry point wired into the streaming pipeline via `WithEventProcessor`
+- `PRMConfig` in controller config: `evaluation_interval`, `window_size`, `score_threshold_nudge`, `score_threshold_escalate`, `hint_file_path`, `max_budget_usd`
+- Prometheus metrics: `prm_step_scores` histogram, `prm_interventions_total` counter by action, `prm_trajectory_patterns_total` counter by pattern
+
+##### Cross-Task Episodic Memory with Temporal Knowledge Graph (Feature 3)
+- New `internal/memory/` package: persistent knowledge graph accumulating structured lessons from every TaskRun across all engines, repos, and tenants
+- Node types: `Fact` (with temporal validity and confidence decay), `Pattern` (recurring observations), `EngineProfile` (per-engine capability data)
+- Edge relations: `relates_to`, `contradicts`, `supersedes` with weighted connections
+- SQLite-backed storage (`modernc.org/sqlite`, pure Go) with auto-migration on startup
+- Heuristic knowledge extractor: harvests facts from task outcomes, watchdog events, engine fallbacks, and tool call patterns
+- Temporal query engine: retrieves relevant facts weighted by recency, confidence, and decay rate with cross-tenant isolation
+- `MemoryConfig` in controller config: `store_path`, `decay_interval_hours`, `prune_threshold`, `max_facts_per_query`, `tenant_isolation`
+- Prometheus metrics: `memory_nodes_total` gauge by type, `memory_queries_total` counter, `memory_extractions_total` counter by outcome, `memory_confidence_distribution` histogram
+
+##### Self-Healing Retry with Causal Diagnosis (Feature 4)
+- New `internal/diagnosis/` package: structured failure diagnosis pipeline replacing blind retries with informed corrective action
+- Failure mode classifier: `WrongApproach`, `DependencyMissing`, `TestMisunderstanding`, `ScopeCreep`, `PermissionBlocked`, `ModelConfusion`, `InfraFailure` — rule-based pattern matching on tool call sequences, event content, and watchdog reasons
+- Template-based prescription generator: per-failure-mode corrective instructions using safe `text/template` (prevents prompt injection from agent output)
+- Retry builder: composes original prompt + diagnosis prescription + optional engine switch recommendation
+- `DiagnosisHistory []DiagnosisRecord` field on TaskRun prevents repeating the same diagnosis
+- `DiagnosisConfig` in controller config: `max_diagnoses_per_task`, `enable_engine_switch`
+- Prometheus metrics: `diagnosis_total` counter by failure mode, `diagnosis_engine_switches_total` counter, `diagnosis_retry_success_total` counter
+
+##### Adaptive Watchdog Calibration (Feature 5)
+- New `internal/watchdog/calibrator.go`: running percentile statistics (P50, P90, P99) per (repo pattern, engine, task type) for key telemetry signals — token consumption rate, tool call frequency, file change rate, cost velocity, duration, consecutive identical tools
+- New `internal/watchdog/profiles.go`: calibrated threshold profiles with cold-start fallback (minimum 10 completed TaskRuns before overriding static defaults), best-match profile resolution (exact → partial → global → static)
+- `AdaptiveCalibrationConfig` in watchdog config: `min_sample_count`, `percentile_threshold` (p50/p90/p99), `cold_start_fallback`
+- Prometheus metrics: `watchdog_calibrated_threshold` gauge by (signal, repo_pattern, engine, task_type), `watchdog_calibration_samples` gauge, `watchdog_calibration_overrides_total` counter
+
+##### Engine Fingerprinting and Intelligent Task Routing (Feature 6)
+- New `internal/routing/` package: statistical engine profiles built from historical task outcomes, replacing static fallback chains with data-driven routing
+- `EngineFingerprint` with Laplace-smoothed success rates across dimensions: task type, repo language, repo size, complexity
+- `IntelligentSelector` implementing `EngineSelector` interface: weighted composite scoring with epsilon-greedy exploration (default ε=0.1) to discover new engine capabilities
+- In-memory fingerprint store with thread-safe concurrent access
+- `RoutingConfig` in controller config: `epsilon_greedy`, `min_samples_for_routing`, `store_path`
+- Prometheus metrics: `routing_engine_selected_total` counter by engine, `routing_exploration_total` counter, `routing_fingerprint_samples` gauge by engine, `routing_success_rate` gauge by (engine, dimension, value)
+
+##### Predictive Cost and Duration Estimation (Feature 7)
+- New `internal/estimator/` package: pre-execution cost ($) and duration (minutes) prediction based on task complexity and historical data
+- Multi-dimensional complexity scorer: description complexity, label complexity, repo size, task type complexity → weighted composite score
+- k-nearest-neighbours predictor (k=5): finds similar historical tasks, returns [P25, P75] cost/duration ranges with confidence based on sample count
+- Cold-start defaults per engine when insufficient historical data
+- New guard rail: `max_predicted_cost_per_job` — auto-reject tasks predicted to exceed cost threshold
+- `EstimatorConfig` in controller config: `max_predicted_cost_per_job`, `default_cost_per_engine`, `default_duration_per_engine`
+- Prometheus metrics: `estimator_predictions_total` counter, `estimator_predicted_cost` histogram, `estimator_auto_rejections_total` counter, `estimator_prediction_accuracy` histogram
+
+##### Competitive Execution with Tournament Selection (Feature 1)
+- New `internal/tournament/` package: launch N parallel K8s Jobs with different engines/strategies, judge results, and select the best solution
+- `Coordinator` manages tournament lifecycle: start parallel candidates, track completions, trigger early termination, launch judge, select winner
+- `JudgeBuilder` constructs judge Jobs with side-by-side diff comparison prompts and structured JSON output
+- Tournament-aware TaskRun fields: `TournamentID`, `CandidateIndex`, `TournamentState` (Competing/Judging/Selected/Eliminated)
+- `CompetitiveExecutionConfig` in controller config: `default_candidates`, `judge_engine`, `early_termination_threshold`, `max_concurrent_tournaments`
+- Prometheus metrics: `tournament_total` counter, `tournament_candidates_total` counter by engine, `tournament_winner_engine_total` counter by engine, `tournament_cost_total` histogram, `tournament_duration_seconds` histogram
+
 #### Strategic Roadmap Phase A-E (Items 1-8)
 
 ##### Enhanced Claude Code Engine (Item 1)

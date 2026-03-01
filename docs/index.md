@@ -69,6 +69,20 @@ RoboDev watches your issue tracker for labelled tickets, validates them against 
 | **Multi-tenant** | Namespace-per-tenant isolation with dedicated RBAC, secrets, and quotas |
 | **Secure by default** | Distroless images, read-only filesystems, drop-all capabilities, network policies |
 
+## Bleeding-Edge Intelligence (Coming Soon)
+
+Seven new subsystems are scaffolded with full unit tests and will be integrated into the controller in an upcoming release. See the [roadmap](https://github.com/unitaryai/robodev/blob/main/docs/roadmap.md) for details.
+
+| Subsystem | What It Does |
+|---|---|
+| **Real-Time Agent Coaching (PRM)** | Scores agent productivity at each tool call and intervenes with guidance before problems escalate |
+| **Episodic Memory** | Accumulates knowledge across all tasks, engines, and repos — "Claude Code fails on Python monorepos but Aider succeeds" |
+| **Causal Diagnosis** | Classifies why a task failed and generates targeted corrective instructions for retry |
+| **Adaptive Watchdog** | Learns what "normal" looks like per repo/engine/task type and adjusts anomaly thresholds |
+| **Intelligent Routing** | Routes tasks to the engine most likely to succeed based on historical data |
+| **Cost Estimation** | Predicts cost and duration before launch — "Predicted: $12-18, 45-90 min" |
+| **Competitive Execution** | Runs multiple engines in parallel, judges results, selects the best solution |
+
 ## Project Layout
 
 The repository is organised as follows:
@@ -87,6 +101,12 @@ internal/                 — Private packages used only by the controller
   webhook/                — Webhook receiver (GitHub / GitLab / Slack / Shortcut / generic)
   secretresolver/         — Task-scoped secret resolution and policy enforcement
   promptbuilder/          — Prompt construction with task profiles and workflows
+  prm/                    — Process Reward Model for real-time agent coaching
+  memory/                 — Episodic memory with temporal knowledge graph
+  diagnosis/              — Causal failure diagnosis and informed retry
+  routing/                — Engine fingerprinting and intelligent task routing
+  estimator/              — Predictive cost and duration estimation
+  tournament/             — Competitive execution with tournament selection
 pkg/                      — Public packages importable by plugins and SDKs
   engine/                 — ExecutionEngine interface and built-in engine implementations
   plugin/                 — gRPC plugin host and all six plugin interfaces

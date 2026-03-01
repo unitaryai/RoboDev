@@ -38,6 +38,19 @@ var validTransitions = map[State][]State{
 	StateRetrying:   {StateRunning},
 }
 
+// DiagnosisRecord stores the result of a causal failure diagnosis for a
+// single retry attempt. It is defined here (rather than in the diagnosis
+// package) to avoid import cycles, since the diagnosis package imports
+// taskrun.
+type DiagnosisRecord struct {
+	Mode            string    `json:"mode"`
+	Confidence      float64   `json:"confidence"`
+	Evidence        []string  `json:"evidence"`
+	Prescription    string    `json:"prescription"`
+	SuggestedEngine string    `json:"suggested_engine,omitempty"`
+	DiagnosedAt     time.Time `json:"diagnosed_at"`
+}
+
 // TaskRun represents a single execution of a task, tracking its lifecycle
 // from creation through completion.
 type TaskRun struct {
@@ -62,6 +75,10 @@ type TaskRun struct {
 	ToolCallsTotal            int                `json:"tool_calls_total"`
 	LastToolName              string             `json:"last_tool_name,omitempty"`
 	ConsecutiveIdenticalTools int                `json:"consecutive_identical_tools"`
+	DiagnosisHistory          []DiagnosisRecord  `json:"diagnosis_history,omitempty"`
+	TournamentID              string             `json:"tournament_id,omitempty"`
+	CandidateIndex            int                `json:"candidate_index,omitempty"`
+	TournamentState           string             `json:"tournament_state,omitempty"`
 }
 
 // New creates a new TaskRun in the Queued state with the given parameters.

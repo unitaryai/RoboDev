@@ -135,6 +135,32 @@ graph TD
 !!! tip "Avoiding false positives"
     All detection rules require the anomaly to persist for `min_consecutive_ticks` (default: 2) before action is taken. New TaskRuns also get a `research_grace_period` (default: 5 minutes) during which thrashing detection is relaxed, since agents often consume many tokens during initial code analysis.
 
+## Coming Soon: Two Additional Safety Layers
+
+> **Status:** Scaffolding complete, integration pending. See `docs/roadmap.md` Phase I.
+
+### Layer 7: Real-Time Agent Coaching (PRM)
+
+**When:** Continuously, while the agent is running (alongside the watchdog).
+**What:** Evaluates agent productivity at each tool call and intervenes with guidance before problems escalate.
+
+The Process Reward Model (PRM) operates on the NDJSON event stream from Claude Code. It scores each evaluation window of tool calls on a 1-10 scale, tracks the score trajectory over time, and decides interventions:
+
+- **Score ≥ 7:** Agent is productive, continue.
+- **Score 4-6 with negative trend:** Write a hint file (`/workspace/.robodev-hint.md`) with targeted guidance — "Your approach appears to be oscillating. Try committing to a single strategy."
+- **Score ≤ 3 with sustained decline:** Escalate to the watchdog for termination.
+
+Unlike the watchdog (which detects anomalies in raw telemetry), the PRM evaluates *productivity patterns* — whether the agent is making meaningful progress toward the goal, not just whether it's alive.
+
+### Layer 8: Adaptive Watchdog Calibration
+
+**When:** Applied automatically once enough historical data accumulates.
+**What:** Replaces static watchdog thresholds with adaptive per-(repo, engine, task_type) thresholds.
+
+A bug fix in a small Python script has radically different "normal" telemetry from a TypeScript monorepo refactor. Static thresholds either miss real anomalies in simple tasks or fire false positives on complex ones. Adaptive calibration learns what "normal" looks like for each context from historical TaskRun data.
+
+Cold-start safety: a minimum of 10 completed TaskRuns for a given context is required before calibrated thresholds override static defaults.
+
 ## How the Layers Work Together
 
 Consider this scenario: a ticket asks the agent to "update the deployment manifest."

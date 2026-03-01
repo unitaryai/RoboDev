@@ -28,6 +28,33 @@ type Config struct {
 	SecretResolver   SecretResolverConfig `yaml:"secret_resolver"`
 	Streaming        StreamingConfig      `yaml:"streaming"`
 	TaskRunStore     TaskRunStoreConfig   `yaml:"taskrun_store"`
+	Routing          RoutingConfig        `yaml:"routing"`
+	Diagnosis        DiagnosisConfig      `yaml:"diagnosis"`
+	PRM              PRMConfig            `yaml:"prm"`
+	Memory           MemoryConfig         `yaml:"memory"`
+	Estimator             EstimatorConfig             `yaml:"estimator"`
+	CompetitiveExecution  CompetitiveExecutionConfig  `yaml:"competitive_execution"`
+}
+
+// CompetitiveExecutionConfig configures competitive execution with tournament selection.
+type CompetitiveExecutionConfig struct {
+	Enabled                  bool    `yaml:"enabled"`
+	DefaultCandidates        int     `yaml:"default_candidates"`
+	JudgeEngine              string  `yaml:"judge_engine"`
+	EarlyTerminationThreshold float64 `yaml:"early_termination_threshold"`
+	MaxConcurrentTournaments int     `yaml:"max_concurrent_tournaments"`
+}
+
+// PRMConfig configures the Process Reward Model for real-time agent coaching.
+type PRMConfig struct {
+	Enabled                bool    `yaml:"enabled"`
+	EvaluationInterval     int     `yaml:"evaluation_interval"`
+	WindowSize             int     `yaml:"window_size"`
+	ScoreThresholdNudge    int     `yaml:"score_threshold_nudge"`
+	ScoreThresholdEscalate int     `yaml:"score_threshold_escalate"`
+	HintFilePath           string  `yaml:"hint_file_path"`
+	MaxTrajectoryLength    int     `yaml:"max_trajectory_length"`
+	MaxBudgetUSD           float64 `yaml:"max_budget_usd"`
 }
 
 // ExecutionConfig configures how agent workloads are executed.
@@ -297,15 +324,72 @@ type SCMConfig struct {
 
 // WatchdogConfig configures the progress watchdog.
 type WatchdogConfig struct {
-	Enabled                    bool    `yaml:"enabled"`
-	CheckIntervalSeconds       int     `yaml:"check_interval_seconds"`
-	MinConsecutiveTicks        int     `yaml:"min_consecutive_ticks"`
-	ResearchGracePeriodMinutes int     `yaml:"research_grace_period_minutes"`
-	LoopDetectionThreshold     int     `yaml:"loop_detection_threshold"`
-	ThrashingTokenThreshold    int     `yaml:"thrashing_token_threshold"`
-	StallIdleSeconds           int     `yaml:"stall_idle_seconds"`
-	CostVelocityMaxPer10Min    float64 `yaml:"cost_velocity_max_per_10_min"`
-	UnansweredHumanTimeoutMin  int     `yaml:"unanswered_human_timeout_minutes"`
+	Enabled                    bool                          `yaml:"enabled"`
+	CheckIntervalSeconds       int                           `yaml:"check_interval_seconds"`
+	MinConsecutiveTicks        int                           `yaml:"min_consecutive_ticks"`
+	ResearchGracePeriodMinutes int                           `yaml:"research_grace_period_minutes"`
+	LoopDetectionThreshold     int                           `yaml:"loop_detection_threshold"`
+	ThrashingTokenThreshold    int                           `yaml:"thrashing_token_threshold"`
+	StallIdleSeconds           int                           `yaml:"stall_idle_seconds"`
+	CostVelocityMaxPer10Min    float64                       `yaml:"cost_velocity_max_per_10_min"`
+	UnansweredHumanTimeoutMin  int                           `yaml:"unanswered_human_timeout_minutes"`
+	AdaptiveCalibration        AdaptiveCalibrationConfig     `yaml:"adaptive_calibration"`
+}
+
+// AdaptiveCalibrationConfig configures the watchdog's adaptive threshold
+// calibration system that learns from historical TaskRun observations.
+type AdaptiveCalibrationConfig struct {
+	Enabled             bool   `yaml:"enabled"`
+	MinSampleCount      int    `yaml:"min_sample_count"`       // minimum observations before overriding static defaults (default 10)
+	PercentileThreshold string `yaml:"percentile_threshold"`   // "p50", "p90", or "p99" (default "p90")
+	ColdStartFallback   bool   `yaml:"cold_start_fallback"`    // use static defaults when insufficient data (default true)
+}
+
+// DiagnosisConfig configures the causal diagnosis subsystem for
+// self-healing retry with failure classification.
+type DiagnosisConfig struct {
+	Enabled              bool `yaml:"enabled"`
+	MaxDiagnosesPerTask  int  `yaml:"max_diagnoses_per_task"`  // maximum diagnoses before terminal failure (default 3)
+	EnableEngineSwitch   bool `yaml:"enable_engine_switch"`    // allow diagnosis to recommend engine switches
+}
+
+// EstimatorConfig configures the predictive cost and duration estimation
+// subsystem.
+type EstimatorConfig struct {
+	Enabled                bool                       `yaml:"enabled"`
+	MaxPredictedCostPerJob float64                    `yaml:"max_predicted_cost_per_job"` // auto-reject above this (USD)
+	DefaultCostPerEngine   map[string]CostRange       `yaml:"default_cost_per_engine"`
+	DefaultDurationPerEngine map[string]DurationRange  `yaml:"default_duration_per_engine"`
+}
+
+// CostRange represents a low/high cost range in USD.
+type CostRange struct {
+	Low  float64 `yaml:"low"`
+	High float64 `yaml:"high"`
+}
+
+// DurationRange represents a low/high duration range in minutes.
+type DurationRange struct {
+	LowMinutes  int `yaml:"low_minutes"`
+	HighMinutes int `yaml:"high_minutes"`
+}
+
+// RoutingConfig configures the intelligent engine routing subsystem.
+type RoutingConfig struct {
+	Enabled              bool    `yaml:"enabled"`
+	EpsilonGreedy        float64 `yaml:"epsilon_greedy"`          // exploration probability (default 0.1)
+	MinSamplesForRouting int     `yaml:"min_samples_for_routing"` // minimum samples before using fingerprints (default 5)
+	StorePath            string  `yaml:"store_path,omitempty"`    // path for persistent store (empty = in-memory)
+}
+
+// MemoryConfig configures the cross-task episodic memory subsystem.
+type MemoryConfig struct {
+	Enabled            bool    `yaml:"enabled"`
+	StorePath          string  `yaml:"store_path"`           // SQLite database path
+	DecayIntervalHours int     `yaml:"decay_interval_hours"` // how often to run confidence decay
+	PruneThreshold     float64 `yaml:"prune_threshold"`      // nodes below this confidence are pruned
+	MaxFactsPerQuery   int     `yaml:"max_facts_per_query"`  // maximum nodes returned per query
+	TenantIsolation    bool    `yaml:"tenant_isolation"`     // enforce strict tenant-scoped queries
 }
 
 // Load reads and parses a RoboDev configuration file from the given path.

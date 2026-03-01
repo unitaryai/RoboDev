@@ -308,6 +308,330 @@ A polished, searchable documentation site that makes RoboDev look production-gra
 
 ---
 
+---
+
+## Bleeding-Edge Agentic Engineering Features
+
+Seven new subsystems that move RoboDev from a standard K8s operator into an intelligent orchestration platform. The core packages and unit tests are complete (scaffolding phase). The next work is **full controller integration** — wiring these packages into the live reconciliation loop, prompt builder, and main entrypoint.
+
+### Current Status: Scaffolding Complete, Integration Pending
+
+Every feature below has its own Go package with types, core logic, unit tests, and integration tests. Config sections and Prometheus metrics are defined. However, **none of the features are wired into the controller** — the reconciler, `main.go`, and prompt builder are unchanged. The packages are libraries, not running features.
+
+---
+
+### 12. Controller-Level Process Reward Model (PRM) — Real-Time Agent Coaching
+
+**Status:** Scaffolding complete · Integration pending
+**Package:** `internal/prm/`
+**Priority:** Critical (most novel feature)
+
+Evaluates agent behaviour at each tool call using the NDJSON stream. Scores agent productivity, tracks trajectory patterns, and decides interventions (soft nudge via hint file, or watchdog escalation).
+
+- [x] `Scorer` — rule-based step scoring from tool call patterns (repetition penalty, productive pattern bonuses, diversity tracking)
+- [x] `Trajectory` — pattern detection: sustained decline, plateau, oscillation, recovery
+- [x] `InterventionDecider` — threshold-based decision logic (continue/nudge/escalate)
+- [x] `Evaluator` — orchestrates scorer + trajectory + decider
+- [x] `PRMConfig` in `internal/config/config.go`
+- [x] Prometheus metrics (`prm_step_scores`, `prm_interventions_total`, `prm_trajectory_patterns_total`)
+- [x] `WithEventProcessor` hook on `agentstream.Forwarder`
+- [x] Unit tests (table-driven) for all components
+- [x] Integration test (`tests/integration/prm_test.go`)
+
+**Integration work remaining:**
+
+- [ ] Wire `prm.Evaluator` into `startStreamReader()` in controller — create evaluator per TaskRun, pass via `WithEventProcessor`
+- [ ] Implement hint file writing — `Evaluator` returns `HintContent` but nothing calls `os.WriteFile` to the shared K8s volume; need a writer that accesses the workspace PVC
+- [ ] Wire escalation into watchdog — when PRM escalates, signal the watchdog to terminate the Job with diagnostic feedback
+- [ ] Add `WithPRMEvaluator` functional option to `Reconciler` struct
+- [ ] Initialise PRM in `cmd/robodev/main.go` when `config.PRM.Enabled` is true
+- [ ] V2: Replace rule-based scorer with LLM-based scoring (prompt engineering + budget enforcement)
+- [ ] Test PRM under concurrent TaskRuns (race condition coverage)
+- [ ] E2E test: run a real agent, verify PRM scores and interventions fire
+
+---
+
+### 13. Cross-Task Episodic Memory with Temporal Knowledge Graph
+
+**Status:** Scaffolding complete · Integration pending
+**Package:** `internal/memory/`
+**Priority:** Critical (the compounding brain)
+
+Persistent knowledge graph accumulating structured lessons from every TaskRun across all engines, repos, and tenants. Facts have temporal validity and confidence decay.
+
+- [x] Node types: `Fact`, `Pattern`, `EngineProfile` with temporal metadata
+- [x] Edge relations: `relates_to`, `contradicts`, `supersedes`
+- [x] `Graph` — thread-safe core with temporal decay and pruning
+- [x] `SQLiteStore` — pure Go SQLite via `modernc.org/sqlite`, auto-migration
+- [x] `Extractor` — heuristic post-task knowledge extraction
+- [x] `QueryForTask` — temporal-weighted retrieval with tenant isolation
+- [x] `MemoryConfig` in `internal/config/config.go`
+- [x] Prometheus metrics (`memory_nodes_total`, `memory_queries_total`, `memory_extractions_total`, `memory_confidence_distribution`)
+- [x] Unit tests and integration test
+
+**Integration work remaining:**
+
+- [ ] Wire extractor into `handleJobComplete` — after task success, call `extractor.Extract()` and store nodes/edges in the graph
+- [ ] Wire extractor into `handleJobFailed` — extract failure patterns and engine capability facts
+- [ ] Wire query into prompt builder — add `WithMemory(graph)` option, inject "## Prior Knowledge" section with provenance
+- [ ] Add `WithMemoryGraph` functional option to `Reconciler` struct
+- [ ] Initialise SQLite store + graph in `cmd/robodev/main.go` when `config.Memory.Enabled` is true
+- [ ] Implement periodic confidence decay goroutine (background loop using `DecayIntervalHours`)
+- [ ] Implement periodic pruning of stale nodes below `PruneThreshold`
+- [ ] Adversarial testing of cross-tenant isolation (verify tenant A cannot read tenant B's facts)
+- [ ] Test SQLite store under concurrent writes, corruption recovery, migration idempotency
+- [ ] V2: LLM-based extraction replacing heuristic rules
+- [ ] E2E test: run 10+ tasks, verify memory accumulates and injects relevant context
+
+---
+
+### 14. Self-Healing Retry with Causal Diagnosis
+
+**Status:** Scaffolding complete · Integration pending
+**Package:** `internal/diagnosis/`
+**Priority:** High
+
+When a task fails, runs a structured diagnosis pipeline on the stream transcript + watchdog reason + result. Classifies the failure mode, generates a targeted corrective instruction, and optionally switches engines.
+
+- [x] Failure mode classifier: `WrongApproach`, `DependencyMissing`, `TestMisunderstanding`, `ScopeCreep`, `PermissionBlocked`, `ModelConfusion`, `InfraFailure`
+- [x] Template-based prescription generator (safe `text/template`, prevents prompt injection)
+- [x] Retry builder: composes original prompt + prescription + engine switch
+- [x] `DiagnosisHistory []DiagnosisRecord` field on `TaskRun`
+- [x] `DiagnosisConfig` in `internal/config/config.go`
+- [x] Prometheus metrics (`diagnosis_total`, `diagnosis_engine_switches_total`, `diagnosis_retry_success_total`)
+- [x] Unit tests and integration test
+
+**Integration work remaining:**
+
+- [ ] Wire analyser into `handleJobFailed` — run diagnosis before retry/fallback decision
+- [ ] Use `RetryBuilder` output instead of plain retry — compose enriched prompt with prescription
+- [ ] Enforce `DiagnosisHistory` deduplication — if same `FailureMode` diagnosed twice, go terminal
+- [ ] Wire engine switch recommendation — when diagnosis suggests switch, modify the fallback chain
+- [ ] Add `WithDiagnosis` functional option to `Reconciler` struct
+- [ ] Initialise analyser in `cmd/robodev/main.go` when `config.Diagnosis.Enabled` is true
+- [ ] Track `diagnosis_retry_success_total` — increment when a diagnosed retry succeeds
+- [ ] V2: LLM-based diagnosis for richer classification
+- [ ] E2E test: trigger a real failure, verify diagnosis classifies correctly and enriched retry succeeds
+
+---
+
+### 15. Adaptive Watchdog Calibration
+
+**Status:** Scaffolding complete · Integration pending
+**Package:** `internal/watchdog/` (extensions: `calibrator.go`, `profiles.go`)
+**Priority:** High
+
+Evolves the watchdog from static thresholds to per-(repo, engine, task_type) adaptive thresholds calibrated from historical telemetry.
+
+- [x] `Calibrator` — running percentile statistics (P50, P90, P99) per profile key
+- [x] `CalibratedProfile` — threshold profiles with cold-start fallback (min 10 samples)
+- [x] Profile resolution: exact match → partial match → global fallback → static defaults
+- [x] `AdaptiveCalibrationConfig` in watchdog config
+- [x] Prometheus metrics (`watchdog_calibrated_threshold`, `watchdog_calibration_samples`, `watchdog_calibration_overrides_total`)
+- [x] Unit tests and integration test
+
+**Integration work remaining:**
+
+- [ ] Modify `Watchdog.Check()` to accept a `*Calibrator` — resolve applicable profile before evaluating rules, use calibrated P90 thresholds when available
+- [ ] Wire calibrator recording into `handleJobComplete` and `handleJobFailed` — feed final TaskRun telemetry as observations
+- [ ] Add `WithCalibrator` option to `Watchdog` constructor
+- [ ] Initialise calibrator in `cmd/robodev/main.go` and pass to watchdog when `config.ProgressWatchdog.AdaptiveCalibration.Enabled` is true
+- [ ] Persist calibration data across controller restarts (SQLite or serialised file)
+- [ ] Test calibration under varying load patterns (burst vs steady)
+- [ ] E2E test: run 15+ tasks, verify calibration activates and adjusts thresholds
+
+---
+
+### 16. Engine Fingerprinting and Intelligent Task Routing
+
+**Status:** Scaffolding complete · Integration pending
+**Package:** `internal/routing/`
+**Priority:** Medium
+
+Builds statistical profiles of each engine's strengths/weaknesses from historical outcomes, then routes new tasks to the engine most likely to succeed.
+
+- [x] `EngineFingerprint` — Laplace-smoothed success rates per dimension (task type, repo language, repo size, complexity)
+- [x] `IntelligentSelector` implementing `EngineSelector` interface — epsilon-greedy exploration (ε=0.1)
+- [x] `MemoryFingerprintStore` — in-memory, thread-safe
+- [x] `RoutingConfig` in `internal/config/config.go`
+- [x] Prometheus metrics (`routing_engine_selected_total`, `routing_exploration_total`, `routing_fingerprint_samples`, `routing_success_rate`)
+- [x] Unit tests and integration test
+
+**Integration work remaining:**
+
+- [ ] Replace `DefaultEngineSelector` with `IntelligentSelector` in controller when `config.Routing.Enabled` is true
+- [ ] Wire outcome recording into `handleJobComplete`/`handleJobFailed` — feed `TaskOutcome` to fingerprint store
+- [ ] Add `WithIntelligentSelector` functional option to `Reconciler`
+- [ ] Initialise fingerprint store in `cmd/robodev/main.go`
+- [ ] Implement `SQLiteFingerprintStore` for persistence across restarts
+- [ ] Populate `RoutingQuery` from ticket metadata (task type, repo language, repo size, complexity)
+- [ ] E2E test: run 20+ tasks across engines, verify routing converges to better engine selection
+
+---
+
+### 17. Predictive Cost and Duration Estimation
+
+**Status:** Scaffolding complete · Integration pending
+**Package:** `internal/estimator/`
+**Priority:** Medium
+
+Pre-execution cost ($) and duration (minutes) prediction using task complexity dimensions and historical kNN.
+
+- [x] `ComplexityScorer` — multi-dimensional scoring (description, label, repo size, task type)
+- [x] `Predictor` — kNN (k=5) from historical data, returns [P25, P75] ranges
+- [x] `MemoryEstimatorStore` — in-memory
+- [x] Cold-start defaults per engine
+- [x] `EstimatorConfig` in `internal/config/config.go`
+- [x] Prometheus metrics (`estimator_predictions_total`, `estimator_predicted_cost`, `estimator_auto_rejections_total`, `estimator_prediction_accuracy`)
+- [x] Unit tests and integration test
+
+**Integration work remaining:**
+
+- [ ] Wire estimator into `ProcessTicket` — run prediction before approval gate, include in `HumanQuestion` ("Predicted cost: $12-18, duration: 45-90 min")
+- [ ] Implement `max_predicted_cost_per_job` guard rail — auto-reject tasks exceeding threshold
+- [ ] Wire outcome recording into `handleJobComplete` — feed actual cost/duration for future predictions
+- [ ] Add `WithEstimator` functional option to `Reconciler`
+- [ ] Initialise estimator + store in `cmd/robodev/main.go`
+- [ ] Implement `SQLiteEstimatorStore` for persistence
+- [ ] Track prediction accuracy metric — compare predicted vs actual after completion
+- [ ] E2E test: validate predictions against actuals for 20+ tasks
+
+---
+
+### 18. Competitive Execution with Tournament Selection
+
+**Status:** Scaffolding complete · Integration pending
+**Package:** `internal/tournament/`
+**Priority:** Medium (capstone feature, depends on all others)
+
+For high-value tasks, launches N parallel K8s Jobs with different engines. A judge Job compares results and selects the best solution.
+
+- [x] `Tournament` struct — lifecycle state machine (Competing/Judging/Selected/Eliminated)
+- [x] `Coordinator` — manages parallel TaskRuns linked by tournament ID
+- [x] `JudgeBuilder` — constructs judge Job with side-by-side diff prompt
+- [x] Tournament-aware TaskRun fields (`TournamentID`, `CandidateIndex`, `TournamentState`)
+- [x] `CompetitiveExecutionConfig` in `internal/config/config.go`
+- [x] Prometheus metrics (`tournament_total`, `tournament_candidates_total`, `tournament_winner_engine_total`, `tournament_cost_total`, `tournament_duration_seconds`)
+- [x] Unit tests and integration test
+
+**Integration work remaining:**
+
+- [ ] Wire coordinator into `ProcessTicket` — detect tournament-eligible tasks (by label, priority, or config), delegate to coordinator
+- [ ] Coordinator must create actual K8s Jobs for each candidate — currently a state machine without K8s interaction
+- [ ] Implement git worktree isolation for candidates — each candidate works on a separate branch
+- [ ] Wire `handleJobComplete` to route tournament members to coordinator (`OnCandidateComplete`)
+- [ ] Wire judge Job creation via `JudgeBuilder` + `JobBuilder` (actual K8s Job, not just a struct)
+- [ ] Wire winner selection — apply winning candidate's branch, eliminate losers
+- [ ] Integrate PRM (Feature 12) for real-time candidate scoring during tournament
+- [ ] Integrate memory (Feature 13) to provide judge with cross-engine context
+- [ ] Integrate routing (Feature 16) to select candidate engines
+- [ ] Integrate adaptive watchdog (Feature 15) for tournament-aware early termination
+- [ ] Add `WithTournamentCoordinator` functional option to `Reconciler`
+- [ ] Initialise coordinator in `cmd/robodev/main.go`
+- [ ] E2E test: run a 3-engine tournament on a real task, verify judge selects and winning branch is applied
+
+---
+
+### Phase I — Full Integration (The Hard Part)
+
+This phase wires all seven scaffolded features into the live controller. This is where the actual intelligence emerges — packages become features. Estimated 8-12 weeks.
+
+#### I-1. Controller Wiring (~2 weeks)
+
+Wire all new subsystems into the `Reconciler` struct with functional options and config-gated initialisation.
+
+- [ ] Add fields to `Reconciler` struct: `prmEvaluator`, `memoryGraph`, `calibrator`, `analyser`, `intelligentSelector`, `estimator`, `tournamentCoordinator`
+- [ ] Add functional options: `WithPRM`, `WithMemory`, `WithCalibrator`, `WithDiagnosis`, `WithRouting`, `WithEstimator`, `WithTournament`
+- [ ] Wire `ProcessTicket` flow: estimator → approval → routing → tournament/single execution → PRM streaming
+- [ ] Wire `handleJobComplete` flow: memory extraction → calibrator recording → fingerprint update → estimator outcome recording
+- [ ] Wire `handleJobFailed` flow: diagnosis → informed retry → memory extraction
+- [ ] All features gated by config flags (disabled by default)
+- [ ] Backward compatibility: controller behaves identically when all features disabled
+
+#### I-2. Main Entrypoint Wiring (~1 week)
+
+Initialise all components in `cmd/robodev/main.go` and pass to reconciler.
+
+- [ ] Initialise `memory.Graph` + `memory.SQLiteStore` when `config.Memory.Enabled`
+- [ ] Initialise `prm.Evaluator` when `config.PRM.Enabled`
+- [ ] Initialise `watchdog.Calibrator` when `config.ProgressWatchdog.AdaptiveCalibration.Enabled`
+- [ ] Initialise `diagnosis.Analyser` when `config.Diagnosis.Enabled`
+- [ ] Initialise `routing.IntelligentSelector` + `routing.MemoryFingerprintStore` when `config.Routing.Enabled`
+- [ ] Initialise `estimator.Predictor` + `estimator.MemoryEstimatorStore` when `config.Estimator.Enabled`
+- [ ] Initialise `tournament.Coordinator` when `config.CompetitiveExecution.Enabled`
+- [ ] Graceful shutdown for new components (flush SQLite, stop background loops)
+
+#### I-3. Prompt Builder Integration (~1 week)
+
+Wire memory query results into the prompt builder.
+
+- [ ] Add `WithMemory(graph *memory.Graph)` option to `PromptBuilder`
+- [ ] Query memory graph before building prompts — inject "## Prior Knowledge" section
+- [ ] Include provenance (source TaskRun ID, confidence level) in injected facts
+- [ ] Test prompt injection resistance — adversarial fact content must not escape template
+- [ ] Add `BuildPromptWithMemory` method or extend existing build methods
+
+#### I-4. PRM Hint File Writer (~1 week)
+
+Implement the actual mechanism to write hint files into the agent's workspace.
+
+- [ ] Create volume writer that accesses the shared workspace PVC
+- [ ] Write `HintContent` to `/workspace/.robodev-hint.md` (or configured path)
+- [ ] Handle concurrent writes (multiple PRM evaluations for the same TaskRun)
+- [ ] Clean up hint files on task completion
+- [ ] Ensure agents can read the hint file (some engines need explicit instruction to watch for it)
+
+#### I-5. Persistence Layer (~2 weeks)
+
+Replace in-memory stores with durable persistence for production use.
+
+- [ ] Verify `memory.SQLiteStore` works end-to-end with real data (schema migration, concurrent access, corruption recovery)
+- [ ] Implement `routing.SQLiteFingerprintStore` (reuse memory's SQLite DB)
+- [ ] Implement `estimator.SQLiteEstimatorStore` (reuse memory's SQLite DB)
+- [ ] Persist calibrator observations (serialised file or SQLite table)
+- [ ] Test data survives controller restarts
+- [ ] Consider shared SQLite DB vs separate files
+- [ ] Add migration framework for schema evolution
+
+#### I-6. LLM Integration (~3-4 weeks)
+
+Replace rule-based heuristics with LLM-powered intelligence. This is the prompt engineering work.
+
+- [ ] **PRM V2**: Design scoring prompt — given recent tool calls, rate agent productivity 1-10 with reasoning. Iterate on real agent transcripts until reliable.
+- [ ] **Memory V2**: Design extraction prompt — given TaskRun data, extract structured facts. Handle edge cases (empty results, hallucinated facts, duplicate knowledge).
+- [ ] **Diagnosis V2**: Design classification prompt — given failure transcript, classify failure mode and generate prescription. Must resist prompt injection from agent output.
+- [ ] **Tournament Judge**: Design judging prompt — given N diffs, select best with reasoning. Test with real side-by-side diffs.
+- [ ] Implement LLM client abstraction (reuse existing engine infrastructure or dedicated lightweight client)
+- [ ] Implement budget enforcement for LLM calls (PRM has `MaxBudgetUSD`, each call costs money)
+- [ ] Rate limiting for LLM scoring calls (avoid overwhelming the API during active TaskRuns)
+
+#### I-7. Security Hardening (~1-2 weeks)
+
+Adversarial testing and security review of all new subsystems.
+
+- [ ] PRM hint file path — verify path traversal is impossible (no `../` in configured path)
+- [ ] Memory graph tenant isolation — adversarial tests proving tenant A cannot read tenant B's facts
+- [ ] Diagnosis prescription templates — verify agent output cannot escape templates into injected prompts
+- [ ] Tournament judge prompt — verify candidate diffs cannot inject instructions into the judge
+- [ ] LLM scoring prompts — verify agent output in stream events cannot manipulate PRM scores
+- [ ] SQLite database — verify no SQL injection via fact content or node IDs
+- [ ] Config validation — reject invalid/dangerous config values (negative thresholds, path traversal in file paths)
+
+#### I-8. End-to-End Testing (~2 weeks)
+
+Full E2E tests against a real kind cluster with real agents.
+
+- [ ] Run PRM with a live Claude Code agent — verify scoring and interventions fire at correct thresholds
+- [ ] Run memory across 50+ tasks — verify knowledge accumulates, decays, and injects into prompts
+- [ ] Run adaptive watchdog for 15+ tasks — verify calibration activates and reduces false positives
+- [ ] Run diagnosis on intentionally failing tasks — verify correct classification and enriched retry
+- [ ] Run routing across 20+ tasks on 3 engines — verify convergence to optimal engine selection
+- [ ] Run cost estimator — validate predictions against actuals within 2x
+- [ ] Run a 3-engine tournament on a real GitHub issue — verify judge selects best solution
+- [ ] Full integration test: all 7 features enabled simultaneously, verify no conflicts or race conditions
+
+---
+
 ## Implementation Order
 
 ```
@@ -319,6 +643,20 @@ Phase E (access):      8. Local Development Mode  ·  5. Multi-Agent Coordinatio
 Phase F (ecosystem):   9. Plugin SDKs
 Phase G (observe):    10. Agent Dashboard
 Phase H (docs):       11. Documentation Site
+Phase I (integration): Bleeding-edge feature integration (see below)
+```
+
+### Phase I Suggested Order
+
+```
+I-1. Controller wiring       (unblocks everything)
+I-2. Main entrypoint wiring  (makes features configurable)
+I-3. Prompt builder memory    (memory becomes useful)
+I-4. PRM hint file writer     (PRM becomes useful)
+I-5. Persistence layer        (features survive restarts)
+I-6. LLM integration          (features become intelligent)
+I-7. Security hardening       (features become safe)
+I-8. End-to-end testing       (features become reliable)
 ```
 
 ---
@@ -338,3 +676,10 @@ Phase H (docs):       11. Documentation Site
 | 9 | Plugin SDKs | F | Medium | Not started |
 | 10 | Agent Dashboard | G | High | Not started |
 | 11 | Documentation Site | H | High | Not started |
+| 12 | Controller PRM (Real-Time Coaching) | I | Critical | **Scaffolding complete** |
+| 13 | Episodic Memory (Knowledge Graph) | I | Critical | **Scaffolding complete** |
+| 14 | Causal Diagnosis (Self-Healing Retry) | I | High | **Scaffolding complete** |
+| 15 | Adaptive Watchdog Calibration | I | High | **Scaffolding complete** |
+| 16 | Engine Fingerprinting + Routing | I | Medium | **Scaffolding complete** |
+| 17 | Predictive Cost Estimation | I | Medium | **Scaffolding complete** |
+| 18 | Competitive Execution (Tournament) | I | Medium | **Scaffolding complete** |

@@ -22,6 +22,15 @@ RoboDev is configured via a YAML file (`robodev-config.yaml`) which is mounted i
 | `secret_resolver` | Task-scoped secret resolution and policy enforcement |
 | `streaming` | Real-time agent output streaming configuration |
 | `taskrun_store` | Persistent TaskRun store backend (`memory`, `sqlite`, `postgres`) |
+| `prm` | Process Reward Model for real-time agent coaching (disabled by default) |
+| `memory` | Episodic memory knowledge graph (disabled by default) |
+| `diagnosis` | Causal failure diagnosis for informed retries (disabled by default) |
+| `routing` | Intelligent engine selection based on historical data (disabled by default) |
+| `estimator` | Pre-execution cost and duration prediction (disabled by default) |
+| `competitive_execution` | Tournament-style parallel execution (disabled by default) |
+
+!!! note "Bleeding-edge features"
+    The `prm`, `memory`, `diagnosis`, `routing`, `estimator`, and `competitive_execution` sections configure new subsystems that are scaffolded but not yet wired into the controller. They are all disabled by default and have no effect in the current release. See `docs/roadmap.md` Phase I for the integration plan.
 
 For the full set of fields and their defaults, see `charts/robodev/values.yaml` and the struct definitions in [`internal/config/config.go`](https://github.com/unitaryai/robodev/blob/main/internal/config/config.go).
 

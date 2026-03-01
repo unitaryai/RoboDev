@@ -95,12 +95,32 @@ type RulesConfig struct {
 	UnansweredHumanAction         Action                   `yaml:"unanswered_human_action"`
 }
 
+// AdaptiveCalibrationConfig configures the adaptive calibration system
+// that learns thresholds from historical TaskRun data.
+type AdaptiveCalibrationConfig struct {
+	Enabled             bool   `yaml:"enabled"`
+	MinSampleCount      int    `yaml:"min_sample_count"`
+	PercentileThreshold string `yaml:"percentile_threshold"` // "p50", "p90", or "p99"
+	ColdStartFallback   bool   `yaml:"cold_start_fallback"`
+}
+
+// DefaultAdaptiveCalibrationConfig returns conservative defaults for adaptive calibration.
+func DefaultAdaptiveCalibrationConfig() AdaptiveCalibrationConfig {
+	return AdaptiveCalibrationConfig{
+		Enabled:             false,
+		MinSampleCount:      10,
+		PercentileThreshold: "p90",
+		ColdStartFallback:   true,
+	}
+}
+
 // Config holds the top-level watchdog configuration.
 type Config struct {
-	CheckIntervalSeconds       int         `yaml:"check_interval_seconds"`
-	MinConsecutiveTicks        int         `yaml:"min_consecutive_ticks"`
-	ResearchGracePeriodMinutes int         `yaml:"research_grace_period_minutes"`
-	Rules                      RulesConfig `yaml:"rules"`
+	CheckIntervalSeconds       int                       `yaml:"check_interval_seconds"`
+	MinConsecutiveTicks        int                       `yaml:"min_consecutive_ticks"`
+	ResearchGracePeriodMinutes int                       `yaml:"research_grace_period_minutes"`
+	Rules                      RulesConfig               `yaml:"rules"`
+	AdaptiveCalibration        AdaptiveCalibrationConfig `yaml:"adaptive_calibration"`
 }
 
 // DefaultConfig returns a Config with conservative default values
@@ -145,12 +165,20 @@ type tickState struct {
 	lastReasonCode   string
 }
 
+// CalibrationOverrideHook is called whenever calibrated thresholds override
+// static defaults. This allows the caller (e.g. the controller) to update
+// Prometheus metrics without creating an import cycle.
+type CalibrationOverrideHook func()
+
 // Watchdog monitors active TaskRuns for anomalous behaviour and recommends
 // corrective actions when agents are stalled, looping, or unproductive.
 type Watchdog struct {
-	config Config
-	logger *slog.Logger
-	ticks  map[string]*tickState // keyed by TaskRun ID
+	config                    Config
+	logger                    *slog.Logger
+	ticks                     map[string]*tickState // keyed by TaskRun ID
+	calibrator                *Calibrator
+	profileResolver           *ProfileResolver
+	calibrationOverrideHook   CalibrationOverrideHook
 }
 
 // New creates a new Watchdog with the given configuration and logger.
@@ -159,6 +187,26 @@ func New(cfg Config, logger *slog.Logger) *Watchdog {
 		config: cfg,
 		logger: logger,
 		ticks:  make(map[string]*tickState),
+	}
+}
+
+// NewWithCalibration creates a Watchdog with adaptive calibration support.
+// The calibrator and profile resolver are used to look up calibrated
+// thresholds, falling back to static config when insufficient data exists.
+// The optional overrideHook is called each time calibrated thresholds are
+// used instead of static defaults, enabling the caller to update metrics.
+func NewWithCalibration(cfg Config, logger *slog.Logger, cal *Calibrator, resolver *ProfileResolver, overrideHook ...CalibrationOverrideHook) *Watchdog {
+	var hook CalibrationOverrideHook
+	if len(overrideHook) > 0 {
+		hook = overrideHook[0]
+	}
+	return &Watchdog{
+		config:                  cfg,
+		logger:                  logger,
+		ticks:                   make(map[string]*tickState),
+		calibrator:              cal,
+		profileResolver:         resolver,
+		calibrationOverrideHook: hook,
 	}
 }
 
@@ -256,7 +304,7 @@ func (w *Watchdog) evaluateRunningRules(
 	current *Heartbeat,
 	previous *Heartbeat,
 ) (*Reason, Action) {
-	rules := w.config.Rules
+	rules := w.resolveRules(tr)
 	inGracePeriod := w.isInGracePeriod(tr)
 
 	// Loop detection: agent calling the same tool with same args repeatedly.
@@ -294,6 +342,79 @@ func (w *Watchdog) evaluateRunningRules(
 	}
 
 	return nil, ""
+}
+
+// resolveRules returns the effective RulesConfig for a TaskRun, applying
+// calibrated overrides from the adaptive calibration system when enabled
+// and sufficient data is available. Falls back to static config otherwise.
+func (w *Watchdog) resolveRules(tr *taskrun.TaskRun) RulesConfig {
+	rules := w.config.Rules
+
+	if !w.config.AdaptiveCalibration.Enabled || w.profileResolver == nil {
+		return rules
+	}
+
+	ctx := context.Background()
+	profile := w.profileResolver.ResolveProfile(ctx, tr.TicketID, tr.CurrentEngine, "")
+	if profile == nil {
+		return rules
+	}
+
+	threshold := w.config.AdaptiveCalibration.PercentileThreshold
+	overridden := false
+
+	// Override loop detection threshold from calibrated consecutive identical calls.
+	if p, ok := profile.Thresholds[SignalConsecutiveIdenticalCalls]; ok {
+		val := pickPercentile(p, threshold)
+		if val > 0 {
+			rules.LoopDetection.ConsecutiveIdenticalCallThreshold = int(val)
+			overridden = true
+		}
+	}
+
+	// Override thrashing threshold from calibrated token rate.
+	if p, ok := profile.Thresholds[SignalTokenRate]; ok {
+		val := pickPercentile(p, threshold)
+		if val > 0 {
+			rules.ThrashingDetection.TokensWithoutProgressThreshold = int64(val)
+			overridden = true
+		}
+	}
+
+	// Override cost velocity from calibrated cost velocity signal.
+	if p, ok := profile.Thresholds[SignalCostVelocity]; ok {
+		val := pickPercentile(p, threshold)
+		if val > 0 {
+			rules.CostVelocity.MaxUSDPer10Minutes = val
+			overridden = true
+		}
+	}
+
+	if overridden {
+		if w.calibrationOverrideHook != nil {
+			w.calibrationOverrideHook()
+		}
+		w.logger.Debug("using calibrated thresholds",
+			"task_run_id", tr.ID,
+			"engine", tr.CurrentEngine,
+			"sample_count", profile.SampleCount,
+		)
+	}
+
+	return rules
+}
+
+// pickPercentile selects the appropriate percentile value based on the
+// configured threshold string ("p50", "p90", or "p99").
+func pickPercentile(p *Percentiles, threshold string) float64 {
+	switch threshold {
+	case "p50":
+		return p.P50
+	case "p99":
+		return p.P99
+	default:
+		return p.P90
+	}
 }
 
 // evaluateNeedsHumanRules checks rules that apply when a TaskRun is in NeedsHuman state.

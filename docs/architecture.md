@@ -312,6 +312,124 @@ Newly created TaskRuns receive a grace period (default: 5 minutes) during which 
 
 Diagnostic `Reason` structs are populated from templates (never from raw agent output) to prevent prompt injection into the watchdog feedback path.
 
+## Bleeding-Edge Subsystems (Scaffolding Complete, Integration Pending)
+
+Seven new subsystems extend RoboDev's intelligence beyond basic orchestration. These packages are fully implemented with unit tests but are **not yet wired into the controller** — the integration work is tracked in `docs/roadmap.md` under Phase I.
+
+### Subsystem Architecture
+
+```mermaid
+graph TD
+    subgraph Intelligence["Intelligence Layer (new)"]
+        MEM["Episodic Memory<br/>internal/memory/"]
+        PRM["Process Reward Model<br/>internal/prm/"]
+        DIAG["Causal Diagnosis<br/>internal/diagnosis/"]
+        CAL["Adaptive Calibrator<br/>internal/watchdog/calibrator"]
+        ROUTE["Intelligent Routing<br/>internal/routing/"]
+        EST["Cost Estimator<br/>internal/estimator/"]
+        TOURN["Tournament<br/>internal/tournament/"]
+    end
+
+    subgraph Existing["Existing Controller"]
+        PT["ProcessTicket"]
+        HJC["handleJobComplete"]
+        HJF["handleJobFailed"]
+        SSR["startStreamReader"]
+        WD["Watchdog.Check"]
+    end
+
+    PT -.->|"predict cost"| EST
+    PT -.->|"select engine"| ROUTE
+    PT -.->|"start tournament"| TOURN
+    SSR -.->|"score each step"| PRM
+    WD -.->|"calibrated thresholds"| CAL
+    HJC -.->|"extract knowledge"| MEM
+    HJC -.->|"record outcome"| ROUTE
+    HJC -.->|"record outcome"| EST
+    HJC -.->|"record telemetry"| CAL
+    HJF -.->|"diagnose failure"| DIAG
+    HJF -.->|"extract knowledge"| MEM
+    MEM -.->|"inject context"| PT
+    DIAG -.->|"informed retry"| PT
+
+    style Intelligence fill:#1a1a2e,stroke:#16213e
+    style Existing fill:#0f3460,stroke:#16213e
+```
+
+Dashed lines indicate planned integration points (not yet wired).
+
+### Controller-Level Process Reward Model (`internal/prm/`)
+
+The PRM evaluates agent behaviour in real-time using the NDJSON event stream from `internal/agentstream/`. It operates purely on observable telemetry — no agent modification required.
+
+**Flow:** Stream events → rolling window → rule-based scoring (1-10) → trajectory pattern detection → intervention decision.
+
+**Interventions:**
+- **Continue** — agent is productive, no action needed
+- **Nudge** — write a hint file (`/workspace/.robodev-hint.md`) with guidance
+- **Escalate** — signal the watchdog to terminate the Job with diagnostic feedback
+
+**Trajectory patterns detected:** sustained decline (3+ consecutive drops), plateau (5+ identical scores), oscillation (alternating up/down), recovery (3+ consecutive increases).
+
+### Episodic Memory (`internal/memory/`)
+
+A persistent temporal knowledge graph that accumulates facts across all TaskRuns. Facts have confidence values that decay over time as repositories evolve.
+
+**Node types:**
+- `Fact` — a specific observation (e.g. "repo X has flaky test Y", "engine Z fails on Python monorepos")
+- `Pattern` — a recurring observation across multiple tasks
+- `EngineProfile` — per-engine capability summary
+
+**Storage:** SQLite via `modernc.org/sqlite` (pure Go, no CGO). Auto-migration on startup.
+
+**Temporal weighting:** queries weight facts by `confidence × decay_factor(age)`. Stale facts below a configurable threshold are pruned.
+
+**Cross-tenant isolation:** all queries are scoped by tenant ID. Fact extraction tags each node with the originating tenant.
+
+### Causal Diagnosis (`internal/diagnosis/`)
+
+Replaces blind retry with informed corrective action. When a task fails, the analyser classifies the failure mode from the stream transcript, watchdog reason, and result data.
+
+**Failure modes:** `WrongApproach`, `DependencyMissing`, `TestMisunderstanding`, `ScopeCreep`, `PermissionBlocked`, `ModelConfusion`, `InfraFailure`.
+
+**Prescriptions** are generated from safe `text/template` templates (never from raw agent output) to prevent prompt injection into the retry prompt.
+
+**Deduplication:** `DiagnosisHistory` on the TaskRun prevents repeating the same diagnosis — if the same failure mode recurs, the task goes terminal rather than retrying endlessly.
+
+### Adaptive Watchdog Calibration (`internal/watchdog/calibrator.go`, `profiles.go`)
+
+Extends the existing watchdog with per-(repo, engine, task_type) adaptive thresholds. Tracks running percentile statistics (P50, P90, P99) for key telemetry signals from completed TaskRuns.
+
+**Cold-start logic:** requires a minimum of 10 completed TaskRuns for a given profile key before overriding static defaults.
+
+**Profile resolution:** exact match → partial match (e.g. same engine but any repo) → global fallback → static config values.
+
+### Engine Fingerprinting and Routing (`internal/routing/`)
+
+Builds statistical profiles of each engine from historical task outcomes. Uses Laplace-smoothed success rates across dimensions (task type, repo language, repo size, complexity).
+
+**Selection algorithm:** epsilon-greedy — with probability ε (default 0.1), picks a random engine for exploration; otherwise picks the engine with the highest composite score.
+
+**Interface:** implements the existing `EngineSelector` interface, so it's a drop-in replacement for `DefaultEngineSelector`.
+
+### Predictive Cost Estimation (`internal/estimator/`)
+
+Pre-execution cost and duration prediction using multi-dimensional complexity scoring and k-nearest-neighbours from historical data.
+
+**Complexity dimensions:** description length/complexity, label mapping, normalised repo size, task type base complexity.
+
+**Output:** low/high ranges for cost (USD) and duration (minutes) with a confidence score based on sample count.
+
+### Competitive Execution / Tournament (`internal/tournament/`)
+
+For high-value tasks, launches N parallel K8s Jobs (different engines or strategies). A "judge" Job compares the resulting diffs and selects the best solution.
+
+**Lifecycle:** Start → Competing (N candidates running) → Judging (enough candidates complete, judge launched) → Selected/Eliminated (winner chosen, losers cleaned up).
+
+**Early termination:** configurable threshold (default 60% of candidates must complete before triggering judge). Remaining slow candidates are terminated.
+
+---
+
 ## Security Architecture
 
 RoboDev is a security-first project. For the full threat model and mitigations, see the [Security Model](security.md).

@@ -7,13 +7,19 @@ import (
 	"github.com/unitaryai/robodev/pkg/plugin/notifications"
 )
 
+// StreamEventProcessor processes a single stream event. It is used to hook
+// subsystems (such as the PRM evaluator) into the event forwarding pipeline
+// without creating import cycles.
+type StreamEventProcessor func(ctx context.Context, event *StreamEvent)
+
 // Forwarder consumes parsed StreamEvents and distributes them to the
 // watchdog channel and notification backends. It is the glue between the
 // raw agent stream and the rest of the controller.
 type Forwarder struct {
-	logger     *slog.Logger
-	watchdogCh chan<- *StreamEvent
-	notifiers  []notifications.Channel
+	logger          *slog.Logger
+	watchdogCh      chan<- *StreamEvent
+	notifiers       []notifications.Channel
+	eventProcessors []StreamEventProcessor
 }
 
 // ForwarderOption configures optional Forwarder behaviour.
@@ -32,6 +38,15 @@ func WithWatchdogChannel(ch chan<- *StreamEvent) ForwarderOption {
 func WithNotifiers(channels []notifications.Channel) ForwarderOption {
 	return func(f *Forwarder) {
 		f.notifiers = channels
+	}
+}
+
+// WithEventProcessor adds a StreamEventProcessor to the forwarding pipeline.
+// Processors are called for every event, in the order they were added. This
+// is the primary integration point for the PRM evaluator and similar subsystems.
+func WithEventProcessor(proc StreamEventProcessor) ForwarderOption {
+	return func(f *Forwarder) {
+		f.eventProcessors = append(f.eventProcessors, proc)
 	}
 }
 
@@ -73,6 +88,11 @@ func (f *Forwarder) handle(ctx context.Context, ev *StreamEvent) {
 		case <-ctx.Done():
 			return
 		}
+	}
+
+	// Pass event to all registered processors (e.g. PRM evaluator).
+	for _, proc := range f.eventProcessors {
+		proc(ctx, ev)
 	}
 
 	switch ev.Type {
