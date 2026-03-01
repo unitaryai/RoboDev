@@ -252,21 +252,32 @@ See [Guard Rails documentation](guardrails.md) for the full specification.
 
 RoboDev supports multiple AI coding agents. You select the default engine in your configuration and can override it per-task via issue labels.
 
-| Engine | Best For | Auth Method |
-|---|---|---|
-| **Claude Code** | General-purpose coding, large refactors, multi-file changes | Anthropic API key |
-| **Codex** | OpenAI-ecosystem shops, specialised coding tasks | OpenAI API key |
-| **Aider** | Lightweight edits, cost-sensitive workloads | Anthropic or OpenAI API key |
+| Engine | Best For | Auth Method | Guard Rails |
+|---|---|---|---|
+| **Claude Code** | General-purpose coding, large refactors, multi-file changes | Anthropic API key | Hooks (pre/post tool use) |
+| **Codex** | OpenAI-ecosystem shops, specialised coding tasks | OpenAI API key | Prompt-based |
+| **Aider** | Lightweight edits, cost-sensitive workloads | Anthropic or OpenAI API key | Prompt-based |
+| **OpenCode** | Terminal-native, BYOM (Anthropic/OpenAI/Google) | Anthropic, OpenAI, or Google API key | Prompt-based |
+| **Cline** | Headless CI/CD, AWS Bedrock, MCP support | Anthropic, OpenAI, Google, or Bedrock | Prompt-based |
 
 To switch the default engine, update your `values.yaml`:
 
 ```yaml
 config:
   engines:
-    default: codex    # or "aider"
+    default: codex    # or "aider", "opencode", "cline"
 ```
 
-You can also configure engine-specific settings such as custom container images and authentication methods:
+You can also configure engine fallback chains so that if one engine fails, the next is tried automatically:
+
+```yaml
+config:
+  engines:
+    default: claude-code
+    fallback_engines: [cline, aider]
+```
+
+Engine-specific settings such as custom container images and authentication methods:
 
 ```yaml
 config:
@@ -276,10 +287,23 @@ config:
       auth:
         method: api_key
         api_key_secret: "robodev-anthropic-key"
+      fallback_model: haiku          # automatic model failover
+      no_session_persistence: true   # stateless container execution
     codex:
       auth:
         method: api_key
         api_key_secret: "robodev-openai-key"
+    opencode:
+      provider: anthropic
+      auth:
+        method: api_key
+        api_key_secret: "robodev-anthropic-key"
+    cline:
+      provider: anthropic
+      mcp_enabled: true
+      auth:
+        method: api_key
+        api_key_secret: "robodev-anthropic-key"
 ```
 
 See [Engine documentation](plugins/engines.md) for the full list of options including Bedrock and Vertex AI authentication.

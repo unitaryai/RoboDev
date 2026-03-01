@@ -30,9 +30,9 @@ Tick items off as they are implemented and merged.
 - [x] **10. Task-Scoped Secret Resolution** — multi-backend, alias system, audit trail
 - [x] **11. NetworkPolicy & Security Hardening** — agent/controller NetworkPolicy, PDB
 - [ ] **12. Plugin SDKs (Python, Go, TypeScript)** — generated from protobuf definitions
-- [ ] **13. Local Development Mode (Docker Compose)** — Docker execution backend
+- [x] **13. Local Development Mode (Docker Compose)** — Docker execution backend
 
-**Score: 11 / 13 complete**
+**Score: 12 / 13 complete**
 
 ---
 
@@ -270,6 +270,44 @@ A web dashboard for real-time agent observability and control. Shows live agent 
 
 ---
 
+### Phase H — Documentation
+
+#### 11. Documentation Site
+
+**Priority:** High
+**Scope:** Medium (new site, existing content)
+**Dependencies:** None
+
+A polished, searchable documentation site that makes RoboDev look production-grade. First impressions matter — a good docs site is the difference between "interesting project" and "I'm deploying this on Monday."
+
+**Approach options:**
+- **Docusaurus** — React-based, MDX support, versioning, search, dark mode out of the box. Used by most major OSS projects. Easy to deploy on Vercel/Netlify/GitHub Pages.
+- **Astro Starlight** — Newer, faster, built for docs. Excellent DX, automatic sidebar from file structure, i18n support, lighter than Docusaurus.
+- **MkDocs Material** — Python-based, gorgeous Material Design theme, built-in search, mermaid diagrams. Simpler than Docusaurus, very popular in the Go/K8s ecosystem.
+
+**Site structure:**
+- [ ] Landing page with hero, feature highlights, and quick start
+- [ ] Getting Started guide (K8s deploy, Docker Compose local mode, first task)
+- [ ] Architecture overview with diagrams (controller, engines, plugins, state machine)
+- [ ] Configuration reference (full YAML schema with examples)
+- [ ] Engine guides (Claude Code, Codex, Aider, OpenCode, Cline) with comparison matrix
+- [ ] Plugin development guide (ticketing, notifications, secrets, approval, review, SCM)
+- [ ] Security model documentation (threat model, gVisor, NetworkPolicy, guard rails)
+- [ ] API reference (webhook endpoints, protobuf service definitions)
+- [ ] Deployment guides (Helm chart reference, production hardening, multi-tenancy)
+- [ ] Changelog and migration guides
+- [ ] Search functionality
+- [ ] Dark mode support
+
+**Infrastructure:**
+- [ ] Choose site framework (Docusaurus / Astro Starlight / MkDocs Material)
+- [ ] Set up `docs/site/` or `website/` directory
+- [ ] CI/CD pipeline for automatic deployment on merge to main
+- [ ] Custom domain setup (docs.robodev.dev or similar)
+- [ ] Add `make docs-serve` / `make docs-build` targets
+
+---
+
 ## Implementation Order
 
 ```
@@ -280,6 +318,7 @@ Phase D (governance):  7. Approval Workflows + Audit Trail
 Phase E (access):      8. Local Development Mode  ·  5. Multi-Agent Coordination (Phase 1)
 Phase F (ecosystem):   9. Plugin SDKs
 Phase G (observe):    10. Agent Dashboard
+Phase H (docs):       11. Documentation Site
 ```
 
 ---
@@ -298,3 +337,4 @@ Phase G (observe):    10. Agent Dashboard
 | 8 | Local Development Mode | E | Medium | **Complete** |
 | 9 | Plugin SDKs | F | Medium | Not started |
 | 10 | Agent Dashboard | G | High | Not started |
+| 11 | Documentation Site | H | High | Not started |

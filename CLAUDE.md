@@ -33,16 +33,21 @@ The full technical plan is in `oss-plan.md`. The product requirements are in `os
 Follow the structure defined in section 8 of `oss-plan.md`. The key packages are:
 
 ```
-cmd/robodev/           — Main entrypoint
-internal/controller/   — controller-runtime reconciler
-internal/jobbuilder/   — ExecutionSpec -> K8s Job translation
-internal/taskrun/      — TaskRun state machine + idempotency
-internal/watchdog/     — Progress watchdog loop
-internal/config/       — Configuration loading
-internal/metrics/      — Prometheus metrics
-pkg/engine/            — ExecutionEngine interface + built-in engines
-pkg/plugin/            — gRPC plugin host + all plugin interfaces
-proto/                 — Protobuf definitions (source of truth for all interfaces)
+cmd/robodev/              — Main entrypoint
+internal/controller/      — controller-runtime reconciler
+internal/jobbuilder/      — ExecutionSpec -> K8s Job translation
+internal/sandboxbuilder/  — Sandbox CR builder (gVisor/Kata)
+internal/taskrun/         — TaskRun state machine + idempotency + store
+internal/watchdog/        — Progress watchdog loop
+internal/agentstream/     — Real-time NDJSON streaming from agent pods
+internal/config/          — Configuration loading
+internal/metrics/         — Prometheus metrics
+internal/webhook/         — Webhook receiver (GitHub/GitLab/Slack/Shortcut/generic)
+internal/secretresolver/  — Task-scoped secret resolution + policy
+internal/promptbuilder/   — Prompt construction with task profiles + workflows
+pkg/engine/               — ExecutionEngine interface + built-in engines
+pkg/plugin/               — gRPC plugin host + all plugin interfaces
+proto/                    — Protobuf definitions (source of truth for all interfaces)
 ```
 
 ## Testing

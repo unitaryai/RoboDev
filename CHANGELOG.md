@@ -9,6 +9,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Strategic Roadmap Phase A-E (Items 1-8)
+
+##### Enhanced Claude Code Engine (Item 1)
+- `DefaultTaskResultSchema` const with JSON schema for structured task result output
+- Functional options pattern: `WithFallbackModel`, `WithToolWhitelist`, `WithJSONSchema`
+- Conditional CLI flag construction: `--output-format stream-json`, `--json-schema`, `--fallback-model`, `--no-session-persistence`, `--append-system-prompt`, `--allowedTools`, `--disallowedTools`
+- Extended `EngineConfig` with `FallbackModel`, `ToolWhitelist`, `ToolBlacklist`, `JSONSchema`, `AppendSystemPrompt`, `NoSessionPersistence`, `StreamingEnabled` fields
+- Extended `ClaudeCodeEngineConfig` with matching YAML fields
+
+##### Real-Time Agent Streaming (Item 2)
+- New `internal/agentstream/` package: NDJSON event types (`ToolCallEvent`, `ContentDeltaEvent`, `CostEvent`, `ResultEvent`), K8s pod log stream reader, event forwarder to watchdog and notifications
+- Watchdog `ConsumeStreamEvent` method for live tool call tracking, cost monitoring, and heartbeat updates from streaming agents
+- Controller stream reader lifecycle: starts per active Claude Code job, cancels on completion/failure
+- `StreamingConfig` with `Enabled` and `LiveNotifications` fields
+- `--verbose` flag added when streaming is enabled for richer event data
+
+##### Engine Fallback Chains (Item 3)
+- `EngineSelector` interface with `DefaultEngineSelector` implementation
+- Ticket label override (`robodev:engine:<name>`) for per-ticket engine selection
+- `FallbackEngines []string` in `EnginesConfig` for ordered fallback chain
+- `EngineAttempts` and `CurrentEngine` tracking on TaskRun
+- Automatic fallback to next engine in `handleJobFailed` before exhausting retries
+- `launchFallbackJob` helper with unique job IDs per attempt
+
+##### Agent Sandbox Integration (Item 4)
+- `SandboxBuilder` implementing `JobBuilder` with gVisor/Kata RuntimeClass, SandboxClaim annotations, and warm pool labels
+- `ExecutionConfig` with `Backend` ("job"/"sandbox"/"local") and `SandboxConfig` (runtime class, warm pool, env stripping)
+- Helm templates: `runtimeclass-gvisor.yaml` and `sandboxwarmpool.yaml` (gated by `sandbox.enabled`)
+- Environment variable stripping in Claude Code entrypoint (guarded by `ENV_STRIPPING`)
+
+##### Multi-Agent Coordination Phase 1 (Item 5)
+- `AgentDef` config type with role, model, and instructions
+- `BuildAgentFlags` generating `--agents` JSON from config or task-type defaults (bug_fix: coder+reviewer, feature: coder+reviewer+tester)
+- `WithTeamsConfig` functional option on Claude Code engine
+- Team coordination prompt section in `BuildPromptWithTeams`
+- `CLAUDE_CODE_MAX_TEAMMATES` environment variable
+
+##### TDD Workflow Mode (Item 6)
+- `WorkflowInstructions()` function returning structured instructions for "tdd" and "review-first" modes
+- `TaskProfileConfig` with `Workflow`, `ToolWhitelist`, `ToolBlacklist` fields
+- Workflow instructions injected between task description and guard rails in prompt template
+- `BuildPromptWithProfile` method for profile-aware prompt construction
+
+##### Approval Workflows and Audit Trail (Item 7)
+- `TaskRunStore` interface with `Save`, `Get`, `List`, `ListByTicketID` methods
+- `MemoryStore` thread-safe in-memory implementation
+- Pre-start and pre-merge approval gates in controller
+- Queued → NeedsHuman state transition for approval holds
+- Slack approval callback parsing (`robodev_approve_*` / `robodev_reject_*` actions)
+- `ApprovalGates` and `ApprovalCostThresholdUSD` in guard rails config
+
 #### Local Development Mode (Docker Compose)
 - DockerBuilder (`internal/jobbuilder/docker.go`) implementing `controller.JobBuilder` for local Docker execution — produces K8s Job objects annotated with `robodev.io/execution-backend: local`
 - Builder selection in `cmd/robodev/main.go`: reads `execution.backend` config to choose between standard ("job"), sandbox, or local Docker builder

@@ -57,7 +57,7 @@ Add an HTTP server to the controller that receives webhooks from ticketing backe
 
 ## 2. Agent Sandbox Integration (gVisor / Warm Pools)
 
-**Status:** Planned
+**Status:** Implemented (core + testing; alpha API may change)
 **Priority:** Critical (security + performance)
 **Depends on:** `kubernetes-sigs/agent-sandbox` controller
 
