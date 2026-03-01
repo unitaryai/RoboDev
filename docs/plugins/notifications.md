@@ -1,5 +1,8 @@
 # Notification Channel Interface
 
+!!! info "Non-critical plugin"
+    Notification failures are logged but do not block the controller. The reconciliation loop continues even if all notification channels are down.
+
 ## Overview
 
 Notification channels send fire-and-forget messages to external systems (Slack, Microsoft Teams, Discord, email, etc.). They are used to inform humans about agent activity — when tasks start, complete, or fail. Notifications are one-way; for interactive human-in-the-loop flows (approvals, questions), see the `HumanApprovalBackend` interface.

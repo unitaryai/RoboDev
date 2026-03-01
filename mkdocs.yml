@@ -1,0 +1,107 @@
+site_name: RoboDev
+site_description: Kubernetes-native AI coding agent harness
+site_url: https://unitaryai.github.io/robodev
+repo_url: https://github.com/unitaryai/robodev
+repo_name: unitaryai/robodev
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2024–2026 Unitary AI — Apache 2.0 Licence
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Overview: getting-started/index.md
+      - "Quick Start: Docker Compose": getting-started/docker-compose.md
+      - "Quick Start: Kubernetes": getting-started/kubernetes.md
+      - Configuration Reference: getting-started/configuration.md
+      - Troubleshooting: getting-started/troubleshooting.md
+  - Concepts:
+      - What is RoboDev?: concepts/what-is-robodev.md
+      - How a TaskRun Works: concepts/taskrun-lifecycle.md
+      - Engines Explained: concepts/engines.md
+      - Guard Rails Overview: concepts/guardrails-overview.md
+  - Architecture:
+      - System Overview: architecture.md
+      - Security Model: security.md
+      - Guard Rails (Detailed): guardrails.md
+      - Scaling: scaling.md
+  - Engines:
+      - Engine Comparison: plugins/engines.md
+  - Plugins:
+      - Writing a Plugin: plugins/writing-a-plugin.md
+      - Ticketing: plugins/ticketing.md
+      - Notifications: plugins/notifications.md
+      - Secrets: plugins/secrets.md
+  - Community:
+      - Contributing: contributing.md
+      - Code of Conduct: code-of-conduct.md
+      - Security Policy: security-policy.md
+      - Roadmap: roadmap.md
+      - Changelog: changelog.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ['.']
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/unitaryai/robodev

@@ -1,5 +1,8 @@
 # Secrets Backend Interface
 
+!!! warning "Security-sensitive interface"
+    The secrets backend handles API keys, tokens, and credentials. Never log secret values — only log key names. Prefer `SecretKeyRef` references over direct values.
+
 ## Overview
 
 The secrets backend retrieves sensitive values (API keys, tokens, credentials) from external secret stores and builds Kubernetes environment variable references for injection into agent job pods. It abstracts the underlying secrets store so that the controller and engines can request secrets without knowing whether they come from Kubernetes Secrets, HashiCorp Vault, AWS Secrets Manager, or another provider.

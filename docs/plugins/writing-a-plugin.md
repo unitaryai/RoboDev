@@ -1,5 +1,8 @@
 # Writing a Plugin
 
+!!! tip "New to RoboDev plugins?"
+    For a high-level overview of what plugins do and which types exist, see [What is RoboDev? — Plugins](../concepts/what-is-robodev.md#what-are-plugins).
+
 ## Overview
 
 RoboDev is extended through **plugins** -- modular backends that integrate with external services. There are two plugin types:

@@ -37,6 +37,17 @@ agents against live codebases.
 RoboDev enforces safety through six independent layers. A request must pass
 through all of them before an agent can act on it.
 
+```mermaid
+graph LR
+    A["Incoming<br/>Ticket"] --> L1["1. Controller<br/>Validation"]
+    L1 --> L2["2. Engine<br/>Hooks"]
+    L2 --> L3["3. Repo Rules<br/>(guardrails.md)"]
+    L3 --> L4["4. Task<br/>Profiles"]
+    L4 --> L5["5. Quality<br/>Gate"]
+    L5 --> L6["6. Progress<br/>Watchdog"]
+    L6 --> Z["Safe<br/>Output"]
+```
+
 ### Layer 1: Controller Validation
 
 The reconciler (`internal/controller/controller.go`) validates every ticket
@@ -423,6 +434,6 @@ Logged events include:
 ## Vulnerability Disclosure
 
 If you discover a security vulnerability in RoboDev, please report it
-responsibly. See [SECURITY.md](../SECURITY.md) for our disclosure process.
+responsibly. See the [Security Policy](security-policy.md) for our disclosure process.
 
 Do not open public issues for security vulnerabilities.

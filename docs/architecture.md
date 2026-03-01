@@ -14,55 +14,27 @@ All external integrations -- ticketing, notifications, approvals, secrets, SCM, 
 
 ## System Architecture
 
-```
-                           +---------------------------+
-                           |   Ticketing Backend       |
-                           |  (GitHub Issues / Jira)   |
-                           +-------------+-------------+
-                                         |
-                                    poll | tickets
-                                         |
-                           +-------------v-------------+
-                           |                           |
-                           |      RoboDev Controller   |
-                           |                           |
-                           |  +---------------------+  |
-                           |  | Reconciliation Loop |  |
-                           |  +---------------------+  |
-                           |  | Guard Rails         |  |
-                           |  +---------------------+  |
-                           |  | TaskRun State Machine| |
-                           |  +---------------------+  |
-                           |  | Engine Selector      |  |
-                           |  +---------------------+  |
-                           |  | JobBuilder           |  |
-                           |  +---------------------+  |
-                           |                           |
-                           +---+---+---+---+---+-------+
-                               |   |   |   |   |
-             +-----------------+   |   |   |   +------------------+
-             |                     |   |   |                      |
-    +--------v--------+   +-------v-+ | +-v--------+    +--------v--------+
-    | Secrets Backend  |   |Watchdog | | |Approval  |    |Notification     |
-    | (Vault / K8s)    |   |  Loop   | | |Backend   |    |Channel          |
-    +------------------+   +---------+ | +----------+    |(Slack / Teams)  |
-                                       |                 +-----------------+
-                              +--------v--------+
-                              |   K8s Job        |
-                              |  (AI Agent Pod)  |
-                              |  Claude Code /   |
-                              |  Codex / Aider   |
-                              +--------+---------+
-                                       |
-                              result + | branch
-                                       |
-                     +-----------------+-----------------+
-                     |                                   |
-            +--------v--------+                 +--------v--------+
-            |  SCM Backend     |                 | Review Backend   |
-            | (GitHub/GitLab)  |                 | (CodeRabbit)     |
-            |  create PR/MR    |                 |  auto-review     |
-            +-----------------+                 +-----------------+
+```mermaid
+graph TD
+    TB["Ticketing Backend<br/>(GitHub Issues / GitLab / Jira)"] -->|poll tickets| Ctrl
+
+    subgraph Ctrl["RoboDev Controller"]
+        RL["Reconciliation Loop"]
+        GR["Guard Rails"]
+        TSM["TaskRun State Machine"]
+        ES["Engine Selector"]
+        JB["JobBuilder"]
+        RL --> GR --> TSM --> ES --> JB
+    end
+
+    Ctrl --> Secrets["Secrets Backend<br/>(Vault / K8s)"]
+    Ctrl --> WD["Watchdog Loop"]
+    Ctrl --> Approval["Approval Backend"]
+    Ctrl --> Notif["Notification Channel<br/>(Slack / Teams)"]
+    JB --> Job["K8s Job<br/>(AI Agent Pod)<br/>Claude Code / Codex / Aider"]
+
+    Job -->|result + branch| SCM["SCM Backend<br/>(GitHub / GitLab)<br/>create PR/MR"]
+    Job -->|result + branch| Review["Review Backend<br/>(CodeRabbit)<br/>auto-review"]
 ```
 
 ## Controller
@@ -113,33 +85,20 @@ The TaskRun state machine is implemented in `internal/taskrun/`. Each `TaskRun` 
 
 ### Transition Diagram
 
-```
-                        +----------+
-                        |  Queued  |
-                        +----+-----+
-                             |
-                             v
-                   +----+----+----+----+
-                   |                   |
-                   v                   v
-           +-----------+       +-------------+
-           | NeedsHuman|       |   Running    |<---------+
-           +-----+-----+       +--+--+--+----+          |
-                 |                 |  |  |               |
-                 +-----------------+  |  |               |
-                                      |  |               |
-                    +-----------------+  +----------+    |
-                    |                               |    |
-                    v                               v    |
-             +-----------+                   +------+--+ |
-             | Succeeded |                   | Failed  +-+-->  (terminal if
-             +-----------+                   +------+--+       retries exhausted)
-                                                    |
-                                                    v
-                                              +-----+----+
-              +----------+                    | Retrying  |
-              | TimedOut |                    +----------+
-              +----------+
+```mermaid
+stateDiagram-v2
+    [*] --> Queued
+    Queued --> Running
+    Queued --> NeedsHuman
+    Running --> Succeeded
+    Running --> Failed
+    Running --> TimedOut
+    Running --> NeedsHuman
+    NeedsHuman --> Running
+    Failed --> Retrying
+    Retrying --> Running
+    Succeeded --> [*]
+    TimedOut --> [*]
 ```
 
 ### Valid Transitions
@@ -250,7 +209,7 @@ All interfaces are defined as protobuf services in `proto/` (the source of truth
 
 ## Guard Rails
 
-RoboDev enforces safety through six complementary layers. For full details, see [guardrails.md](guardrails.md).
+RoboDev enforces safety through six complementary layers. For full details, see the [Guard Rails documentation](guardrails.md).
 
 1. **Controller validation** -- the reconciler validates each ticket against configurable rules before creating a Job. This includes allowed repository patterns (glob matching), allowed task types, and blocked file patterns. Violations are rejected immediately and the ticket is marked as failed.
 
@@ -267,6 +226,41 @@ RoboDev enforces safety through six complementary layers. For full details, see 
 ## Job Lifecycle
 
 The complete lifecycle of a ticket from discovery to pull request:
+
+```mermaid
+sequenceDiagram
+    participant TP as Ticketing Poller
+    participant Ctrl as Controller
+    participant GR as Guard Rails
+    participant Eng as Engine
+    participant JB as JobBuilder
+    participant K8s as Kubernetes
+    participant WD as Watchdog
+    participant SCM as SCM Backend
+    participant Rev as Review Backend
+    participant Notif as Notifications
+
+    TP->>Ctrl: Ready ticket
+    Ctrl->>GR: Validate (repos, task types, files)
+    GR-->>Ctrl: Pass
+    Ctrl->>Eng: BuildExecutionSpec(task, config)
+    Eng-->>Ctrl: ExecutionSpec
+    Ctrl->>JB: Translate to batch/v1.Job
+    JB-->>Ctrl: Job manifest
+    Ctrl->>K8s: Create Job
+    Ctrl->>Notif: NotifyStart
+    loop Watchdog loop
+        WD->>K8s: Check heartbeats + anomalies
+    end
+    K8s-->>Ctrl: Job completed
+    Ctrl->>Ctrl: Read TaskResult
+    Ctrl->>SCM: Create PR/MR
+    Ctrl->>Rev: Review output (if quality gate enabled)
+    Ctrl->>TP: Update ticket (succeeded/failed)
+    Ctrl->>Notif: NotifyComplete
+```
+
+The steps in detail:
 
 1. **Poll** -- the ticketing backend returns a ready ticket.
 2. **Validate** -- the controller checks guard rails (allowed repos, task types, file patterns).
@@ -320,7 +314,7 @@ Diagnostic `Reason` structs are populated from templates (never from raw agent o
 
 ## Security Architecture
 
-RoboDev is a security-first project. For the full threat model and mitigations, see [security.md](security.md).
+RoboDev is a security-first project. For the full threat model and mitigations, see the [Security Model](security.md).
 
 ### Container Isolation
 

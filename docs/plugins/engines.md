@@ -1,5 +1,8 @@
 # Execution Engines
 
+!!! tip "New to engines?"
+    For a plain-language comparison and decision tree, see [Engines Explained](../concepts/engines.md). This page covers the detailed technical reference.
+
 ## Overview
 
 Execution engines wrap AI coding tools (Claude Code, OpenAI Codex, Aider) and produce engine-agnostic `ExecutionSpec` structs that the JobBuilder translates into Kubernetes Jobs. This decoupling enables testing without a cluster, supports multiple AI tools from a single controller, and opens the door to non-K8s runtimes in future.
@@ -252,7 +255,8 @@ You MUST follow these rules strictly:
 - Do NOT push commits directly; stage and commit changes locally only
 ```
 
-> **Important:** Prompt-embedded guard rails are advisory — the AI model may not always respect them. For stricter enforcement, use the Claude Code engine with hook-based guards, or rely on the quality gate for post-completion validation.
+!!! warning "Prompt-based guard rails are advisory"
+    The AI model may not always respect prompt-embedded rules. For stricter enforcement, use the Claude Code engine with hook-based guards, or rely on the quality gate for post-completion validation.
 
 #### Repository Context
 

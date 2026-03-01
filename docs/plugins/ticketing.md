@@ -1,5 +1,8 @@
 # Ticketing Backend Interface
 
+!!! info "Interface version: 1"
+    All ticketing backends must implement the `Handshake` RPC with `interface_version: 1`.
+
 ## Overview
 
 The ticketing backend is the primary input source for RoboDev. It polls an issue tracker for tickets ready to be processed, manages their lifecycle state transitions (in-progress, complete, failed), and posts progress comments. The controller calls `PollReadyTickets` on every reconciliation cycle to discover new work.

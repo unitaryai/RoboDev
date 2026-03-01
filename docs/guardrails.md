@@ -4,6 +4,32 @@
 
 RoboDev provides layered safety boundaries — guard rails — to ensure autonomous AI agents operate within enterprise-approved limits. Guard rails are applied at multiple levels for defence in depth.
 
+!!! tip "New to guard rails?"
+    For a plain-language introduction, see [Guard Rails Overview](concepts/guardrails-overview.md). This page covers the detailed configuration reference.
+
+```mermaid
+sequenceDiagram
+    participant Ticket as Incoming Ticket
+    participant L1 as 1. Controller Validation
+    participant L2 as 2. Engine Hooks
+    participant L3 as 3. guardrails.md
+    participant L4 as 4. Task Profiles
+    participant L5 as 5. Quality Gate
+    participant L6 as 6. Watchdog
+
+    Ticket->>L1: Check allowed repos, task types, limits
+    L1->>L2: Pass — launch agent
+    Note over L2: Intercept tool calls<br/>in real time
+    L2->>L3: Agent reads repo rules
+    Note over L3: "Never modify CI files"
+    L3->>L4: Apply profile restrictions
+    Note over L4: docs tasks → only *.md
+    L4->>L5: Agent finishes
+    Note over L5: Scan for secrets,<br/>OWASP patterns
+    L5->>L6: Continuous monitoring
+    Note over L6: Detect loops, stalls,<br/>cost overruns
+```
+
 ## 1. Controller-Level Guards
 
 Applied before a job is created. Configured in `robodev-config.yaml`:

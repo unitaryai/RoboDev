@@ -256,6 +256,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin development guide covering Go built-in and gRPC third-party plugin authoring
 - Expanded plugin interface docs: ticketing (269 lines), notifications (246 lines), secrets (261 lines), engines (500 lines) with full RPC coverage, implementation guidance, and design considerations
 
+#### Documentation Site (MkDocs Material)
+- MkDocs Material documentation site with deep purple/amber theme, dark mode, search, and code copy
+- Landing page with feature cards, Mermaid architecture diagram, and full project layout reference
+- Dual quick start paths: Docker Compose (K8s newbies) and Kubernetes (experienced users)
+- Four newcomer-facing concept pages: What is RoboDev?, TaskRun Lifecycle, Engines Explained, Guard Rails Overview
+- Full configuration reference page documenting all config sections from `internal/config/config.go`
+- Troubleshooting guide covering controller, agent, webhook, notification, and watchdog issues
+- Mermaid diagrams: system architecture, TaskRun state machine, job lifecycle sequence, guard rail layers, engine decision tree
+- Community section with contributing guide, code of conduct, security policy, roadmap, and changelog
+- GitHub Actions workflow for automatic deployment to GitHub Pages on push to main
+- Makefile targets: `docs-serve` and `docs-build` for local development
+- Admonition boxes added to plugin documentation for tips, warnings, and interface info
+- Existing docs updated: ASCII diagrams replaced with Mermaid, internal links fixed for MkDocs compatibility
+- `getting-started.md` split into `getting-started/` subdirectory (kubernetes, docker-compose, configuration, troubleshooting)
+
 #### Infrastructure
 - Go module and core skeleton: controller entrypoint, config loading, TaskRun state machine, Prometheus metrics, ExecutionEngine interface
 - CI pipeline with lint, test, build, proto-lint, helm-lint, docker-build jobs

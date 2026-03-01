@@ -1,0 +1,87 @@
+# Engines Explained
+
+An **engine** is an AI coding tool that RoboDev runs inside a container to complete tasks. The controller doesn't write code itself — it delegates to engines. Think of the controller as a dispatcher and the engine as the worker.
+
+## Which Engine Should I Use?
+
+```mermaid
+graph TD
+    A["Which engine?"] --> B{"Need deterministic<br/>guard rails?"}
+    B -->|Yes| C["Claude Code"]
+    B -->|No| D{"Which AI provider?"}
+    D -->|Anthropic| E{"Budget-sensitive?"}
+    E -->|Yes| F["Aider"]
+    E -->|No| C
+    D -->|OpenAI| G["Codex"]
+    D -->|Google| H["OpenCode"]
+    D -->|AWS Bedrock| I["Cline"]
+    D -->|Multiple| J{"Need MCP?"}
+    J -->|Yes| I
+    J -->|No| H
+```
+
+**Short answer:** Use **Claude Code** unless you have a specific reason not to. It has the best guard rail support (hook-based, not just prompt-based) and built-in heartbeat telemetry for the watchdog.
+
+## Comparison
+
+| Feature | Claude Code | Codex | Aider | OpenCode | Cline |
+|---|---|---|---|---|---|
+| **Guard rails** | Hook-based (deterministic) | Prompt-based | Prompt-based | Prompt-based | Prompt-based |
+| **AI provider** | Anthropic | OpenAI | Anthropic or OpenAI | Anthropic, OpenAI, or Google | Anthropic, OpenAI, Google, or Bedrock |
+| **Heartbeat telemetry** | Built-in via hooks | Not built-in | Not built-in | Not built-in | Not built-in |
+| **Agent teams** | Yes (experimental) | No | No | No | No |
+| **MCP support** | Yes | No | No | No | Yes |
+| **Repo context file** | `CLAUDE.md` | `AGENTS.md` | `.aider/conventions.md` | `AGENTS.md` | `.clinerules` |
+| **Best for** | General-purpose, large refactors | OpenAI shops | Lightweight edits, cost-sensitive | BYOM flexibility | Bedrock, MCP integration |
+
+## What "Hook-Based" vs "Prompt-Based" Guard Rails Means
+
+This is the most important difference between engines.
+
+**Hook-based (Claude Code):** RoboDev generates scripts that run before and after every tool call. If the agent tries to run `rm -rf /` or write to a `.env` file, the hook script blocks it *before it happens*. The agent sees the rejection and adjusts its approach. This is deterministic — the rule always fires.
+
+**Prompt-based (all others):** Guard rails are appended to the task prompt as text instructions ("Do NOT execute destructive commands..."). The AI model *usually* follows them, but there's no hard enforcement. A sufficiently confused or jailbroken model could ignore them.
+
+!!! warning "Prompt-based guard rails are advisory"
+    If your security requirements demand strict enforcement of file access or command restrictions, use Claude Code. For lower-risk tasks (documentation, test fixes), prompt-based engines are usually fine.
+
+## Engine Fallback Chains
+
+You can configure a fallback chain so that if one engine fails, the next is tried:
+
+```yaml
+engines:
+  default: claude-code
+  fallback_engines: [cline, aider]
+```
+
+The controller tries `claude-code` first. If it fails, it tries `cline`. If that also fails, it tries `aider`. This is useful for resilience against API outages or rate limits.
+
+## Per-Task Engine Override
+
+You can override the engine for a specific task by adding a label to the issue:
+
+- `engine:codex` — use Codex for this task
+- `engine:aider` — use Aider for this task
+
+This takes priority over the configured default.
+
+## Cost Considerations
+
+Different engines have different cost profiles depending on the underlying model:
+
+| Engine | Typical Cost Range | Notes |
+|---|---|---|
+| Claude Code | $1–$50 per task | Depends on model (Opus vs Sonnet vs Haiku) and task complexity |
+| Codex | $1–$30 per task | OpenAI pricing |
+| Aider | $0.50–$20 per task | Can use cheaper models |
+| OpenCode | Varies | Depends on provider |
+| Cline | Varies | Depends on provider; Bedrock pricing may differ |
+
+Use `max_cost_per_job` in your guard rails to cap spending per task regardless of engine.
+
+## Next Steps
+
+- [Engine Reference](../plugins/engines.md) — full configuration details for each engine
+- [Guard Rails Overview](guardrails-overview.md) — the six safety layers
+- [Configuration Reference](../getting-started/configuration.md) — how to configure engines in your values

@@ -8,7 +8,8 @@
        deploy deploy-test undeploy local-up local-down local-redeploy \
        live-up live-redeploy live-deploy setup-secrets \
        e2e-test integration-test test-report test-all logs \
-       compose-up compose-down
+       compose-up compose-down \
+       docs-serve docs-build
 
 BINARY := bin/robodev
 GO := go
@@ -213,5 +214,15 @@ compose-up: ## Start local development environment via Docker Compose
 
 compose-down: ## Stop and remove local development containers
 	docker compose down
+
+# ---------------------------------------------------------------------------
+# Documentation site (MkDocs Material)
+# ---------------------------------------------------------------------------
+
+docs-serve: ## Serve documentation site locally on :8000
+	pip install -q -r requirements.txt && mkdocs serve
+
+docs-build: ## Build documentation site (strict mode)
+	pip install -q -r requirements.txt && mkdocs build --strict
 
 .DEFAULT_GOAL := help
