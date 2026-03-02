@@ -4,18 +4,7 @@
 
 RoboDev orchestrates autonomous developer agents (Claude Code, OpenAI Codex, Aider, OpenCode, Cline) inside isolated Kubernetes Jobs to perform maintenance and development tasks on your codebases. It is security-first, plugin-extensible, and built on Kubernetes primitives for isolation, observability, and scaling.
 
-```
-Ticketing Backend             RoboDev Controller            K8s Job (isolated)
-(GitHub, GitLab, Shortcut,    (Go operator, K8s-native)     (AI agent + code)
- Linear)                  ->  Guard Rails + Cost Control ->       |
-        |                     Watchdog + Secret Resolver          |
-        |                            |                            v
-Webhook Receiver                     |                Pull Request / Merge Request
-(GitHub, GitLab, Slack,              |                       + Review
- Shortcut, Generic)                  |
-                              Notifications
-                        (Slack, Telegram, Discord)
-```
+![RoboDev Overview](docs/images/RoboDev-overview.png)
 
 ## Key Features
 
@@ -32,46 +21,7 @@ Webhook Receiver                     |                Pull Request / Merge Reque
 
 ## Architecture
 
-```
-                        +---------------------------+
-                        |     RoboDev Controller     |
-                        |  (Go, controller-runtime)  |
-                        +--+----+----+----+----+---+
-                           |    |    |    |    |
-              +------------+    |    |    |    +----------+
-              |                 |    |    |               |
-        +-----v------+   +-----v-+  | +--v------+  +----v----------+
-        | Ticketing   |   |Secrets|  | |  SCM    |  | Notification  |
-        | (GitHub,    |   |(K8s,  |  | |(GitHub, |  | (Slack,       |
-        | Shortcut,   |   |Vault) |  | |GitLab)  |  |  Telegram,    |
-        | Linear)     |   +---+---+  | +---------+  |  Discord)     |
-        +------+------+       |      |              +---------------+
-               ^               |      |
-               |         +-----v------v-------+
-        +------+------+  |  Secret Resolver   |
-        | Webhook     |  | (aliases, policy,  |
-        | Receiver    |  |  multi-backend)    |
-        | (GitHub,    |  +--------------------+
-        | GitLab,     |
-        | Slack,      |       +----------v----------+
-        | Shortcut,   |       |    Engine Registry   |
-        | Generic)    |       | Claude Code | Codex  |
-        +-------------+       | Aider | OpenCode     |
-                               |       Cline          |
-                               +----------+----------+
-                                          |
-                               +----------v----------+
-                               |    K8s Job (pod)     |
-                               | +------------------+ |
-                               | | AI Agent         | |
-                               | | + Guard Rail     | |
-                               | |   Hooks          | |
-                               | +------------------+ |
-                               | | Result:          | |
-                               | |  result.json     | |
-                               | +------------------+ |
-                               +----------------------+
-```
+![RoboDev Architecture](docs/images/RoboDev-architecture.png)
 
 ## Quick Start
 
