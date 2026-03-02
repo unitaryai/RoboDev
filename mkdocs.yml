@@ -46,6 +46,8 @@ nav:
       - Overview: getting-started/index.md
       - "Quick Start: Docker Compose": getting-started/docker-compose.md
       - "Quick Start: Kubernetes": getting-started/kubernetes.md
+      - "Setup Guide: GitHub Issues + Slack": getting-started/github-issues-slack.md
+      - "Setup Guide: Shortcut + Slack": getting-started/shortcut-slack.md
       - Configuration Reference: getting-started/configuration.md
       - Troubleshooting: getting-started/troubleshooting.md
   - Concepts:
