@@ -20,14 +20,14 @@ The PRM operates as a pipeline that runs alongside the agent's event stream:
 
 ```mermaid
 graph LR
-    A["NDJSON Stream<br/>(tool calls, costs,<br/>content deltas)"] --> B["Rolling Window<br/>(last N events)"]
-    B --> C["Scorer<br/>(rule-based, 1-10)"]
-    C --> D["Trajectory Tracker<br/>(pattern detection)"]
+    A["NDJSON Stream\n(tool calls, costs,\ncontent deltas)"] --> B["Rolling Window\n(last N events)"]
+    B --> C["Scorer\n(rule-based, 1-10)"]
+    C --> D["Trajectory Tracker\n(pattern detection)"]
     D --> E["Intervention Decider"]
-    E --> F{Action?}
-    F -->|"Score ≥ 7"| G["Continue<br/>(no action)"]
-    F -->|"Score 3-7"| H["Nudge<br/>(write hint)"]
-    F -->|"Score < 3"| I["Escalate<br/>(watchdog)"]
+    E --> F{"Action?"}
+    F -->|"Score 7+"| G["Continue\n(no action)"]
+    F -->|"Score 3-7"| H["Nudge\n(write hint)"]
+    F -->|"Score 1-3"| I["Escalate\n(watchdog)"]
 ```
 
 ### 1. Event Collection

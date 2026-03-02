@@ -19,7 +19,7 @@ Tick items off as they are implemented and merged.
 > Tracked in detail in `docs/improvements-plan.md`. Summary status here.
 
 - [x] **1. Webhook Receiver & Event-Driven Ingestion** — GitHub, GitLab, Slack, Shortcut, generic handlers
-- [ ] **2. Agent Sandbox Integration (gVisor / Warm Pools)** — kernel-level isolation, warm pool CRD
+- [x] **2. Agent Sandbox Integration (gVisor / Warm Pools)** — kernel-level isolation, warm pool CRD
 - [x] **3. OpenCode Execution Engine** — BYOM terminal-native agent
 - [x] **4. Cline CLI Execution Engine** — headless CI/CD mode, MCP support
 - [x] **5. Shortcut.com Ticketing Backend** — REST API v3 integration
@@ -181,7 +181,7 @@ A `docker compose up` experience that dramatically lowers the barrier to adoptio
 - [x] Create `docker-compose.yaml` — controller + webhook server
 - [x] Extend noop ticketing backend with file-watcher mode (reads tasks from YAML file)
 - [x] Add `compose-up` / `compose-down` Makefile targets
-- [ ] Write quickstart guide for Docker Compose mode
+- [x] Write quickstart guide for Docker Compose mode (`docs/getting-started/docker-compose.md`)
 
 ---
 
@@ -286,22 +286,22 @@ A polished, searchable documentation site that makes RoboDev look production-gra
 - **MkDocs Material** — Python-based, gorgeous Material Design theme, built-in search, mermaid diagrams. Simpler than Docusaurus, very popular in the Go/K8s ecosystem.
 
 **Site structure:**
-- [ ] Landing page with hero, feature highlights, and quick start
-- [ ] Getting Started guide (K8s deploy, Docker Compose local mode, first task)
-- [ ] Architecture overview with diagrams (controller, engines, plugins, state machine)
-- [ ] Configuration reference (full YAML schema with examples)
-- [ ] Engine guides (Claude Code, Codex, Aider, OpenCode, Cline) with comparison matrix
-- [ ] Plugin development guide (ticketing, notifications, secrets, approval, review, SCM)
-- [ ] Security model documentation (threat model, gVisor, NetworkPolicy, guard rails)
+- [x] Landing page with hero, feature highlights, and quick start (`docs/index.md`)
+- [x] Getting Started guide (K8s deploy, Docker Compose local mode, first task) (`docs/getting-started/`)
+- [x] Architecture overview with diagrams (controller, engines, plugins, state machine) (`docs/architecture.md`)
+- [x] Configuration reference (full YAML schema with examples) (`docs/getting-started/configuration.md`)
+- [x] Engine guides (Claude Code, Codex, Aider, OpenCode, Cline) with comparison matrix (`docs/plugins/engines.md`)
+- [x] Plugin development guide (ticketing, notifications, secrets, approval, review, SCM) (`docs/plugins/writing-a-plugin.md`)
+- [x] Security model documentation (threat model, gVisor, NetworkPolicy, guard rails) (`docs/concepts/guardrails-overview.md`)
 - [ ] API reference (webhook endpoints, protobuf service definitions)
-- [ ] Deployment guides (Helm chart reference, production hardening, multi-tenancy)
+- [x] Deployment guides (Helm chart reference, production hardening, multi-tenancy) (`docs/getting-started/kubernetes.md`)
 - [ ] Changelog and migration guides
-- [ ] Search functionality
-- [ ] Dark mode support
+- [x] Search functionality (MkDocs Material built-in search)
+- [x] Dark mode support (MkDocs Material palette toggle)
 
 **Infrastructure:**
-- [ ] Choose site framework (Docusaurus / Astro Starlight / MkDocs Material)
-- [ ] Set up `docs/site/` or `website/` directory
+- [x] Choose site framework (Docusaurus / Astro Starlight / MkDocs Material) — **MkDocs Material** selected
+- [x] Set up `docs/` directory with `mkdocs.yml` configuration
 - [ ] CI/CD pipeline for automatic deployment on merge to main
 - [ ] Custom domain setup (docs.robodev.dev or similar)
 - [ ] Add `make docs-serve` / `make docs-build` targets
@@ -697,7 +697,7 @@ I-8. End-to-end testing       (features become reliable)
 | 8 | Local Development Mode | E | Medium | **Complete** |
 | 9 | Plugin SDKs | F | Medium | Not started |
 | 10 | Agent Dashboard | G | High | Not started |
-| 11 | Documentation Site | H | High | Not started |
+| 11 | Documentation Site | H | High | **In progress** (MkDocs Material site live, API ref + CI/CD remaining) |
 | 12 | Controller PRM (Real-Time Coaching) | I | Critical | **Integrated** |
 | 13 | Episodic Memory (Knowledge Graph) | I | Critical | **Integrated** |
 | 14 | Causal Diagnosis (Self-Healing Retry) | I | High | **Scaffolding complete** |

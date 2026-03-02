@@ -43,6 +43,16 @@ fi
 
 TASK_PROMPT="$(cat "${TASK_PROMPT_FILE}")"
 
+# ---- Environment variable stripping ----
+# When ENV_STRIPPING is enabled, remove sensitive credentials from the
+# environment after they have been consumed by the shell. This limits
+# exposure if the agent process is compromised.
+if [[ "${ENV_STRIPPING:-false}" == "true" ]]; then
+    unset ANTHROPIC_API_KEY
+    unset OPENAI_API_KEY
+    unset GOOGLE_API_KEY
+fi
+
 # ---- Execute OpenCode ----
 echo "Running OpenCode agent..."
 EXIT_CODE=0

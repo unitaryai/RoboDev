@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Add environment variable stripping to Codex, Cline, and OpenCode engine entrypoints (previously only Claude Code had it)
+- Fix mermaid diagram in `docs/concepts/prm.md` that failed to render on GitHub (replaced `≥`/`<` with safe alternatives)
+- Fix sandbox status contradiction in `docs/roadmap.md` (summary said not started, but Phase C items were all complete)
+- Update Docker Compose quickstart and Documentation Site status in `docs/roadmap.md` to reflect shipped work
+- Sync all 13 items in `docs/improvements-plan.md` with actual implementation status (12 items were marked "Planned" despite being implemented)
+
 ### Added
 
 #### DSPy-Inspired LLM Abstraction (`internal/llm/`)

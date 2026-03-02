@@ -6,7 +6,7 @@ This document tracks planned features and enhancements beyond the original `oss-
 
 ## 1. Webhook Receiver & Event-Driven Ingestion
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** Critical (blocks production use)
 **Depends on:** Controller (`internal/controller/`)
 
@@ -42,16 +42,16 @@ Add an HTTP server to the controller that receives webhooks from ticketing backe
 
 ### Implementation checklist
 
-- [ ] Create `internal/webhook/server.go` — HTTP server with route registration
-- [ ] Create `internal/webhook/github.go` — GitHub webhook signature validation and event parsing
-- [ ] Create `internal/webhook/gitlab.go` — GitLab webhook handler
-- [ ] Create `internal/webhook/slack.go` — Slack interaction payload handler
-- [ ] Create `internal/webhook/generic.go` — Generic webhook with configurable field mapping
-- [ ] Wire webhook server into `cmd/robodev/main.go` (opt-in via config)
-- [ ] Add Ingress template to Helm chart
-- [ ] Add webhook Service template to Helm chart
-- [ ] Update `docs/getting-started.md` with webhook setup instructions
-- [ ] Write tests for signature validation and event parsing
+- [x] Create `internal/webhook/server.go` — HTTP server with route registration
+- [x] Create `internal/webhook/github.go` — GitHub webhook signature validation and event parsing
+- [x] Create `internal/webhook/gitlab.go` — GitLab webhook handler
+- [x] Create `internal/webhook/slack.go` — Slack interaction payload handler
+- [x] Create `internal/webhook/generic.go` — Generic webhook with configurable field mapping
+- [x] Wire webhook server into `cmd/robodev/main.go` (opt-in via config)
+- [x] Add Ingress template to Helm chart
+- [x] Add webhook Service template to Helm chart
+- [x] Update `docs/getting-started.md` with webhook setup instructions
+- [x] Write tests for signature validation and event parsing
 
 ---
 
@@ -95,20 +95,20 @@ execution:
 
 ### Implementation checklist
 
-- [ ] Add `agent-sandbox` as an optional dependency in the Helm chart
-- [ ] Extend `internal/jobbuilder/` to emit `Sandbox` CRs when `backend: sandbox`
-- [ ] Add gVisor RuntimeClass to Helm chart templates
-- [ ] Add `SandboxWarmPool` CR template for warm pool configuration
-- [ ] Implement environment stripping in engine entrypoint scripts
-- [ ] Update security documentation with gVisor isolation model
-- [ ] Add example configuration for sandbox mode
-- [ ] Write integration tests against a kind cluster with gVisor
+- [x] Add `agent-sandbox` as an optional dependency in the Helm chart
+- [x] Extend `internal/jobbuilder/` to emit `Sandbox` CRs when `backend: sandbox`
+- [x] Add gVisor RuntimeClass to Helm chart templates
+- [x] Add `SandboxWarmPool` CR template for warm pool configuration
+- [x] Implement environment stripping in engine entrypoint scripts
+- [x] Update security documentation with gVisor isolation model
+- [x] Add example configuration for sandbox mode
+- [x] Write integration tests against a kind cluster with gVisor
 
 ---
 
 ## 3. OpenCode Execution Engine
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** High
 **Depends on:** Existing `ExecutionEngine` interface (`pkg/engine/engine.go`)
 
@@ -152,20 +152,20 @@ type OpenCodeEngine struct {
 
 ### Implementation checklist
 
-- [ ] Create `pkg/engine/opencode/engine.go` implementing `ExecutionEngine`
-- [ ] Create `pkg/engine/opencode/engine_test.go` with table-driven tests
-- [ ] Add OpenCode Dockerfile (`docker/engine-opencode/Dockerfile`)
-- [ ] Register engine in `pkg/engine/registry.go`
-- [ ] Add Makefile target `docker-build-engine-opencode`
-- [ ] Add example configuration in `examples/`
-- [ ] Update `docs/plugins/engines.md` with OpenCode documentation
-- [ ] Update Helm chart `values.yaml` with OpenCode engine config
+- [x] Create `pkg/engine/opencode/engine.go` implementing `ExecutionEngine`
+- [x] Create `pkg/engine/opencode/engine_test.go` with table-driven tests
+- [x] Add OpenCode Dockerfile (`docker/engine-opencode/Dockerfile`)
+- [x] Register engine in `pkg/engine/registry.go`
+- [x] Add Makefile target `docker-build-engine-opencode`
+- [x] Add example configuration in `examples/`
+- [x] Update `docs/plugins/engines.md` with OpenCode documentation
+- [x] Update Helm chart `values.yaml` with OpenCode engine config
 
 ---
 
 ## 4. Cline CLI Execution Engine
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** High
 **Depends on:** Existing `ExecutionEngine` interface (`pkg/engine/engine.go`)
 
@@ -216,21 +216,21 @@ type ClineEngine struct {
 
 ### Implementation checklist
 
-- [ ] Create `pkg/engine/cline/engine.go` implementing `ExecutionEngine`
-- [ ] Create `pkg/engine/cline/engine_test.go` with table-driven tests
-- [ ] Add Cline Dockerfile (`docker/engine-cline/Dockerfile`)
-- [ ] Register engine in `pkg/engine/registry.go`
-- [ ] Add Makefile target `docker-build-engine-cline`
-- [ ] Investigate MCP server wiring in headless mode
-- [ ] Add example configuration in `examples/`
-- [ ] Update `docs/plugins/engines.md` with Cline documentation
-- [ ] Update Helm chart `values.yaml` with Cline engine config
+- [x] Create `pkg/engine/cline/engine.go` implementing `ExecutionEngine`
+- [x] Create `pkg/engine/cline/engine_test.go` with table-driven tests
+- [x] Add Cline Dockerfile (`docker/engine-cline/Dockerfile`)
+- [x] Register engine in `pkg/engine/registry.go`
+- [x] Add Makefile target `docker-build-engine-cline`
+- [x] Investigate MCP server wiring in headless mode
+- [x] Add example configuration in `examples/`
+- [x] Update `docs/plugins/engines.md` with Cline documentation
+- [x] Update Helm chart `values.yaml` with Cline engine config
 
 ---
 
 ## 5. Shortcut.com Ticketing Backend
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** High
 **Depends on:** `pkg/plugin/ticketing/` interface
 
@@ -271,18 +271,18 @@ ticketing:
 
 ### Implementation checklist
 
-- [ ] Create `pkg/plugin/ticketing/shortcut/shortcut.go` implementing `ticketing.Backend`
-- [ ] Create `pkg/plugin/ticketing/shortcut/shortcut_test.go`
-- [ ] Add Shortcut webhook handler to `internal/webhook/shortcut.go`
-- [ ] Add Shortcut configuration to config schema
-- [ ] Add example values for Shortcut deployment
-- [ ] Update ticketing plugin documentation
+- [x] Create `pkg/plugin/ticketing/shortcut/shortcut.go` implementing `ticketing.Backend`
+- [x] Create `pkg/plugin/ticketing/shortcut/shortcut_test.go`
+- [x] Add Shortcut webhook handler to `internal/webhook/shortcut.go`
+- [x] Add Shortcut configuration to config schema
+- [x] Add example values for Shortcut deployment
+- [x] Update ticketing plugin documentation
 
 ---
 
 ## 6. Telegram Notification Channel
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** High
 **Depends on:** `pkg/plugin/notifications/` interface
 
@@ -313,16 +313,16 @@ notifications:
 
 ### Implementation checklist
 
-- [ ] Create `pkg/plugin/notifications/telegram/telegram.go` implementing `notifications.Channel`
-- [ ] Create `pkg/plugin/notifications/telegram/telegram_test.go`
-- [ ] Add Telegram configuration to config schema
-- [ ] Update notification channel documentation
+- [x] Create `pkg/plugin/notifications/telegram/telegram.go` implementing `notifications.Channel`
+- [x] Create `pkg/plugin/notifications/telegram/telegram_test.go`
+- [x] Add Telegram configuration to config schema
+- [x] Update notification channel documentation
 
 ---
 
 ## 7. Linear Ticketing Backend
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** Medium
 **Depends on:** `pkg/plugin/ticketing/` interface
 
@@ -353,17 +353,17 @@ ticketing:
 
 ### Implementation checklist
 
-- [ ] Create `pkg/plugin/ticketing/linear/linear.go` implementing `ticketing.Backend`
-- [ ] Create `pkg/plugin/ticketing/linear/linear_test.go`
-- [ ] Add Linear webhook handler to `internal/webhook/linear.go`
-- [ ] Add Linear configuration to config schema
-- [ ] Update ticketing plugin documentation
+- [x] Create `pkg/plugin/ticketing/linear/linear.go` implementing `ticketing.Backend`
+- [x] Create `pkg/plugin/ticketing/linear/linear_test.go`
+- [x] Add Linear webhook handler to `internal/webhook/linear.go`
+- [x] Add Linear configuration to config schema
+- [x] Update ticketing plugin documentation
 
 ---
 
 ## 8. Discord Notification Channel
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** Medium
 **Depends on:** `pkg/plugin/notifications/` interface
 
@@ -394,16 +394,16 @@ notifications:
 
 ### Implementation checklist
 
-- [ ] Create `pkg/plugin/notifications/discord/discord.go` implementing `notifications.Channel`
-- [ ] Create `pkg/plugin/notifications/discord/discord_test.go`
-- [ ] Add Discord configuration to config schema
-- [ ] Update notification channel documentation
+- [x] Create `pkg/plugin/notifications/discord/discord.go` implementing `notifications.Channel`
+- [x] Create `pkg/plugin/notifications/discord/discord_test.go`
+- [x] Add Discord configuration to config schema
+- [x] Update notification channel documentation
 
 ---
 
 ## 9. HashiCorp Vault Secrets Backend
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** Medium
 **Depends on:** `pkg/plugin/secrets/` interface
 
@@ -433,16 +433,16 @@ secrets:
 
 ### Implementation checklist
 
-- [ ] Create `pkg/plugin/secrets/vault/vault.go` implementing `secrets.Backend`
-- [ ] Create `pkg/plugin/secrets/vault/vault_test.go`
-- [ ] Add Vault configuration to config schema
-- [ ] Document Vault setup (policy, role, auth method)
+- [x] Create `pkg/plugin/secrets/vault/vault.go` implementing `secrets.Backend`
+- [x] Create `pkg/plugin/secrets/vault/vault_test.go`
+- [x] Add Vault configuration to config schema
+- [x] Document Vault setup (policy, role, auth method)
 
 ---
 
 ## 10. Task-Scoped Secret Resolution
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** Critical (blocks multi-tenant and multi-repo use)
 **Depends on:** `pkg/plugin/secrets/` interface, `pkg/plugin/ticketing/` Ticket struct, `internal/jobbuilder/`
 
@@ -635,26 +635,26 @@ tenancy:
 
 ### Implementation Checklist
 
-- [ ] Add `SecretRequest` struct to `pkg/plugin/ticketing/` (parsed from ticket body)
-- [ ] Create `internal/secretresolver/resolver.go` — multi-backend secret resolution
-- [ ] Create `internal/secretresolver/parser.go` — HTML comment / label / custom field parsing
-- [ ] Create `internal/secretresolver/policy.go` — alias validation, env name allowlist/blocklist
-- [ ] Add alias and policy config to `internal/config/config.go`
-- [ ] Wire resolver into controller reconciliation loop (between ticket poll and job creation)
-- [ ] Add audit logging for secret injections
+- [x] Add `SecretRequest` struct to `pkg/plugin/ticketing/` (parsed from ticket body)
+- [x] Create `internal/secretresolver/resolver.go` — multi-backend secret resolution
+- [x] Create `internal/secretresolver/parser.go` — HTML comment / label / custom field parsing
+- [x] Create `internal/secretresolver/policy.go` — alias validation, env name allowlist/blocklist
+- [x] Add alias and policy config to `internal/config/config.go`
+- [x] Wire resolver into controller reconciliation loop (between ticket poll and job creation)
+- [x] Add audit logging for secret injections
 - [ ] Create `pkg/plugin/secrets/awssm/` — AWS Secrets Manager backend
 - [ ] Create `pkg/plugin/secrets/onepassword/` — 1Password Connect backend
-- [ ] Update `pkg/plugin/secrets/vault/` to support the URI reference format
-- [ ] Add `require_approval` flow (integration with approval backend)
-- [ ] Write table-driven tests for parser, resolver, and policy validation
-- [ ] Add documentation with examples for each ticketing system
-- [ ] Add example alias configs for common use cases
+- [x] Update `pkg/plugin/secrets/vault/` to support the URI reference format
+- [x] Add `require_approval` flow (integration with approval backend)
+- [x] Write table-driven tests for parser, resolver, and policy validation
+- [x] Add documentation with examples for each ticketing system
+- [x] Add example alias configs for common use cases
 
 ---
 
 ## 11. NetworkPolicy & Security Hardening
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** High
 **Depends on:** Helm chart (`charts/robodev/`)
 
@@ -675,12 +675,12 @@ The security documentation describes network-level isolation but the Helm chart 
 
 ### Implementation checklist
 
-- [ ] Add NetworkPolicy template for agent pods to Helm chart
-- [ ] Add NetworkPolicy template for controller to Helm chart
-- [ ] Add PodDisruptionBudget template for controller
-- [ ] Make egress allowlist configurable in `values.yaml`
-- [ ] Update security documentation with NetworkPolicy examples
-- [ ] Test with Calico/Cilium network plugin in kind cluster
+- [x] Add NetworkPolicy template for agent pods to Helm chart
+- [x] Add NetworkPolicy template for controller to Helm chart
+- [x] Add PodDisruptionBudget template for controller
+- [x] Make egress allowlist configurable in `values.yaml`
+- [x] Update security documentation with NetworkPolicy examples
+- [x] Test with Calico/Cilium network plugin in kind cluster
 
 ---
 
@@ -722,7 +722,7 @@ SDKs are generated from protobuf definitions and provide:
 
 ## 13. Local Development Mode
 
-**Status:** Planned
+**Status:** ✅ Implemented
 **Priority:** Medium
 **Depends on:** Controller refactoring
 
@@ -747,11 +747,11 @@ execution:
 
 ### Implementation checklist
 
-- [ ] Create `internal/jobbuilder/docker.go` — Docker execution backend
-- [ ] Create `docker-compose.yaml` with controller + engine
-- [ ] Create mock ticketing backend for local testing
-- [ ] Add `make local-up` / `make local-down` targets
-- [ ] Write quickstart guide for Docker Compose mode
+- [x] Create `internal/jobbuilder/docker.go` — Docker execution backend
+- [x] Create `docker-compose.yaml` with controller + engine
+- [x] Create mock ticketing backend for local testing
+- [x] Add `make local-up` / `make local-down` targets
+- [x] Write quickstart guide for Docker Compose mode (`docs/getting-started/docker-compose.md`)
 
 ---
 
