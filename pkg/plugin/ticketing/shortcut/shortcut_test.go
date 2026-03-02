@@ -36,25 +36,38 @@ func TestShortcutBackend_InterfaceVersion(t *testing.T) {
 
 // --- Init: workflow state resolution ---
 
-func TestShortcutBackend_Init_ResolvesWorkflowStateName(t *testing.T) {
-	workflows := []scWorkflow{
-		{
-			ID:   1,
-			Name: "Engineering",
-			States: []scWorkflowState{
-				{ID: 100, Name: "Backlog"},
-				{ID: 200, Name: "Ready for Development"},
-				{ID: 300, Name: "In Progress"},
-			},
-		},
-	}
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
-		assert.Equal(t, "/workflows", r.URL.Path)
+// workflowsHandler returns an httptest handler that serves a fixed set of
+// workflows and optionally also serves /members (empty list by default).
+func workflowsHandler(t *testing.T, workflows []scWorkflow) http.HandlerFunc {
+	t.Helper()
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(workflows)
-	}))
+		switch r.URL.Path {
+		case "/workflows":
+			json.NewEncoder(w).Encode(workflows)
+		case "/members":
+			json.NewEncoder(w).Encode([]scMember{})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}
+}
+
+var testWorkflows = []scWorkflow{
+	{
+		ID:   1,
+		Name: "Engineering",
+		States: []scWorkflowState{
+			{ID: 100, Name: "Backlog"},
+			{ID: 200, Name: "Ready for Development"},
+			{ID: 300, Name: "In Development"},
+			{ID: 400, Name: "Done"},
+		},
+	},
+}
+
+func TestShortcutBackend_Init_ResolvesWorkflowStateName(t *testing.T) {
+	srv := httptest.NewServer(workflowsHandler(t, testWorkflows))
 	defer srv.Close()
 
 	b := NewShortcutBackend("tok", 0, testLogger(),
@@ -69,13 +82,8 @@ func TestShortcutBackend_Init_ResolvesWorkflowStateName(t *testing.T) {
 }
 
 func TestShortcutBackend_Init_WorkflowStateNameCaseInsensitive(t *testing.T) {
-	workflows := []scWorkflow{
-		{States: []scWorkflowState{{ID: 42, Name: "Ready For Development"}}},
-	}
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(workflows)
-	}))
+	wf := []scWorkflow{{States: []scWorkflowState{{ID: 42, Name: "Ready For Development"}}}}
+	srv := httptest.NewServer(workflowsHandler(t, wf))
 	defer srv.Close()
 
 	b := NewShortcutBackend("tok", 0, testLogger(),
@@ -88,14 +96,12 @@ func TestShortcutBackend_Init_WorkflowStateNameCaseInsensitive(t *testing.T) {
 	assert.Equal(t, int64(42), b.workflowStateID)
 }
 
-func TestShortcutBackend_Init_WorkflowStateNotFound(t *testing.T) {
-	workflows := []scWorkflow{
-		{States: []scWorkflowState{{ID: 1, Name: "Backlog"}}},
-	}
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(workflows)
-	}))
+func TestShortcutBackend_Init_WorkflowStateNotFound_ListsAvailable(t *testing.T) {
+	wf := []scWorkflow{{
+		Name:   "Engineering",
+		States: []scWorkflowState{{ID: 1, Name: "Backlog"}, {ID: 2, Name: "Ready"}},
+	}}
+	srv := httptest.NewServer(workflowsHandler(t, wf))
 	defer srv.Close()
 
 	b := NewShortcutBackend("tok", 0, testLogger(),
@@ -106,17 +112,19 @@ func TestShortcutBackend_Init_WorkflowStateNotFound(t *testing.T) {
 
 	err := b.Init(context.Background())
 	require.Error(t, err)
+	// Error should name the missing state AND list available options.
 	assert.Contains(t, err.Error(), "Nonexistent State")
+	assert.Contains(t, err.Error(), "Backlog")
+	assert.Contains(t, err.Error(), "Ready")
 }
 
-func TestShortcutBackend_Init_ExplicitIDSkipsLookup(t *testing.T) {
-	// If workflowStateID is set explicitly, Init should not call /workflows.
-	called := false
+func TestShortcutBackend_Init_ExplicitIDSkipsWorkflowLookup(t *testing.T) {
+	// Explicit workflowStateID + no inProgressStateName → no /workflows call.
+	workflowsCalled := false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/workflows" {
-			called = true
+			workflowsCalled = true
 		}
-		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode([]scMember{})
 	}))
 	defer srv.Close()
@@ -128,8 +136,49 @@ func TestShortcutBackend_Init_ExplicitIDSkipsLookup(t *testing.T) {
 	)
 
 	require.NoError(t, b.Init(context.Background()))
-	assert.False(t, called, "should not call /workflows when explicit ID is set")
+	assert.False(t, workflowsCalled, "should not call /workflows when explicit ID is set")
 	assert.Equal(t, int64(999), b.workflowStateID)
+}
+
+func TestShortcutBackend_Init_ResolvesInProgressStateName(t *testing.T) {
+	srv := httptest.NewServer(workflowsHandler(t, testWorkflows))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 200, testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithInProgressStateName("In Development"),
+	)
+
+	require.NoError(t, b.Init(context.Background()))
+	assert.Equal(t, int64(300), b.inProgressStateID)
+	assert.Equal(t, int64(300), b.InProgressStateID())
+}
+
+func TestShortcutBackend_Init_BothStateNamesFetchWorkflowsOnce(t *testing.T) {
+	// When both workflow_state_name and in_progress_state_name are set,
+	// Init should call /workflows only once.
+	workflowCallCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/workflows" {
+			workflowCallCount++
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(testWorkflows)
+	}))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 0, testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithWorkflowStateName("Ready for Development"),
+		WithInProgressStateName("In Development"),
+	)
+
+	require.NoError(t, b.Init(context.Background()))
+	assert.Equal(t, 1, workflowCallCount, "should call /workflows exactly once")
+	assert.Equal(t, int64(200), b.workflowStateID)
+	assert.Equal(t, int64(300), b.inProgressStateID)
 }
 
 // --- Init: member resolution ---
@@ -141,8 +190,13 @@ func TestShortcutBackend_Init_ResolvesMemberByMentionName(t *testing.T) {
 	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/members", r.URL.Path)
-		json.NewEncoder(w).Encode(members)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/members":
+			json.NewEncoder(w).Encode(members)
+		default:
+			json.NewEncoder(w).Encode([]scWorkflow{})
+		}
 	}))
 	defer srv.Close()
 
@@ -164,8 +218,14 @@ func TestShortcutBackend_Init_OwnerAtPrefixStripped(t *testing.T) {
 }
 
 func TestShortcutBackend_Init_MemberNotFound(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode([]scMember{{ID: "other", Profile: scMemberProfile{MentionName: "alice"}}})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/members":
+			json.NewEncoder(w).Encode([]scMember{{ID: "other", Profile: scMemberProfile{MentionName: "alice"}}})
+		default:
+			json.NewEncoder(w).Encode([]scWorkflow{})
+		}
 	}))
 	defer srv.Close()
 
@@ -178,6 +238,30 @@ func TestShortcutBackend_Init_MemberNotFound(t *testing.T) {
 	err := b.Init(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "robodev")
+}
+
+// --- ListWorkflowStates ---
+
+func TestShortcutBackend_ListWorkflowStates(t *testing.T) {
+	srv := httptest.NewServer(workflowsHandler(t, testWorkflows))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 0, testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+
+	states, err := b.ListWorkflowStates(context.Background())
+	require.NoError(t, err)
+	require.Len(t, states, 4)
+
+	assert.Equal(t, int64(100), states[0].ID)
+	assert.Equal(t, "Backlog", states[0].Name)
+	assert.Equal(t, "Engineering", states[0].WorkflowName)
+
+	assert.Equal(t, "Ready for Development", states[1].Name)
+	assert.Equal(t, "In Development", states[2].Name)
+	assert.Equal(t, "Done", states[3].Name)
 }
 
 // --- PollReadyTickets ---
@@ -359,28 +443,92 @@ func TestShortcutBackend_PollReadyTickets_ExcludeLabels(t *testing.T) {
 
 // --- lifecycle methods ---
 
-func TestShortcutBackend_MarkInProgress(t *testing.T) {
+func TestShortcutBackend_MarkInProgress_LabelFallback(t *testing.T) {
+	// When no in-progress state is configured, falls back to adding a label.
 	var calls []string
+	var commentText string
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls = append(calls, r.Method+" "+r.URL.Path)
-
-		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/labels") {
-			var payload map[string]string
-			json.NewDecoder(r.Body).Decode(&payload)
-			assert.Equal(t, "in-progress", payload["name"])
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
+			var p map[string]string
+			json.NewDecoder(r.Body).Decode(&p)
+			commentText = p["text"]
+			w.WriteHeader(http.StatusCreated)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/labels"):
+			var p map[string]string
+			json.NewDecoder(r.Body).Decode(&p)
+			assert.Equal(t, "in-progress", p["name"])
 			w.WriteHeader(http.StatusOK)
-			return
+		default:
+			w.WriteHeader(http.StatusOK)
 		}
-		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
 
 	b := NewShortcutBackend("tok", 500, testLogger(), WithBaseURL(srv.URL))
-	err := b.MarkInProgress(context.Background(), "42")
-	require.NoError(t, err)
+	require.NoError(t, b.MarkInProgress(context.Background(), "42"))
 
+	assert.Contains(t, calls, "POST /stories/42/comments")
 	assert.Contains(t, calls, "POST /stories/42/labels")
+	assert.Contains(t, commentText, "RoboDev")
+}
+
+func TestShortcutBackend_MarkInProgress_StateTransition(t *testing.T) {
+	// When inProgressStateID is set, transitions story state instead of label.
+	var calls []string
+	var statePayload map[string]int64
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
+			w.WriteHeader(http.StatusCreated)
+		case r.Method == http.MethodPut && r.URL.Path == "/stories/42":
+			json.NewDecoder(r.Body).Decode(&statePayload)
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 200, testLogger(), WithBaseURL(srv.URL))
+	b.inProgressStateID = 300 // simulate resolved state
+
+	require.NoError(t, b.MarkInProgress(context.Background(), "42"))
+
+	// Must post a comment AND transition the state, but NOT add a label.
+	assert.Contains(t, calls, "POST /stories/42/comments")
+	assert.Contains(t, calls, "PUT /stories/42")
+	assert.NotContains(t, calls, "POST /stories/42/labels")
+	assert.Equal(t, int64(300), statePayload["workflow_state_id"])
+}
+
+func TestShortcutBackend_MarkInProgress_CommentFailureNonFatal(t *testing.T) {
+	// A failed start comment should not block the state transition.
+	var putCalled bool
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
+			w.WriteHeader(http.StatusInternalServerError) // comment fails
+		case r.Method == http.MethodPut:
+			putCalled = true
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 200, testLogger(), WithBaseURL(srv.URL))
+	b.inProgressStateID = 300
+
+	err := b.MarkInProgress(context.Background(), "42")
+	require.NoError(t, err, "comment failure should not propagate as an error")
+	assert.True(t, putCalled, "state transition should still happen after comment failure")
 }
 
 func TestShortcutBackend_MarkComplete(t *testing.T) {

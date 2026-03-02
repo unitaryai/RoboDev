@@ -683,6 +683,39 @@ I-8. End-to-end testing       (features become reliable)
 
 ---
 
+### Phase J — PR/MR Comment Response
+
+#### 20. Review Comment Response (GitHub + GitLab)
+
+**Priority:** High
+**Scope:** Large (10+ files)
+**Dependencies:** SCM backends (GitHub + GitLab already built), TaskRun store, controller reconciler
+
+After RoboDev opens a pull/merge request, human reviewers and AI agents (CodeRabbit, GitHub Copilot Review, Gemini Code Assist, etc.) may leave comments. This feature enables RoboDev to monitor those comments and create targeted follow-up jobs to address actionable feedback — turning a single-pass agent into a review-responsive loop.
+
+**Scope:**
+
+- [ ] Extend SCM plugin interface with review comment methods:
+  - `ListReviewComments(ctx, prURL) ([]ReviewComment, error)`
+  - `ReplyToComment(ctx, prURL, commentID, body string) error`
+  - `ResolveThread(ctx, prURL, threadID string) error`
+- [ ] Implement for GitHub (`pkg/plugin/scm/github/`) — uses GitHub REST API (`/pulls/{pr}/comments`, `/pulls/{pr}/reviews`)
+- [ ] Implement for GitLab (`pkg/plugin/scm/gitlab/`) — uses GitLab REST API (`/merge_requests/{iid}/notes`, discussions API for resolving threads)
+- [ ] New `internal/reviewpoller/` subsystem that monitors open PRs created by RoboDev (tracked in TaskRunStore)
+- [ ] Comment classifier using `internal/llm/` to determine: ignore / informational / requires-action
+- [ ] Follow-up task generator: for actionable comments, creates a new TaskRun with the original ticket description + comment context injected into the prompt
+- [ ] Reply-and-resolve: agent posts a comment acknowledging it addressed feedback, then calls `ResolveThread` via the SCM backend
+- [ ] Configurable comment sources: honour comments from all reviewers (humans + any AI agent), not just CodeRabbit
+- [ ] Config section `review_response` with `enabled`, `min_severity` (all / blocking-only), `max_follow_up_jobs`, `poll_interval_minutes`
+- [ ] Integration tests with mocked SCM backends
+- [ ] End-to-end test: open PR → add comment → verify follow-up job created → verify thread resolved
+
+**Why it matters:**
+
+A single agent pass rarely produces merge-ready code on complex tasks. This closes the feedback loop — RoboDev reads review comments and iterates, exactly as a human developer would. It works with any reviewer, human or AI, because it operates on the standard GitHub/GitLab comment API rather than any reviewer-specific integration.
+
+---
+
 ## Summary
 
 | # | Feature | Phase | Priority | Status |
@@ -706,3 +739,4 @@ I-8. End-to-end testing       (features become reliable)
 | 17 | Predictive Cost Estimation | I | Medium | **Scaffolding complete** |
 | 18 | Competitive Execution (Tournament) | I | Medium | **Scaffolding complete** |
 | 19 | Shortcut webhook noise — filter story updates that don't transition to the target state | Backlog | Low | **Complete** (fixed in `internal/webhook/shortcut.go` via `WithShortcutTargetStateID`) |
+| 20 | PR/MR Comment Response — monitor review comments (human and AI agents) and create follow-up jobs to address feedback; resolve conversations once addressed; GitHub + GitLab | J | High | Not started |
