@@ -21,6 +21,7 @@ type Config struct {
 	PluginHealth     PluginHealthConfig   `yaml:"plugin_health"`
 	QualityGate      QualityGateConfig    `yaml:"quality_gate"`
 	Tenancy          TenancyConfig        `yaml:"tenancy"`
+	Approval         ApprovalConfig       `yaml:"approval"`
 	Review           ReviewConfig         `yaml:"review"`
 	SCM              SCMConfig            `yaml:"scm"`
 	ProgressWatchdog WatchdogConfig       `yaml:"progress_watchdog"`
@@ -308,6 +309,13 @@ type TenantConfig struct {
 	Namespace string          `yaml:"namespace"`
 	Ticketing TicketingConfig `yaml:"ticketing"`
 	Secrets   SecretsConfig   `yaml:"secrets"`
+}
+
+// ApprovalConfig configures the human approval backend used for
+// interactive approval gates (pre_start, pre_merge, etc).
+type ApprovalConfig struct {
+	Backend string         `yaml:"backend"`
+	Config  map[string]any `yaml:"config"`
 }
 
 // ReviewConfig configures the review backend.

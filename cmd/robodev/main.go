@@ -25,17 +25,46 @@ import (
 	"github.com/unitaryai/robodev/internal/memory"
 	"github.com/unitaryai/robodev/internal/prm"
 	"github.com/unitaryai/robodev/internal/sandboxbuilder"
+	"github.com/unitaryai/robodev/internal/secretresolver"
 	"github.com/unitaryai/robodev/internal/webhook"
+
+	// Execution engines.
+	"github.com/unitaryai/robodev/pkg/engine/aider"
 	"github.com/unitaryai/robodev/pkg/engine/claudecode"
 	"github.com/unitaryai/robodev/pkg/engine/cline"
+	"github.com/unitaryai/robodev/pkg/engine/codex"
 	"github.com/unitaryai/robodev/pkg/engine/opencode"
-	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
+
+	// Ticketing backends.
 	ghticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/github"
+	linearticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/linear"
 	noopticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/noop"
 	scticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/shortcut"
 
-	// Notification backends — imported conditionally.
+	// Notification backends.
+	discordnotify "github.com/unitaryai/robodev/pkg/plugin/notifications/discord"
 	slacknotify "github.com/unitaryai/robodev/pkg/plugin/notifications/slack"
+	telegramnotify "github.com/unitaryai/robodev/pkg/plugin/notifications/telegram"
+
+	// Approval backend.
+	approvalPkg "github.com/unitaryai/robodev/pkg/plugin/approval"
+	slackapproval "github.com/unitaryai/robodev/pkg/plugin/approval/slack"
+
+	// SCM backends.
+	ghscm "github.com/unitaryai/robodev/pkg/plugin/scm/github"
+	glscm "github.com/unitaryai/robodev/pkg/plugin/scm/gitlab"
+	scmPkg "github.com/unitaryai/robodev/pkg/plugin/scm"
+
+	// Secrets backends.
+	k8ssecrets "github.com/unitaryai/robodev/pkg/plugin/secrets/k8s"
+	vaultsecrets "github.com/unitaryai/robodev/pkg/plugin/secrets/vault"
+
+	// Review backend.
+	crreview "github.com/unitaryai/robodev/pkg/plugin/review/coderabbit"
+	reviewPkg "github.com/unitaryai/robodev/pkg/plugin/review"
+
+	// Webhook event bridge.
+	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
 
 	// Register metrics with the default Prometheus registry.
 	_ "github.com/unitaryai/robodev/internal/metrics"
@@ -97,6 +126,14 @@ func main() {
 		}
 		opts = append(opts, controller.WithTicketing(ghBackend))
 		logger.Info("github ticketing backend initialised")
+	} else if cfg.Ticketing.Backend == "linear" {
+		linearBackend, linearErr := initLinearBackend(cfg, k8sClient, *namespace, logger)
+		if linearErr != nil {
+			logger.Error("failed to initialise linear ticketing backend", "error", linearErr)
+			os.Exit(1)
+		}
+		opts = append(opts, controller.WithTicketing(linearBackend))
+		logger.Info("linear ticketing backend initialised")
 	} else if cfg.Ticketing.Backend == "shortcut" {
 		var scErr error
 		scBackend, scErr = initShortcutBackend(cfg, k8sClient, *namespace, logger)
@@ -162,6 +199,18 @@ func main() {
 		logger.Info("cline engine registered")
 	}
 
+	if cfg.Engines.Aider != nil {
+		aiderEngine := aider.New()
+		opts = append(opts, controller.WithEngine(aiderEngine))
+		logger.Info("aider engine registered")
+	}
+
+	if cfg.Engines.Codex != nil {
+		codexEngine := codex.New()
+		opts = append(opts, controller.WithEngine(codexEngine))
+		logger.Info("codex engine registered")
+	}
+
 	// --- Job builder ---
 	var jb controller.JobBuilder
 	switch cfg.Execution.Backend {
@@ -181,7 +230,8 @@ func main() {
 
 	// --- Notification channels (non-critical) ---
 	for _, chCfg := range cfg.Notifications.Channels {
-		if chCfg.Backend == "slack" {
+		switch chCfg.Backend {
+		case "slack":
 			slackCh, slackErr := initSlackChannel(chCfg, k8sClient, *namespace, logger)
 			if slackErr != nil {
 				logger.Warn("failed to initialise slack notifications, continuing without",
@@ -191,6 +241,28 @@ func main() {
 			}
 			opts = append(opts, controller.WithNotifier(slackCh))
 			logger.Info("slack notification channel initialised")
+		case "discord":
+			discordCh, discordErr := initDiscordChannel(chCfg, logger)
+			if discordErr != nil {
+				logger.Warn("failed to initialise discord notifications, continuing without",
+					"error", discordErr,
+				)
+				continue
+			}
+			opts = append(opts, controller.WithNotifier(discordCh))
+			logger.Info("discord notification channel initialised")
+		case "telegram":
+			telegramCh, telegramErr := initTelegramChannel(chCfg, k8sClient, *namespace, logger)
+			if telegramErr != nil {
+				logger.Warn("failed to initialise telegram notifications, continuing without",
+					"error", telegramErr,
+				)
+				continue
+			}
+			opts = append(opts, controller.WithNotifier(telegramCh))
+			logger.Info("telegram notification channel initialised")
+		default:
+			logger.Warn("unknown notification backend, skipping", "backend", chCfg.Backend)
 		}
 	}
 
@@ -206,6 +278,61 @@ func main() {
 		logger.Info("received signal, shutting down", "signal", sig)
 		cancel()
 	}()
+
+	// --- Approval backend (non-critical) ---
+	if cfg.Approval.Backend != "" {
+		approvalBackend, approvalErr := initApprovalBackend(cfg, k8sClient, *namespace, logger)
+		if approvalErr != nil {
+			logger.Warn("failed to initialise approval backend, continuing without",
+				"backend", cfg.Approval.Backend,
+				"error", approvalErr,
+			)
+		} else {
+			opts = append(opts, controller.WithApprovalBackend(approvalBackend))
+			logger.Info("approval backend initialised", "backend", cfg.Approval.Backend)
+		}
+	}
+
+	// --- SCM backend (non-critical) ---
+	if cfg.SCM.Backend != "" {
+		scmBackend, scmErr := initSCMBackend(cfg, k8sClient, *namespace, logger)
+		if scmErr != nil {
+			logger.Warn("failed to initialise SCM backend, continuing without",
+				"backend", cfg.SCM.Backend,
+				"error", scmErr,
+			)
+		} else {
+			opts = append(opts, controller.WithSCMBackend(scmBackend))
+			logger.Info("SCM backend initialised", "backend", cfg.SCM.Backend)
+		}
+	}
+
+	// --- Review backend (non-critical) ---
+	if cfg.Review.Backend != "" {
+		reviewBackend, reviewErr := initReviewBackend(cfg, k8sClient, *namespace, logger)
+		if reviewErr != nil {
+			logger.Warn("failed to initialise review backend, continuing without",
+				"backend", cfg.Review.Backend,
+				"error", reviewErr,
+			)
+		} else {
+			opts = append(opts, controller.WithReviewBackend(reviewBackend))
+			logger.Info("review backend initialised", "backend", cfg.Review.Backend)
+		}
+	}
+
+	// --- Secrets resolver ---
+	if len(cfg.SecretResolver.Backends) > 0 {
+		sr, srErr := initSecretsResolver(cfg, k8sClient, *namespace, logger)
+		if srErr != nil {
+			logger.Error("failed to initialise secrets resolver", "error", srErr)
+			os.Exit(1)
+		}
+		opts = append(opts, controller.WithSecretsResolver(sr))
+		logger.Info("secrets resolver initialised",
+			"backend_count", len(cfg.SecretResolver.Backends),
+		)
+	}
 
 	// --- PRM (Process Reward Model) ---
 	if cfg.PRM.Enabled {
@@ -618,6 +745,223 @@ func (a *webhookAdapter) HandleWebhookEvent(ctx context.Context, source string, 
 		}
 	}
 	return nil
+}
+
+// initLinearBackend creates and returns a Linear ticketing backend from the
+// controller configuration.
+func initLinearBackend(cfg *config.Config, k8sClient kubernetes.Interface, namespace string, logger *slog.Logger) (*linearticket.LinearBackend, error) {
+	m := cfg.Ticketing.Config
+
+	tokenSecret, err := configString(m, "token_secret")
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := readSecretValue(context.Background(), k8sClient, namespace, tokenSecret, "token")
+	if err != nil {
+		return nil, fmt.Errorf("reading linear token: %w", err)
+	}
+
+	teamID, err := configString(m, "team_id")
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []linearticket.Option
+
+	if state, ok, err := configStringOptional(m, "state_filter"); err != nil {
+		return nil, err
+	} else if ok {
+		opts = append(opts, linearticket.WithStateFilter(state))
+	}
+
+	if labels, err := configStringSlice(m, "labels"); err != nil {
+		return nil, err
+	} else if len(labels) > 0 {
+		opts = append(opts, linearticket.WithLabels(labels))
+	}
+
+	if excludeLabels, err := configStringSlice(m, "exclude_labels"); err != nil {
+		return nil, err
+	} else if len(excludeLabels) > 0 {
+		opts = append(opts, linearticket.WithExcludeLabels(excludeLabels))
+	}
+
+	return linearticket.NewLinearBackend(token, teamID, logger, opts...), nil
+}
+
+// initDiscordChannel creates and returns a Discord notification channel from
+// a channel configuration block.
+func initDiscordChannel(chCfg config.ChannelConfig, logger *slog.Logger) (*discordnotify.DiscordChannel, error) {
+	m := chCfg.Config
+
+	webhookURL, err := configString(m, "webhook_url")
+	if err != nil {
+		return nil, err
+	}
+
+	return discordnotify.New(webhookURL), nil
+}
+
+// initTelegramChannel creates and returns a Telegram notification channel from
+// a channel configuration block.
+func initTelegramChannel(chCfg config.ChannelConfig, k8sClient kubernetes.Interface, namespace string, logger *slog.Logger) (*telegramnotify.TelegramChannel, error) {
+	m := chCfg.Config
+
+	chatID, err := configString(m, "chat_id")
+	if err != nil {
+		return nil, err
+	}
+	tokenSecret, err := configString(m, "token_secret")
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := readSecretValue(context.Background(), k8sClient, namespace, tokenSecret, "token")
+	if err != nil {
+		return nil, fmt.Errorf("reading telegram token: %w", err)
+	}
+
+	var opts []telegramnotify.Option
+
+	if rawThreadID, ok, err := configStringOptional(m, "thread_id"); err != nil {
+		return nil, err
+	} else if ok {
+		var threadID int
+		if _, scanErr := fmt.Sscan(rawThreadID, &threadID); scanErr != nil {
+			return nil, fmt.Errorf("config key \"thread_id\" is not a valid integer: %w", scanErr)
+		}
+		opts = append(opts, telegramnotify.WithThreadID(threadID))
+	}
+
+	return telegramnotify.New(token, chatID, opts...), nil
+}
+
+// initApprovalBackend creates and returns a human approval backend from the
+// controller configuration.
+func initApprovalBackend(cfg *config.Config, k8sClient kubernetes.Interface, namespace string, logger *slog.Logger) (approvalPkg.Backend, error) {
+	m := cfg.Approval.Config
+
+	switch cfg.Approval.Backend {
+	case "slack":
+		channelID, err := configString(m, "channel_id")
+		if err != nil {
+			return nil, err
+		}
+		tokenSecret, err := configString(m, "token_secret")
+		if err != nil {
+			return nil, err
+		}
+		token, err := readSecretValue(context.Background(), k8sClient, namespace, tokenSecret, "token")
+		if err != nil {
+			return nil, fmt.Errorf("reading slack approval token: %w", err)
+		}
+		return slackapproval.NewSlackApprovalBackend(channelID, token, logger), nil
+	default:
+		return nil, fmt.Errorf("unsupported approval backend %q", cfg.Approval.Backend)
+	}
+}
+
+// initSCMBackend creates and returns an SCM backend from the controller
+// configuration.
+func initSCMBackend(cfg *config.Config, k8sClient kubernetes.Interface, namespace string, logger *slog.Logger) (scmPkg.Backend, error) {
+	m := cfg.SCM.Config
+
+	tokenSecret, err := configString(m, "token_secret")
+	if err != nil {
+		return nil, err
+	}
+
+	switch cfg.SCM.Backend {
+	case "github":
+		token, err := readSecretValue(context.Background(), k8sClient, namespace, tokenSecret, "token")
+		if err != nil {
+			return nil, fmt.Errorf("reading github SCM token: %w", err)
+		}
+		return ghscm.NewGitHubSCMBackend(token, logger), nil
+	case "gitlab":
+		token, err := readSecretValue(context.Background(), k8sClient, namespace, tokenSecret, "token")
+		if err != nil {
+			return nil, fmt.Errorf("reading gitlab SCM token: %w", err)
+		}
+		var opts []glscm.Option
+		if baseURL, ok, err := configStringOptional(m, "base_url"); err != nil {
+			return nil, err
+		} else if ok {
+			opts = append(opts, glscm.WithBaseURL(baseURL))
+		}
+		return glscm.NewGitLabSCMBackend(token, logger, opts...), nil
+	default:
+		return nil, fmt.Errorf("unsupported SCM backend %q", cfg.SCM.Backend)
+	}
+}
+
+// initReviewBackend creates and returns a code review backend from the
+// controller configuration.
+func initReviewBackend(cfg *config.Config, k8sClient kubernetes.Interface, namespace string, logger *slog.Logger) (reviewPkg.Backend, error) {
+	m := cfg.Review.Config
+
+	switch cfg.Review.Backend {
+	case "coderabbit":
+		apiKeySecret, err := configString(m, "api_key_secret")
+		if err != nil {
+			return nil, err
+		}
+		apiKey, err := readSecretValue(context.Background(), k8sClient, namespace, apiKeySecret, "api_key")
+		if err != nil {
+			return nil, fmt.Errorf("reading coderabbit api key: %w", err)
+		}
+		return crreview.NewCodeRabbitBackend(apiKey, logger), nil
+	default:
+		return nil, fmt.Errorf("unsupported review backend %q", cfg.Review.Backend)
+	}
+}
+
+// initSecretsResolver creates and returns a secrets resolver populated with
+// the backends declared in cfg.SecretResolver.Backends.
+func initSecretsResolver(cfg *config.Config, k8sClient kubernetes.Interface, namespace string, logger *slog.Logger) (*secretresolver.Resolver, error) {
+	var opts []secretresolver.Option
+
+	for _, ref := range cfg.SecretResolver.Backends {
+		switch ref.Backend {
+		case "k8s":
+			backend := k8ssecrets.NewK8sBackend(namespace, k8sClient, logger)
+			opts = append(opts, secretresolver.WithBackend(ref.Scheme, backend))
+		case "vault":
+			var vaultOpts []vaultsecrets.VaultOption
+			if address, ok := ref.Config["address"].(string); ok && address != "" {
+				vaultOpts = append(vaultOpts, vaultsecrets.WithAddress(address))
+			}
+			if role, ok := ref.Config["role"].(string); ok && role != "" {
+				vaultOpts = append(vaultOpts, vaultsecrets.WithRole(role))
+			}
+			if method, ok := ref.Config["auth_method"].(string); ok && method != "" {
+				vaultOpts = append(vaultOpts, vaultsecrets.WithAuthMethod(method))
+			}
+			if path, ok := ref.Config["secrets_path"].(string); ok && path != "" {
+				vaultOpts = append(vaultOpts, vaultsecrets.WithSecretsPath(path))
+			}
+			vaultOpts = append(vaultOpts, vaultsecrets.WithLogger(logger))
+			backend := vaultsecrets.NewVaultBackend(vaultOpts...)
+			opts = append(opts, secretresolver.WithBackend(ref.Scheme, backend))
+		default:
+			return nil, fmt.Errorf("unsupported secret backend type %q (scheme %q)", ref.Backend, ref.Scheme)
+		}
+	}
+
+	// Always include a logger.
+	opts = append(opts, secretresolver.WithLogger(logger))
+
+	// Wire policy from config.
+	policy := secretresolver.Policy{
+		AllowRawRefs:       cfg.SecretResolver.Policy.AllowRawRefs,
+		AllowedEnvPatterns: cfg.SecretResolver.Policy.AllowedEnvPatterns,
+		BlockedEnvPatterns: cfg.SecretResolver.Policy.BlockedEnvPatterns,
+		AllowedSchemes:     cfg.SecretResolver.Policy.AllowedSchemes,
+	}
+	opts = append(opts, secretresolver.WithPolicy(policy))
+
+	return secretresolver.NewResolver(opts...), nil
 }
 
 // initSlackChannel creates and returns a Slack notification channel from

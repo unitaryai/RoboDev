@@ -20,9 +20,13 @@ import (
 	"github.com/unitaryai/robodev/internal/memory"
 	"github.com/unitaryai/robodev/internal/metrics"
 	"github.com/unitaryai/robodev/internal/prm"
+	"github.com/unitaryai/robodev/internal/secretresolver"
 	"github.com/unitaryai/robodev/internal/taskrun"
 	"github.com/unitaryai/robodev/pkg/engine"
+	"github.com/unitaryai/robodev/pkg/plugin/approval"
 	"github.com/unitaryai/robodev/pkg/plugin/notifications"
+	"github.com/unitaryai/robodev/pkg/plugin/review"
+	"github.com/unitaryai/robodev/pkg/plugin/scm"
 	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
 )
 
@@ -64,6 +68,12 @@ type Reconciler struct {
 	memoryGraph     *memory.Graph
 	memoryExtractor *memory.Extractor
 	memoryQuery     *memory.QueryEngine
+
+	// Plugin backends — stored for use by lifecycle hooks and quality gates.
+	approvalBackend approval.Backend
+	scmBackend      scm.Backend
+	reviewBackend   review.Backend
+	secretsResolver *secretresolver.Resolver
 }
 
 // ReconcilerOption configures the Reconciler.
@@ -125,6 +135,33 @@ func WithMemory(g *memory.Graph, e *memory.Extractor, q *memory.QueryEngine) Rec
 		r.memoryExtractor = e
 		r.memoryQuery = q
 	}
+}
+
+// WithApprovalBackend sets the human approval backend. When non-nil, the
+// controller uses it to deliver approval gate questions to humans (e.g. via
+// Slack) and to cancel pending requests when a TaskRun is terminated.
+func WithApprovalBackend(b approval.Backend) ReconcilerOption {
+	return func(r *Reconciler) { r.approvalBackend = b }
+}
+
+// WithSCMBackend sets the source code management backend. When non-nil, the
+// controller can create branches and open pull/merge requests on behalf of
+// the agent.
+func WithSCMBackend(b scm.Backend) ReconcilerOption {
+	return func(r *Reconciler) { r.scmBackend = b }
+}
+
+// WithReviewBackend sets the code review backend. When non-nil, the quality
+// gate submits agent diffs for automated review before finalising a TaskRun.
+func WithReviewBackend(b review.Backend) ReconcilerOption {
+	return func(r *Reconciler) { r.reviewBackend = b }
+}
+
+// WithSecretsResolver sets the task-scoped secrets resolver. When non-nil,
+// the controller resolves secret references from ticket descriptions and
+// labels before injecting them into the agent's execution environment.
+func WithSecretsResolver(sr *secretresolver.Resolver) ReconcilerOption {
+	return func(r *Reconciler) { r.secretsResolver = sr }
 }
 
 // NewReconciler creates a new Reconciler with the given configuration.

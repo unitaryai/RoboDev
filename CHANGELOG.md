@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### All Plugin Backends Wired into Controller (`cmd/robodev/main.go`)
+- **Linear ticketing**: `initLinearBackend` reads token secret, team_id, state_filter, labels, and exclude_labels from config
+- **Discord notifications**: `initDiscordChannel` reads webhook_url from config
+- **Telegram notifications**: `initTelegramChannel` reads token secret, chat_id, and optional thread_id from config
+- **Slack approval**: `initApprovalBackend` reads channel_id and token secret; controller gains `WithApprovalBackend(approval.Backend)` option
+- **GitHub/GitLab SCM**: `initSCMBackend` reads token secret and optional base_url; controller gains `WithSCMBackend(scm.Backend)` option
+- **CodeRabbit review**: `initReviewBackend` reads api_key_secret; controller gains `WithReviewBackend(review.Backend)` option
+- **K8s/Vault secrets resolver**: `initSecretsResolver` iterates `cfg.SecretResolver.Backends` and registers each backend by scheme; controller gains `WithSecretsResolver(*secretresolver.Resolver)` option
+- **Aider/Codex engines**: wired in when `cfg.Engines.Aider` / `cfg.Engines.Codex` are non-nil
+- **`config.ApprovalConfig`** struct added to top-level `Config` (mirrors ReviewConfig / SCMConfig pattern)
+- Notifications loop refactored from if/else chain to switch so Discord and Telegram have equal first-class handling
+- **Startup wiring test** added (`cmd/robodev/init_test.go`, 20 tests) — calls every init function directly with a fake Kubernetes client to verify that all supported backend strings reach their init function rather than falling through to the unsupported-backend error branch
+
 #### Shortcut Backend Wired into Controller (`cmd/robodev/main.go`)
 - `initShortcutBackend` helper function reads `token_secret`, `workflow_state_name`, `in_progress_state_name`, `owner_mention_name`, and `exclude_labels` from config, fetches the API token from a Kubernetes Secret, and calls `Init()` to resolve human-readable names to Shortcut API identifiers at startup
 - `"shortcut"` case added to the ticketing backend selection block — previously only `"github"` was wired in
