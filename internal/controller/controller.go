@@ -17,6 +17,7 @@ import (
 
 	"github.com/unitaryai/robodev/internal/agentstream"
 	"github.com/unitaryai/robodev/internal/config"
+	"github.com/unitaryai/robodev/internal/jobbuilder"
 	"github.com/unitaryai/robodev/internal/memory"
 	"github.com/unitaryai/robodev/internal/metrics"
 	"github.com/unitaryai/robodev/internal/prm"
@@ -384,6 +385,9 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 
 	engineCfg := engine.EngineConfig{
 		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
+		Image:          r.config.Engines.ImageFor(engineName),
+		SecretKeyRefs:  r.agentSecretKeyRefs(),
+		Env:            r.slackEnv(),
 	}
 
 	spec, err := eng.BuildExecutionSpec(task, engineCfg)
@@ -452,8 +456,8 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 		}
 	}
 
-	// Start stream reader for engines that support streaming output.
-	if engineName == "claude-code" && r.config.Streaming.Enabled {
+	// Start stream reader for claude-code to parse NDJSON events from pod logs.
+	if engineName == "claude-code" {
 		r.startStreamReader(ctx, tr)
 	}
 
@@ -762,6 +766,9 @@ func (r *Reconciler) launchFallbackJob(ctx context.Context, tr *taskrun.TaskRun,
 
 	engineCfg := engine.EngineConfig{
 		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
+		Image:          r.config.Engines.ImageFor(engineName),
+		SecretKeyRefs:  r.agentSecretKeyRefs(),
+		Env:            r.slackEnv(),
 	}
 
 	spec, err := eng.BuildExecutionSpec(task, engineCfg)
@@ -854,13 +861,6 @@ func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun)
 	r.mu.Unlock()
 
 	go func() {
-		// Wait briefly for the pod to start before attempting to read logs.
-		select {
-		case <-streamCtx.Done():
-			return
-		case <-time.After(5 * time.Second):
-		}
-
 		eventCh := make(chan *agentstream.StreamEvent, 100)
 
 		reader := agentstream.NewReader(r.logger.With("component", "stream-reader", "task_run_id", tr.ID))
@@ -904,10 +904,30 @@ func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun)
 			if r.k8sClient == nil {
 				return
 			}
-			if err := reader.ReadPodLogs(streamCtx, r.k8sClient, r.namespace, tr.JobName, "agent", eventCh); err != nil {
+
+			// Resolve the actual pod name. K8s Job pods are named
+			// <jobname>-<random-suffix>, so we cannot use tr.JobName directly.
+			podName, err := r.resolvePodName(streamCtx, tr.ID)
+			if err != nil {
+				if streamCtx.Err() == nil {
+					r.logger.Warn("failed to resolve pod name for stream reader",
+						"task_run_id", tr.ID,
+						"error", err,
+					)
+				}
+				return
+			}
+
+			r.logger.Info("stream reader resolved pod",
+				"task_run_id", tr.ID,
+				"pod", podName,
+			)
+
+			if err := reader.ReadPodLogs(streamCtx, r.k8sClient, r.namespace, podName, "agent", eventCh); err != nil {
 				if streamCtx.Err() == nil {
 					r.logger.Warn("stream reader stopped with error",
 						"task_run_id", tr.ID,
+						"pod", podName,
 						"error", err,
 					)
 				}
@@ -929,6 +949,44 @@ func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun)
 		"task_run_id", tr.ID,
 		"job", tr.JobName,
 	)
+}
+
+// resolvePodName looks up the name of the pod created by the K8s Job for the
+// given task run ID. It polls until the agent container has started (i.e., is
+// Running or Terminated) or the context is cancelled, using exponential backoff
+// starting at 2 s and capped at 30 s. Waiting for the container to start
+// avoids a "ContainerCreating" error when the log stream is opened.
+func (r *Reconciler) resolvePodName(ctx context.Context, taskRunID string) (string, error) {
+	labelSelector := fmt.Sprintf("%s=%s", jobbuilder.LabelTaskRunID, taskRunID)
+	backoff := 2 * time.Second
+	const maxBackoff = 30 * time.Second
+
+	for {
+		pods, err := r.k8sClient.CoreV1().Pods(r.namespace).List(ctx, metav1.ListOptions{
+			LabelSelector: labelSelector,
+		})
+		if err != nil {
+			return "", fmt.Errorf("listing pods for task run %q: %w", taskRunID, err)
+		}
+
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+			for _, cs := range pod.Status.ContainerStatuses {
+				if cs.Name == "agent" && (cs.State.Running != nil || cs.State.Terminated != nil) {
+					return pod.Name, nil
+				}
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(backoff):
+			if backoff < maxBackoff {
+				backoff *= 2
+			}
+		}
+	}
 }
 
 // cancelStreamReader stops the stream reader goroutine for the given task run
@@ -1006,6 +1064,84 @@ func (r *Reconciler) extractMemory(ctx context.Context, tr *taskrun.TaskRun) {
 		"nodes_extracted", len(nodes),
 		"edges_extracted", len(edges),
 	)
+}
+
+// slackSecretKeyRefs returns a SecretKeyRef for the Slack bot token read from
+// the first configured Slack notification channel. Returns nil when no Slack
+// channel is configured or the token secret is absent.
+func (r *Reconciler) slackSecretKeyRefs() map[string]engine.SecretKeyRef {
+	for _, ch := range r.config.Notifications.Channels {
+		if ch.Backend != "slack" {
+			continue
+		}
+		tokenSecret, _ := ch.Config["token_secret"].(string)
+		if tokenSecret == "" {
+			continue
+		}
+		return map[string]engine.SecretKeyRef{
+			"SLACK_BOT_TOKEN": {SecretName: tokenSecret, Key: "token"},
+		}
+	}
+	return nil
+}
+
+// slackEnv returns env var entries for the Slack MCP server. It reads the
+// channel ID from the first configured Slack notification channel. Returns nil
+// when no Slack channel is configured.
+func (r *Reconciler) slackEnv() map[string]string {
+	for _, ch := range r.config.Notifications.Channels {
+		if ch.Backend != "slack" {
+			continue
+		}
+		channelID, _ := ch.Config["channel_id"].(string)
+		if channelID == "" {
+			continue
+		}
+		return map[string]string{"SLACK_CHANNEL_ID": channelID}
+	}
+	return nil
+}
+
+// agentSecretKeyRefs returns all SecretKeyRef entries for agent pods,
+// combining SCM and Slack credentials.
+func (r *Reconciler) agentSecretKeyRefs() map[string]engine.SecretKeyRef {
+	refs := make(map[string]engine.SecretKeyRef)
+	for k, v := range r.scmSecretKeyRefs() {
+		refs[k] = v
+	}
+	for k, v := range r.slackSecretKeyRefs() {
+		refs[k] = v
+	}
+	if len(refs) == 0 {
+		return nil
+	}
+	return refs
+}
+
+// scmSecretKeyRefs returns SecretKeyRef entries for the configured SCM token
+// so that agent pods can authenticate with the SCM provider when cloning
+// private repositories. Returns nil when no SCM backend is configured.
+func (r *Reconciler) scmSecretKeyRefs() map[string]engine.SecretKeyRef {
+	scm := r.config.SCM
+	if scm.Backend == "" {
+		return nil
+	}
+	tokenSecret, _ := scm.Config["token_secret"].(string)
+	if tokenSecret == "" {
+		return nil
+	}
+	var envVarName string
+	switch scm.Backend {
+	case "gitlab":
+		envVarName = "GITLAB_TOKEN"
+	case "github":
+		envVarName = "GITHUB_TOKEN"
+	default:
+		return nil
+	}
+	return map[string]engine.SecretKeyRef{
+		envVarName: {SecretName: tokenSecret, Key: "token"},
+	}
 }
 
 // hasApprovalGate returns true if the given gate name is present in the

@@ -34,8 +34,14 @@ const (
 	// configMountPath is where the configuration volume is mounted.
 	configMountPath = "/config"
 
-	// apiKeySecretName is the Kubernetes secret key for the Anthropic API key.
-	apiKeySecretName = "anthropic-api-key"
+	// mcpConfigPath is the path to the MCP server configuration baked into the image.
+	mcpConfigPath = "/etc/claude-code/mcp.json"
+
+	// apiKeySecretName is the Kubernetes Secret containing the Anthropic API key.
+	apiKeySecretName = "robodev-anthropic-key"
+
+	// apiKeySecretKey is the key within apiKeySecretName that holds the API key.
+	apiKeySecretKey = "api_key"
 
 	// DefaultTaskResultSchema is the JSON schema for structured task results
 	// returned by Claude Code when using --output-format stream-json with
@@ -143,30 +149,22 @@ func (e *ClaudeCodeEngine) BuildExecutionSpec(task engine.Task, config engine.En
 		timeout = defaultTimeoutSeconds
 	}
 
-	// Determine output format: stream-json when a schema is provided or
-	// streaming is explicitly enabled, otherwise plain json.
-	outputFormat := "json"
+	// Always use stream-json so that events are written to stdout
+	// incrementally — this makes kubectl logs useful during execution and
+	// feeds the agentstream reader without any extra configuration.
 	jsonSchema := config.JSONSchema
 	if jsonSchema == "" {
 		jsonSchema = e.jsonSchema
-	}
-	useStreaming := jsonSchema != "" || config.StreamingEnabled
-	if useStreaming {
-		outputFormat = "stream-json"
 	}
 
 	command := []string{
 		"claude",
 		"-p", prompt,
-		"--output-format", outputFormat,
+		"--output-format", "stream-json",
 		"--max-turns", strconv.Itoa(defaultMaxTurns),
 		"--dangerously-skip-permissions",
-	}
-
-	// When streaming, add --verbose for richer event data (tool call
-	// details, cost breakdowns).
-	if useStreaming {
-		command = append(command, "--verbose")
+		"--verbose",      // richer event data (tool calls, cost breakdowns)
+		"--mcp-config", mcpConfigPath, // Slack and GitLab MCP tools
 	}
 
 	if jsonSchema != "" {
@@ -228,8 +226,12 @@ func (e *ClaudeCodeEngine) BuildExecutionSpec(task engine.Task, config engine.En
 		env[k] = v
 	}
 
-	secretEnv := map[string]string{
-		"ANTHROPIC_API_KEY": apiKeySecretName,
+	secretKeyRefs := map[string]engine.SecretKeyRef{
+		"ANTHROPIC_API_KEY": {SecretName: apiKeySecretName, Key: apiKeySecretKey},
+	}
+	// Merge any additional secret refs from the engine config (e.g. SCM tokens).
+	for k, v := range config.SecretKeyRefs {
+		secretKeyRefs[k] = v
 	}
 
 	volumes := []engine.VolumeMount{
@@ -242,13 +244,25 @@ func (e *ClaudeCodeEngine) BuildExecutionSpec(task engine.Task, config engine.En
 			MountPath: configMountPath,
 			ReadOnly:  true,
 		},
+		{
+			// Shadow the read-only container home directory with a writable
+			// emptyDir so Claude Code can create ~/.claude/ for its config.
+			Name:      "home",
+			MountPath: "/home/robodev",
+		},
+		{
+			// Provide a writable /tmp so Claude Code can create its subprocess
+			// shell directories (e.g. /tmp/claude-<uid>/) for Bash tool execution.
+			Name:      "tmp",
+			MountPath: "/tmp",
+		},
 	}
 
 	spec := &engine.ExecutionSpec{
 		Image:                 image,
 		Command:               command,
 		Env:                   env,
-		SecretEnv:             secretEnv,
+		SecretKeyRefs:         secretKeyRefs,
 		ResourceRequests:      config.ResourceRequests,
 		ResourceLimits:        config.ResourceLimits,
 		Volumes:               volumes,
@@ -302,8 +316,36 @@ func (e *ClaudeCodeEngine) BuildPrompt(task engine.Task) (string, error) {
 	}
 
 	b.WriteString("## Instructions\n\n")
-	b.WriteString("Complete the task described above. Work in the /workspace directory.\n")
-	b.WriteString("Write a result.json file to /workspace/result.json when finished.\n")
+
+	if task.RepoURL != "" {
+		b.WriteString("1. Configure git globally:\n")
+		b.WriteString("   ```\n")
+		b.WriteString("   git config --global user.name \"RoboDev\"\n")
+		b.WriteString("   git config --global user.email \"robodev@localhost\"\n")
+		b.WriteString("   git config --global init.defaultBranch main\n")
+		b.WriteString("   # Configure git credentials from SCM token env vars\n")
+		b.WriteString("   if [ -n \"${GITLAB_TOKEN:-}\" ]; then\n")
+		b.WriteString("     git config --global credential.helper store\n")
+		b.WriteString("     echo \"https://oauth2:${GITLAB_TOKEN}@gitlab.com\" >> ~/.git-credentials\n")
+		b.WriteString("   fi\n")
+		b.WriteString("   if [ -n \"${GITHUB_TOKEN:-}\" ]; then\n")
+		b.WriteString("     git config --global credential.helper store\n")
+		b.WriteString("     echo \"https://x-access-token:${GITHUB_TOKEN}@github.com\" >> ~/.git-credentials\n")
+		b.WriteString("   fi\n")
+		b.WriteString("   ```\n\n")
+		b.WriteString("2. Clone the repository to /workspace/repo:\n")
+		b.WriteString("   ```\n")
+		b.WriteString("   git clone --depth=1 ")
+		b.WriteString(task.RepoURL)
+		b.WriteString(" /workspace/repo\n")
+		b.WriteString("   ```\n\n")
+		b.WriteString("3. Work inside /workspace/repo to complete the task.\n\n")
+		b.WriteString("4. When finished, write /workspace/result.json containing:\n")
+		b.WriteString("   `{\"success\": true, \"summary\": \"<description of what was done>\"}`\n")
+	} else {
+		b.WriteString("Complete the task described above. Work in the /workspace directory.\n")
+		b.WriteString("Write a result.json file to /workspace/result.json when finished.\n")
+	}
 
 	return b.String(), nil
 }

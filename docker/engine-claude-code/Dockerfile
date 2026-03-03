@@ -7,6 +7,7 @@ FROM node:22-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         python3 \
+        python3-httpx \
         curl \
         jq \
         ca-certificates \
@@ -23,16 +24,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Claude Code CLI.
 RUN npm install -g @anthropic-ai/claude-code
 
-# Create non-root user.
-RUN groupadd --gid 1000 robodev \
-    && useradd --uid 1000 --gid robodev --create-home robodev
+# Create non-root user (GID/UID 10000 to avoid conflicts with node base image).
+RUN groupadd --gid 10000 robodev \
+    && useradd --uid 10000 --gid robodev --create-home robodev
 
-# Copy entrypoint and hooks.
+# Copy entrypoint, hooks, and MCP server.
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY hooks/ /opt/robodev/hooks/
+COPY slack_mcp.py /usr/local/bin/slack_mcp.py
+
+# Install MCP configuration.
+RUN mkdir -p /etc/claude-code
+COPY mcp.json /etc/claude-code/mcp.json
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
-    && chmod +x /opt/robodev/hooks/*.sh
+    && chmod +x /opt/robodev/hooks/*.sh \
+    && chmod +x /usr/local/bin/slack_mcp.py
 
 WORKDIR /workspace
 RUN chown robodev:robodev /workspace

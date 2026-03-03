@@ -72,10 +72,13 @@ func TestBuildExecutionSpec(t *testing.T) {
 				assert.Equal(t, "claude", spec.Command[0])
 				assert.Equal(t, "-p", spec.Command[1])
 				assert.Contains(t, spec.Command, "--output-format")
-				assert.Contains(t, spec.Command, "json")
+				assert.Contains(t, spec.Command, "stream-json")
+				assert.Contains(t, spec.Command, "--verbose")
 				assert.Contains(t, spec.Command, "--max-turns")
 				assert.Contains(t, spec.Command, "50")
 				assert.Contains(t, spec.Command, "--dangerously-skip-permissions")
+				assert.Contains(t, spec.Command, "--mcp-config")
+				assert.Contains(t, spec.Command, mcpConfigPath)
 			},
 		},
 		{
@@ -107,23 +110,26 @@ func TestBuildExecutionSpec(t *testing.T) {
 			},
 		},
 		{
-			name: "secret env contains API key reference",
+			name: "secret key ref injects ANTHROPIC_API_KEY from correct secret and key",
 			task: baseTask,
 			config: engine.EngineConfig{
 				TimeoutSeconds: 3600,
 			},
 			check: func(t *testing.T, spec *engine.ExecutionSpec) {
-				assert.Equal(t, apiKeySecretName, spec.SecretEnv["ANTHROPIC_API_KEY"])
+				ref, ok := spec.SecretKeyRefs["ANTHROPIC_API_KEY"]
+				require.True(t, ok, "ANTHROPIC_API_KEY must be present in SecretKeyRefs")
+				assert.Equal(t, apiKeySecretName, ref.SecretName)
+				assert.Equal(t, apiKeySecretKey, ref.Key)
 			},
 		},
 		{
-			name: "volumes include workspace and config",
+			name: "volumes include workspace, config, and home",
 			task: baseTask,
 			config: engine.EngineConfig{
 				TimeoutSeconds: 3600,
 			},
 			check: func(t *testing.T, spec *engine.ExecutionSpec) {
-				require.Len(t, spec.Volumes, 2)
+				require.Len(t, spec.Volumes, 4)
 
 				assert.Equal(t, "workspace", spec.Volumes[0].Name)
 				assert.Equal(t, "/workspace", spec.Volumes[0].MountPath)
@@ -132,6 +138,14 @@ func TestBuildExecutionSpec(t *testing.T) {
 				assert.Equal(t, "config", spec.Volumes[1].Name)
 				assert.Equal(t, "/config", spec.Volumes[1].MountPath)
 				assert.True(t, spec.Volumes[1].ReadOnly)
+
+				assert.Equal(t, "home", spec.Volumes[2].Name)
+				assert.Equal(t, "/home/robodev", spec.Volumes[2].MountPath)
+				assert.False(t, spec.Volumes[2].ReadOnly)
+
+				assert.Equal(t, "tmp", spec.Volumes[3].Name)
+				assert.Equal(t, "/tmp", spec.Volumes[3].MountPath)
+				assert.False(t, spec.Volumes[3].ReadOnly)
 			},
 		},
 		{
@@ -220,14 +234,15 @@ func TestBuildExecutionSpec(t *testing.T) {
 			},
 		},
 		{
-			name: "no json schema uses plain json output",
+			name: "no json schema omits --json-schema flag",
 			task: baseTask,
 			config: engine.EngineConfig{
 				TimeoutSeconds: 3600,
 			},
 			check: func(t *testing.T, spec *engine.ExecutionSpec) {
-				assert.Contains(t, spec.Command, "json")
-				assert.NotContains(t, spec.Command, "stream-json")
+				// stream-json is always used; --json-schema is only added when a
+				// schema is provided.
+				assert.Contains(t, spec.Command, "stream-json")
 				assert.NotContains(t, spec.Command, "--json-schema")
 			},
 		},
@@ -425,16 +440,15 @@ func TestBuildExecutionSpec(t *testing.T) {
 			},
 		},
 		{
-			name: "streaming disabled without schema uses plain json and no verbose",
+			name: "always uses stream-json and verbose",
 			task: baseTask,
 			config: engine.EngineConfig{
 				TimeoutSeconds: 3600,
 			},
 			check: func(t *testing.T, spec *engine.ExecutionSpec) {
 				assert.Contains(t, spec.Command, "--output-format")
-				assert.Contains(t, spec.Command, "json")
-				assert.NotContains(t, spec.Command, "stream-json")
-				assert.NotContains(t, spec.Command, "--verbose")
+				assert.Contains(t, spec.Command, "stream-json")
+				assert.Contains(t, spec.Command, "--verbose")
 			},
 		},
 
@@ -568,6 +582,9 @@ func TestBuildPrompt(t *testing.T) {
 				"## Repository",
 				"https://github.com/org/repo",
 				"## Instructions",
+				"git config --global user.name",
+				"git clone --depth=1 https://github.com/org/repo /workspace/repo",
+				"/workspace/repo",
 			},
 		},
 		{
@@ -609,6 +626,7 @@ func TestBuildPrompt(t *testing.T) {
 				"# Task: Simple task",
 				"## Repository",
 				"## Instructions",
+				"git clone --depth=1 https://github.com/org/repo /workspace/repo",
 			},
 		},
 		{
