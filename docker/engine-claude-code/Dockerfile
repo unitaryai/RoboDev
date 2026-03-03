@@ -21,6 +21,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
+# Install glab (GitLab CLI) for merge request creation.
+ARG TARGETARCH
+RUN GLAB_VERSION="1.79.0" \
+    && if [ "${TARGETARCH:-amd64}" = "arm64" ]; then GLAB_ARCH="arm64"; else GLAB_ARCH="amd64"; fi \
+    && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${GLAB_ARCH}.tar.gz" -o /tmp/glab.tar.gz \
+    && tar -xzf /tmp/glab.tar.gz -C /tmp \
+    && mv /tmp/bin/glab /usr/local/bin/glab \
+    && chmod +x /usr/local/bin/glab \
+    && rm -rf /tmp/glab* /tmp/bin
+
 # Install Claude Code CLI.
 RUN npm install -g @anthropic-ai/claude-code
 
