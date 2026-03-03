@@ -94,13 +94,13 @@ func TestDockerBuild_Labels(t *testing.T) {
 
 	// Job-level labels.
 	assert.Equal(t, "robodev-agent", job.Labels[labelApp])
-	assert.Equal(t, "tr-456", job.Labels[labelTaskRunID])
+	assert.Equal(t, "tr-456", job.Labels[LabelTaskRunID])
 	assert.Equal(t, "claude-code", job.Labels[labelEngine])
 
 	// Pod template labels.
 	podLabels := job.Spec.Template.Labels
 	assert.Equal(t, "robodev-agent", podLabels[labelApp])
-	assert.Equal(t, "tr-456", podLabels[labelTaskRunID])
+	assert.Equal(t, "tr-456", podLabels[LabelTaskRunID])
 	assert.Equal(t, "claude-code", podLabels[labelEngine])
 }
 
@@ -114,7 +114,7 @@ func TestDockerBuild_SecurityContext(t *testing.T) {
 	require.NotNil(t, sc)
 
 	assert.True(t, *sc.RunAsNonRoot, "runAsNonRoot should be true")
-	assert.Equal(t, int64(1000), *sc.RunAsUser, "runAsUser should be 1000")
+	assert.Equal(t, int64(10000), *sc.RunAsUser, "runAsUser should match Dockerfile UID")
 	assert.True(t, *sc.ReadOnlyRootFilesystem, "readOnlyRootFilesystem should be true")
 	assert.False(t, *sc.AllowPrivilegeEscalation, "allowPrivilegeEscalation should be false")
 

@@ -13,13 +13,17 @@ import (
 	"github.com/unitaryai/robodev/pkg/engine"
 )
 
-const (
-	labelApp       = "app"
-	labelAppValue  = "robodev-agent"
-	labelTaskRunID = "robodev.io/task-run-id"
-	labelEngine    = "robodev.io/engine"
+// LabelTaskRunID is the Kubernetes label key used to identify Jobs and Pods
+// belonging to a given task run. It is exported so that the controller can
+// list pods by this label when resolving pod names for log streaming.
+const LabelTaskRunID = "robodev.io/task-run-id"
 
-	defaultRunAsUser int64 = 1000
+const (
+	labelApp      = "app"
+	labelAppValue = "robodev-agent"
+	labelEngine   = "robodev.io/engine"
+
+	defaultRunAsUser int64 = 10000
 	containerName          = "agent"
 	taintKey               = "robodev.io/agent"
 )
@@ -45,6 +49,7 @@ func (b *JobBuilder) Build(taskRunID string, engineName string, spec *engine.Exe
 	}
 
 	envVars := buildEnvVars(spec.Env)
+	envVars = append(envVars, buildSecretKeyRefVars(spec.SecretKeyRefs)...)
 	envFromSources := buildEnvFromSources(spec.SecretEnv)
 	volumes, volumeMounts := buildVolumes(spec.Volumes)
 	resources := buildResourceRequirements(spec.ResourceRequests, spec.ResourceLimits)
@@ -70,7 +75,7 @@ func (b *JobBuilder) Build(taskRunID string, engineName string, spec *engine.Exe
 			Namespace: b.namespace,
 			Labels: map[string]string{
 				labelApp:       labelAppValue,
-				labelTaskRunID: taskRunID,
+				LabelTaskRunID: taskRunID,
 				labelEngine:    engineName,
 			},
 		},
@@ -80,7 +85,7 @@ func (b *JobBuilder) Build(taskRunID string, engineName string, spec *engine.Exe
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelApp:       labelAppValue,
-						labelTaskRunID: taskRunID,
+						LabelTaskRunID: taskRunID,
 						labelEngine:    engineName,
 					},
 				},
@@ -125,6 +130,29 @@ func (b *JobBuilder) Build(taskRunID string, engineName string, spec *engine.Exe
 	}
 
 	return job, nil
+}
+
+// buildSecretKeyRefVars converts a map of secret key references into Kubernetes
+// EnvVar entries using valueFrom.secretKeyRef. This allows an env var name to
+// be mapped to a specific key inside a named Secret, without mounting the
+// entire secret via envFrom.
+func buildSecretKeyRefVars(refs map[string]engine.SecretKeyRef) []corev1.EnvVar {
+	if len(refs) == 0 {
+		return nil
+	}
+	vars := make([]corev1.EnvVar, 0, len(refs))
+	for envVarName, ref := range refs {
+		vars = append(vars, corev1.EnvVar{
+			Name: envVarName,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: ref.SecretName},
+					Key:                  ref.Key,
+				},
+			},
+		})
+	}
+	return vars
 }
 
 // buildEnvVars converts a map of environment variables to Kubernetes EnvVar slice.

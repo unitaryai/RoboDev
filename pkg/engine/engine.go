@@ -66,19 +66,40 @@ type EngineConfig struct {
 	// without a JSON schema. When true, the engine uses --output-format
 	// stream-json and --verbose for richer event data.
 	StreamingEnabled bool `json:"streaming_enabled,omitempty"`
+	// SecretKeyRefs maps env var names to specific Kubernetes Secret keys to
+	// inject into the agent container. Entries are merged into the
+	// ExecutionSpec.SecretKeyRefs alongside any engine-level defaults.
+	SecretKeyRefs map[string]SecretKeyRef `json:"secret_key_refs,omitempty"`
+}
+
+// SecretKeyRef identifies a specific key within a Kubernetes Secret.
+// It is used in ExecutionSpec.SecretKeyRefs to map an environment variable
+// name to an explicit key inside a named secret, enabling support for secrets
+// whose key names differ from the desired environment variable names.
+type SecretKeyRef struct {
+	// SecretName is the name of the Kubernetes Secret.
+	SecretName string `json:"secret_name"`
+	// Key is the key within the Secret whose value will be injected.
+	Key string `json:"key"`
 }
 
 // ExecutionSpec is an engine-agnostic description of what to run.
 // The core JobBuilder translates this into a K8s Job (or Docker run, etc).
 type ExecutionSpec struct {
-	Image                 string            `json:"image"`
-	Command               []string          `json:"command"`
-	Env                   map[string]string `json:"env"`
-	SecretEnv             map[string]string `json:"secret_env"`
-	ResourceRequests      Resources         `json:"resource_requests"`
-	ResourceLimits        Resources         `json:"resource_limits"`
-	Volumes               []VolumeMount     `json:"volumes"`
-	ActiveDeadlineSeconds int               `json:"active_deadline_seconds"`
+	Image    string            `json:"image"`
+	Command  []string          `json:"command"`
+	Env      map[string]string `json:"env"`
+	// SecretEnv maps env var names to Kubernetes Secret names. The entire
+	// named secret is mounted via envFrom (all keys become env vars). Use
+	// SecretKeyRefs when the secret key name differs from the env var name.
+	SecretEnv             map[string]string       `json:"secret_env,omitempty"`
+	// SecretKeyRefs maps env var names to specific keys within Kubernetes
+	// Secrets, generating env[].valueFrom.secretKeyRef entries.
+	SecretKeyRefs         map[string]SecretKeyRef `json:"secret_key_refs,omitempty"`
+	ResourceRequests      Resources               `json:"resource_requests"`
+	ResourceLimits        Resources               `json:"resource_limits"`
+	Volumes               []VolumeMount           `json:"volumes"`
+	ActiveDeadlineSeconds int                     `json:"active_deadline_seconds"`
 }
 
 // ExecutionEngine wraps an AI coding tool (Claude Code, Codex, etc).

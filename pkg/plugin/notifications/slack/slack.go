@@ -61,9 +61,10 @@ func (s *SlackChannel) WithHTTPClient(client *http.Client) *SlackChannel {
 
 // slackBlock represents a Slack Block Kit block element.
 type slackBlock struct {
-	Type   string      `json:"type"`
-	Text   *slackText  `json:"text,omitempty"`
-	Fields []slackText `json:"fields,omitempty"`
+	Type     string      `json:"type"`
+	Text     *slackText  `json:"text,omitempty"`
+	Fields   []slackText `json:"fields,omitempty"`   // used by section blocks
+	Elements []slackText `json:"elements,omitempty"` // used by context blocks
 }
 
 // slackText represents a Slack Block Kit text object.
@@ -98,7 +99,7 @@ func (s *SlackChannel) Notify(ctx context.Context, message string, ticket ticket
 	if ticket.ExternalURL != "" {
 		blocks = append(blocks, slackBlock{
 			Type: "context",
-			Fields: []slackText{
+			Elements: []slackText{
 				{Type: "mrkdwn", Text: fmt.Sprintf("<%s|%s>", ticket.ExternalURL, ticket.ID)},
 			},
 		})
@@ -124,7 +125,7 @@ func (s *SlackChannel) NotifyStart(ctx context.Context, ticket ticketing.Ticket)
 	if ticket.ExternalURL != "" {
 		blocks = append(blocks, slackBlock{
 			Type: "context",
-			Fields: []slackText{
+			Elements: []slackText{
 				{Type: "mrkdwn", Text: fmt.Sprintf("Ticket: <%s|%s>", ticket.ExternalURL, ticket.ID)},
 			},
 		})
@@ -174,7 +175,7 @@ func (s *SlackChannel) NotifyComplete(ctx context.Context, ticket ticketing.Tick
 	if ticket.ExternalURL != "" {
 		blocks = append(blocks, slackBlock{
 			Type: "context",
-			Fields: []slackText{
+			Elements: []slackText{
 				{Type: "mrkdwn", Text: fmt.Sprintf("Ticket: <%s|%s>", ticket.ExternalURL, ticket.ID)},
 			},
 		})

@@ -176,6 +176,37 @@ type EnginesConfig struct {
 	Cline           *ClineEngineConfig      `yaml:"cline,omitempty"`
 }
 
+// ImageFor returns the configured container image for the named engine, or an
+// empty string if no override is set (the engine will use its built-in default).
+func (e *EnginesConfig) ImageFor(engineName string) string {
+	if e == nil {
+		return ""
+	}
+	switch engineName {
+	case "claude-code":
+		if e.ClaudeCode != nil {
+			return e.ClaudeCode.Image
+		}
+	case "codex":
+		if e.Codex != nil {
+			return e.Codex.Image
+		}
+	case "aider":
+		if e.Aider != nil {
+			return e.Aider.Image
+		}
+	case "opencode":
+		if e.OpenCode != nil {
+			return e.OpenCode.Image
+		}
+	case "cline":
+		if e.Cline != nil {
+			return e.Cline.Image
+		}
+	}
+	return ""
+}
+
 // OpenCodeEngineConfig holds OpenCode-specific engine settings.
 type OpenCodeEngineConfig struct {
 	Image    string     `yaml:"image,omitempty"`

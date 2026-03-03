@@ -44,6 +44,7 @@ func (b *DockerBuilder) Build(taskRunID string, engineName string, spec *engine.
 	}
 
 	envVars := buildEnvVars(spec.Env)
+	envVars = append(envVars, buildSecretKeyRefVars(spec.SecretKeyRefs)...)
 	envFromSources := buildEnvFromSources(spec.SecretEnv)
 	volumes, volumeMounts := buildVolumes(spec.Volumes)
 	resources := buildResourceRequirements(spec.ResourceRequests, spec.ResourceLimits)
@@ -69,7 +70,7 @@ func (b *DockerBuilder) Build(taskRunID string, engineName string, spec *engine.
 			Namespace: b.namespace,
 			Labels: map[string]string{
 				labelApp:       labelAppValue,
-				labelTaskRunID: taskRunID,
+				LabelTaskRunID: taskRunID,
 				labelEngine:    engineName,
 			},
 			Annotations: map[string]string{
@@ -82,7 +83,7 @@ func (b *DockerBuilder) Build(taskRunID string, engineName string, spec *engine.
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelApp:       labelAppValue,
-						labelTaskRunID: taskRunID,
+						LabelTaskRunID: taskRunID,
 						labelEngine:    engineName,
 					},
 					Annotations: map[string]string{

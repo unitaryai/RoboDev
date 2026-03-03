@@ -155,7 +155,9 @@ func TestInitShortcutBackend(t *testing.T) {
 	err := backend.Init(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, int64(500100001), backend.WorkflowStateID())
-	assert.Equal(t, int64(500100002), backend.InProgressStateID())
+	// InProgressStateID always returns 0; per-story resolution happens at runtime
+	// in MarkInProgress/MarkComplete to support stories across multiple workflows.
+	assert.Equal(t, int64(0), backend.InProgressStateID())
 
 	// Also verify the config path reaches initShortcutBackend by ensuring
 	// the function signature compiles and accepts the right args.

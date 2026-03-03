@@ -11,6 +11,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -28,12 +29,13 @@ var _ ticketing.Backend = (*ShortcutBackend)(nil)
 
 // scStory is the subset of the Shortcut Story response we parse.
 type scStory struct {
-	ID            int       `json:"id"`
-	Name          string    `json:"name"`
-	Description   string    `json:"description"`
-	AppURL        string    `json:"app_url"`
-	Labels        []scLabel `json:"labels"`
-	ExternalLinks []string  `json:"external_links"`
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	AppURL          string    `json:"app_url"`
+	Labels          []scLabel `json:"labels"`
+	ExternalLinks   []string  `json:"external_links"`
+	WorkflowStateID int64     `json:"workflow_state_id"`
 }
 
 // scLabel is the subset of a Shortcut label response we parse.
@@ -52,6 +54,7 @@ type scWorkflow struct {
 type scWorkflowState struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
+	Type string `json:"type"` // "unstarted", "started", or "done"
 }
 
 // scMember is the subset of a Shortcut member response we parse.
@@ -74,12 +77,12 @@ type ShortcutBackend struct {
 	httpClient      *http.Client
 	logger          *slog.Logger
 	workflowStateID     int64
-	workflowStateName   string // human-readable name; resolved to workflowStateID by Init
-	inProgressStateName string // e.g. "In Development"; resolved to inProgressStateID by Init
-	inProgressStateID   int64  // workflow state ID to move stories into when picked up
-	ownerMentionName    string // mention name (e.g. "robodev"); resolved to ownerMemberID by Init
-	ownerMemberID       string // resolved Shortcut member UUID for owner filtering
+	workflowStateName   string       // human-readable name; resolved to workflowStateID by Init
+	inProgressStateName string       // e.g. "In Development"; resolved per-story at runtime
+	ownerMentionName    string       // mention name (e.g. "robodev"); resolved to ownerMemberID by Init
+	ownerMemberID       string       // resolved Shortcut member UUID for owner filtering
 	excludeLabels       []string
+	workflows           []scWorkflow // cached at Init; used for per-story state lookups
 }
 
 // Option is a functional option for configuring a ShortcutBackend.
@@ -169,24 +172,20 @@ func NewShortcutBackend(token string, workflowStateID int64, logger *slog.Logger
 
 // Init resolves human-readable configuration (workflow state names, owner
 // mention name) to the numeric / UUID values required by the Shortcut API.
-// It must be called once before PollReadyTickets when WithWorkflowStateName,
-// WithInProgressStateName, or WithOwnerMentionName is used.
+// Workflows are cached so that MarkInProgress and MarkComplete can look up
+// the correct target state for each story's actual workflow at runtime.
+// It must be called once before PollReadyTickets.
 func (b *ShortcutBackend) Init(ctx context.Context) error {
-	// Fetch workflows once if any state name needs resolving.
-	needsWorkflows := (b.workflowStateName != "" && b.workflowStateID == 0) ||
-		b.inProgressStateName != ""
-
-	var workflows []scWorkflow
-	if needsWorkflows {
-		var err error
-		workflows, err = b.fetchWorkflows(ctx)
-		if err != nil {
-			return fmt.Errorf("fetching workflows: %w", err)
-		}
+	// Always fetch and cache workflows — needed both for state name resolution
+	// and for per-story runtime lookups in MarkInProgress/MarkComplete.
+	var err error
+	b.workflows, err = b.fetchWorkflows(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching workflows: %w", err)
 	}
 
 	if b.workflowStateName != "" && b.workflowStateID == 0 {
-		id, err := findStateID(workflows, b.workflowStateName)
+		id, err := findStateID(b.workflows, b.workflowStateName)
 		if err != nil {
 			return fmt.Errorf("resolving trigger state: %w", err)
 		}
@@ -198,14 +197,10 @@ func (b *ShortcutBackend) Init(ctx context.Context) error {
 	}
 
 	if b.inProgressStateName != "" {
-		id, err := findStateID(workflows, b.inProgressStateName)
-		if err != nil {
-			return fmt.Errorf("resolving in-progress state: %w", err)
-		}
-		b.inProgressStateID = id
-		b.logger.Info("resolved in-progress workflow state",
+		// Log the configured name; actual resolution happens per-story at runtime
+		// so that stories in any workflow are handled correctly.
+		b.logger.Info("in-progress state will be resolved per story",
 			slog.String("name", b.inProgressStateName),
-			slog.Int64("id", b.inProgressStateID),
 		)
 	}
 
@@ -222,10 +217,10 @@ func (b *ShortcutBackend) Init(ctx context.Context) error {
 	return nil
 }
 
-// InProgressStateID returns the resolved numeric ID for the in-progress
-// workflow state. Zero means state transitions are not configured.
+// InProgressStateID returns zero; state resolution is now done per-story at
+// runtime to support stories across multiple workflows.
 func (b *ShortcutBackend) InProgressStateID() int64 {
-	return b.inProgressStateID
+	return 0
 }
 
 // WorkflowStateID returns the resolved numeric workflow state ID. This is safe
@@ -297,6 +292,39 @@ func findStateID(workflows []scWorkflow, name string) (int64, error) {
 		name, strings.Join(available, ", "))
 }
 
+// findStateIDInSameWorkflow finds the workflow containing anchorStateID and
+// then searches for a state matching name (case-insensitive) within that same
+// workflow. This ensures that trigger and in-progress states are always from
+// the same workflow, which is required by the Shortcut API.
+func findStateIDInSameWorkflow(workflows []scWorkflow, anchorStateID int64, name string) (int64, error) {
+	nameLower := strings.ToLower(name)
+	for _, wf := range workflows {
+		var anchorFound bool
+		for _, state := range wf.States {
+			if state.ID == anchorStateID {
+				anchorFound = true
+				break
+			}
+		}
+		if !anchorFound {
+			continue
+		}
+		// Found the workflow containing the trigger state; search for the target name.
+		for _, state := range wf.States {
+			if strings.ToLower(state.Name) == nameLower {
+				return state.ID, nil
+			}
+		}
+		var available []string
+		for _, state := range wf.States {
+			available = append(available, fmt.Sprintf("%q", state.Name))
+		}
+		return 0, fmt.Errorf("no state named %q in workflow %q; states in this workflow: %s",
+			name, wf.Name, strings.Join(available, ", "))
+	}
+	return 0, fmt.Errorf("could not find workflow containing trigger state ID %d", anchorStateID)
+}
+
 // resolveMemberID fetches all members and finds the one whose mention_name
 // matches b.ownerMentionName, populating b.ownerMemberID.
 func (b *ShortcutBackend) resolveMemberID(ctx context.Context) error {
@@ -321,17 +349,16 @@ func (b *ShortcutBackend) resolveMemberID(ctx context.Context) error {
 	return fmt.Errorf("no member with mention_name %q found", b.ownerMentionName)
 }
 
-// searchRequest is the JSON body sent to the Shortcut search endpoint.
-type searchRequest struct {
-	WorkflowStateID int64    `json:"workflow_state_id"`
-	OwnerIDs        []string `json:"owner_ids,omitempty"`
+// searchResponse is the wrapper returned by the Shortcut search API.
+type searchResponse struct {
+	Data []scStory `json:"data"`
 }
 
 // PollReadyTickets searches for stories matching the configured workflow
-// state and (optionally) owner.
+// state and (optionally) owner using the Shortcut query DSL.
 func (b *ShortcutBackend) PollReadyTickets(ctx context.Context) ([]ticketing.Ticket, error) {
-	if b.workflowStateID == 0 {
-		return nil, fmt.Errorf("workflow state ID is not set; call Init first or provide a numeric ID")
+	if b.workflowStateName == "" && b.workflowStateID == 0 {
+		return nil, fmt.Errorf("workflow state is not set; call Init first or provide a numeric ID")
 	}
 
 	// Build exclusion set for client-side filtering.
@@ -340,20 +367,28 @@ func (b *ShortcutBackend) PollReadyTickets(ctx context.Context) ([]ticketing.Tic
 		excludeSet[l] = struct{}{}
 	}
 
-	sr := searchRequest{WorkflowStateID: b.workflowStateID}
-	if b.ownerMemberID != "" {
-		sr.OwnerIDs = []string{b.ownerMemberID}
+	// Build the Shortcut query DSL string.
+	// Use the human-readable state name when available (more robust than ID in
+	// the search DSL), falling back to the numeric ID.
+	stateName := b.workflowStateName
+	if stateName == "" {
+		stateName = strconv.FormatInt(b.workflowStateID, 10)
+	}
+	query := fmt.Sprintf(`state:"%s"`, stateName)
+	if b.ownerMentionName != "" {
+		query += fmt.Sprintf(` owner:%s`, b.ownerMentionName)
 	}
 
-	body, err := b.doPost(ctx, b.baseURL+"/stories/search", sr)
+	body, err := b.doGet(ctx, b.baseURL+"/search/stories?query="+url.QueryEscape(query))
 	if err != nil {
 		return nil, fmt.Errorf("polling ready tickets: %w", err)
 	}
 
-	var stories []scStory
-	if err := json.Unmarshal(body, &stories); err != nil {
+	var result searchResponse
+	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("decoding stories response: %w", err)
 	}
+	stories := result.Data
 
 	var tickets []ticketing.Ticket
 	for _, story := range stories {
@@ -366,6 +401,11 @@ func (b *ShortcutBackend) PollReadyTickets(ctx context.Context) ([]ticketing.Tic
 			labels = append(labels, l.Name)
 		}
 
+		var repoURL string
+		if len(story.ExternalLinks) > 0 {
+			repoURL = story.ExternalLinks[0]
+		}
+
 		tickets = append(tickets, ticketing.Ticket{
 			ID:          strconv.Itoa(story.ID),
 			Title:       story.Name,
@@ -373,6 +413,7 @@ func (b *ShortcutBackend) PollReadyTickets(ctx context.Context) ([]ticketing.Tic
 			TicketType:  "story",
 			Labels:      labels,
 			ExternalURL: story.AppURL,
+			RepoURL:     repoURL,
 		})
 	}
 
@@ -391,10 +432,56 @@ func hasExcludedLabel(storyLabels []scLabel, excludeSet map[string]struct{}) boo
 	return false
 }
 
+// storyWorkflow fetches the story and returns the workflow it currently belongs
+// to by matching its workflow_state_id against the cached workflows.
+func (b *ShortcutBackend) storyWorkflow(ctx context.Context, ticketID string) (*scWorkflow, error) {
+	body, err := b.doGet(ctx, fmt.Sprintf("%s/stories/%s", b.baseURL, ticketID))
+	if err != nil {
+		return nil, fmt.Errorf("fetching story %s: %w", ticketID, err)
+	}
+	var story scStory
+	if err := json.Unmarshal(body, &story); err != nil {
+		return nil, fmt.Errorf("decoding story %s: %w", ticketID, err)
+	}
+	for i := range b.workflows {
+		for _, s := range b.workflows[i].States {
+			if s.ID == story.WorkflowStateID {
+				return &b.workflows[i], nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no cached workflow contains state ID %d (story %s)", story.WorkflowStateID, ticketID)
+}
+
+// findStateInWorkflow returns the ID of the first state in wf whose name
+// matches (case-insensitive). Returns an error listing available states if
+// not found.
+func findStateInWorkflow(wf *scWorkflow, name string) (int64, error) {
+	nameLower := strings.ToLower(name)
+	var available []string
+	for _, s := range wf.States {
+		if strings.ToLower(s.Name) == nameLower {
+			return s.ID, nil
+		}
+		available = append(available, fmt.Sprintf("%q", s.Name))
+	}
+	return 0, fmt.Errorf("no state named %q in workflow %q; available: %s",
+		name, wf.Name, strings.Join(available, ", "))
+}
+
+// findDoneStateInWorkflow returns the ID of the first state of type "done" in wf.
+func findDoneStateInWorkflow(wf *scWorkflow) (int64, error) {
+	for _, s := range wf.States {
+		if s.Type == "done" {
+			return s.ID, nil
+		}
+	}
+	return 0, fmt.Errorf("no done-type state found in workflow %q", wf.Name)
+}
+
 // MarkInProgress signals that RoboDev has started working on the story. It
-// posts a start comment for visibility, then either transitions the story's
-// workflow state (when in_progress_state_name is configured) or falls back to
-// adding an "in-progress" label.
+// posts a start comment for visibility, then transitions the story to the
+// configured in-progress state within its own workflow.
 func (b *ShortcutBackend) MarkInProgress(ctx context.Context, ticketID string) error {
 	// Post a start comment so humans can see progress on the Shortcut board.
 	startComment := "🤖 RoboDev has picked up this story and is working on it. A pull request will be opened when the task is complete."
@@ -407,28 +494,36 @@ func (b *ShortcutBackend) MarkInProgress(ctx context.Context, ticketID string) e
 		)
 	}
 
-	if b.inProgressStateID != 0 {
-		// Transition the story to the configured in-progress workflow state.
-		// This naturally removes it from the "Ready for Development" poll
-		// results without needing a label.
-		url := fmt.Sprintf("%s/stories/%s", b.baseURL, ticketID)
-		payload := map[string]int64{"workflow_state_id": b.inProgressStateID}
-		if err := b.doPut(ctx, url, payload); err != nil {
-			return fmt.Errorf("transitioning story %s to in-progress state: %w", ticketID, err)
+	if b.inProgressStateName == "" {
+		// Fallback: add label when no in-progress state name is configured.
+		if err := b.addLabel(ctx, ticketID, "in-progress"); err != nil {
+			return fmt.Errorf("adding in-progress label: %w", err)
 		}
 		return nil
 	}
 
-	// Fallback: add label. Used when no in-progress state is configured.
-	if err := b.addLabel(ctx, ticketID, "in-progress"); err != nil {
-		return fmt.Errorf("adding in-progress label: %w", err)
+	// Resolve the in-progress state within the story's actual workflow so that
+	// stories from any workflow are handled correctly.
+	wf, err := b.storyWorkflow(ctx, ticketID)
+	if err != nil {
+		return fmt.Errorf("resolving workflow for story %s: %w", ticketID, err)
+	}
+	stateID, err := findStateInWorkflow(wf, b.inProgressStateName)
+	if err != nil {
+		return fmt.Errorf("finding in-progress state in workflow %q: %w", wf.Name, err)
+	}
+
+	storyURL := fmt.Sprintf("%s/stories/%s", b.baseURL, ticketID)
+	if err := b.doPut(ctx, storyURL, map[string]int64{"workflow_state_id": stateID}); err != nil {
+		return fmt.Errorf("transitioning story %s to in-progress state: %w", ticketID, err)
 	}
 	return nil
 }
 
-// MarkComplete posts a summary comment and marks the story as completed.
+// MarkComplete posts a summary comment and transitions the story to the first
+// done-type state in its workflow.
 func (b *ShortcutBackend) MarkComplete(ctx context.Context, ticketID string, result engine.TaskResult) error {
-	comment := fmt.Sprintf("Task completed successfully.\n\n**Summary:** %s", result.Summary)
+	comment := fmt.Sprintf("✅ Task completed successfully.\n\n**Summary:** %s", result.Summary)
 	if result.MergeRequestURL != "" {
 		comment += fmt.Sprintf("\n**Merge Request:** %s", result.MergeRequestURL)
 	}
@@ -436,11 +531,18 @@ func (b *ShortcutBackend) MarkComplete(ctx context.Context, ticketID string, res
 		return fmt.Errorf("adding completion comment: %w", err)
 	}
 
-	// Mark the story as completed.
-	url := fmt.Sprintf("%s/stories/%s", b.baseURL, ticketID)
-	payload := map[string]bool{"completed": true}
-	if err := b.doPut(ctx, url, payload); err != nil {
-		return fmt.Errorf("marking story completed: %w", err)
+	wf, err := b.storyWorkflow(ctx, ticketID)
+	if err != nil {
+		return fmt.Errorf("resolving workflow for story %s: %w", ticketID, err)
+	}
+	doneStateID, err := findDoneStateInWorkflow(wf)
+	if err != nil {
+		return fmt.Errorf("finding done state in workflow %q: %w", wf.Name, err)
+	}
+
+	storyURL := fmt.Sprintf("%s/stories/%s", b.baseURL, ticketID)
+	if err := b.doPut(ctx, storyURL, map[string]int64{"workflow_state_id": doneStateID}); err != nil {
+		return fmt.Errorf("marking story %s as done: %w", ticketID, err)
 	}
 	return nil
 }
