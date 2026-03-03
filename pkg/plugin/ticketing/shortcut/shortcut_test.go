@@ -673,3 +673,178 @@ func TestShortcutBackend_WithBaseURL(t *testing.T) {
 	b := NewShortcutBackend("tok", 500, testLogger(), WithBaseURL("https://custom.shortcut.com/api/v3/"))
 	assert.Equal(t, "https://custom.shortcut.com/api/v3", b.baseURL)
 }
+
+// --- multi-workflow mapping tests ---
+
+// twoWorkflowFixture returns a pair of Shortcut workflows suitable for use in
+// multi-mapping tests. Workflow A contains "Ready for Dev A" (ID 201) and
+// "In Dev A" (ID 301). Workflow B contains "Ready for Dev B" (ID 202) and
+// "In Dev B" (ID 302).
+var twoWorkflowFixture = []scWorkflow{
+	{
+		ID:   10,
+		Name: "Workflow A",
+		States: []scWorkflowState{
+			{ID: 101, Name: "Backlog A", Type: "unstarted"},
+			{ID: 201, Name: "Ready for Dev A", Type: "unstarted"},
+			{ID: 301, Name: "In Dev A", Type: "started"},
+			{ID: 401, Name: "Done A", Type: "done"},
+		},
+	},
+	{
+		ID:   20,
+		Name: "Workflow B",
+		States: []scWorkflowState{
+			{ID: 102, Name: "Backlog B", Type: "unstarted"},
+			{ID: 202, Name: "Ready for Dev B", Type: "unstarted"},
+			{ID: 302, Name: "In Dev B", Type: "started"},
+			{ID: 402, Name: "Done B", Type: "done"},
+		},
+	},
+}
+
+func TestShortcutBackend_Init_MultipleWorkflowMappings(t *testing.T) {
+	// Init should resolve the triggerStateID for each mapping independently.
+	srv := httptest.NewServer(workflowsHandler(t, twoWorkflowFixture))
+	defer srv.Close()
+
+	mappings := []WorkflowMapping{
+		{TriggerState: "Ready for Dev A", InProgressState: "In Dev A"},
+		{TriggerState: "Ready for Dev B", InProgressState: "In Dev B"},
+	}
+
+	b := NewShortcutBackend("tok", 0, testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithWorkflowMappings(mappings),
+	)
+
+	require.NoError(t, b.Init(context.Background()))
+
+	got := b.WorkflowMappings()
+	require.Len(t, got, 2)
+	assert.Equal(t, int64(201), got[0].triggerStateID, "first mapping trigger state ID")
+	assert.Equal(t, int64(202), got[1].triggerStateID, "second mapping trigger state ID")
+
+	// WorkflowStateID should return the first mapping's resolved ID.
+	assert.Equal(t, int64(201), b.WorkflowStateID())
+}
+
+func TestShortcutBackend_PollReadyTickets_MultipleWorkflows(t *testing.T) {
+	// Two mappings with different trigger states. The mock server returns
+	// distinct stories for each query. Verify that all stories are returned in
+	// the merged result.
+	storiesA := []scStory{
+		{ID: 1, Name: "Story in WF A", AppURL: "https://app.shortcut.com/org/story/1"},
+	}
+	storiesB := []scStory{
+		{ID: 2, Name: "Story in WF B", AppURL: "https://app.shortcut.com/org/story/2"},
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		q := r.URL.Query().Get("query")
+		switch {
+		case strings.Contains(q, "Ready for Dev A"):
+			json.NewEncoder(w).Encode(searchResponse{Data: storiesA})
+		case strings.Contains(q, "Ready for Dev B"):
+			json.NewEncoder(w).Encode(searchResponse{Data: storiesB})
+		default:
+			json.NewEncoder(w).Encode(searchResponse{Data: []scStory{}})
+		}
+	}))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 0, testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithWorkflowMappings([]WorkflowMapping{
+			{TriggerState: "Ready for Dev A", InProgressState: "In Dev A"},
+			{TriggerState: "Ready for Dev B", InProgressState: "In Dev B"},
+		}),
+		WithExcludeLabels([]string{}),
+	)
+
+	tickets, err := b.PollReadyTickets(context.Background())
+	require.NoError(t, err)
+	require.Len(t, tickets, 2)
+
+	ids := make(map[string]bool, 2)
+	for _, tk := range tickets {
+		ids[tk.ID] = true
+	}
+	assert.True(t, ids["1"], "story 1 from workflow A should be present")
+	assert.True(t, ids["2"], "story 2 from workflow B should be present")
+}
+
+func TestShortcutBackend_PollReadyTickets_DeduplicatesOverlap(t *testing.T) {
+	// When the same story appears in the results for two different trigger state
+	// queries (e.g. because the search DSL is fuzzy), it should only appear
+	// once in the final result.
+	sharedStory := scStory{ID: 99, Name: "Shared story", AppURL: "https://app.shortcut.com/org/story/99"}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// Both queries return the same story.
+		json.NewEncoder(w).Encode(searchResponse{Data: []scStory{sharedStory}})
+	}))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 0, testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithWorkflowMappings([]WorkflowMapping{
+			{TriggerState: "State A", InProgressState: "In Dev A"},
+			{TriggerState: "State B", InProgressState: "In Dev B"},
+		}),
+		WithExcludeLabels([]string{}),
+	)
+
+	tickets, err := b.PollReadyTickets(context.Background())
+	require.NoError(t, err)
+	require.Len(t, tickets, 1, "duplicate story should appear only once")
+	assert.Equal(t, "99", tickets[0].ID)
+}
+
+func TestShortcutBackend_MarkInProgress_PicksCorrectMapping(t *testing.T) {
+	// When two mappings are configured, MarkInProgress should select the
+	// mapping whose triggerStateID matches the story's current state and
+	// transition to that mapping's InProgressState — not the other one.
+	//
+	// The story is currently in state 202 ("Ready for Dev B"), so mapping 2
+	// should be selected and the story transitioned to state 302 ("In Dev B").
+	var statePayload map[string]int64
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/stories/55":
+			// Story is currently in "Ready for Dev B" (state 202).
+			json.NewEncoder(w).Encode(scStory{ID: 55, WorkflowStateID: 202})
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
+			w.WriteHeader(http.StatusCreated)
+		case r.Method == http.MethodPut && r.URL.Path == "/stories/55":
+			json.NewDecoder(r.Body).Decode(&statePayload)
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer srv.Close()
+
+	b := NewShortcutBackend("tok", 0, testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithWorkflowMappings([]WorkflowMapping{
+			{TriggerState: "Ready for Dev A", InProgressState: "In Dev A", triggerStateID: 201},
+			{TriggerState: "Ready for Dev B", InProgressState: "In Dev B", triggerStateID: 202},
+		}),
+	)
+	b.workflows = twoWorkflowFixture // pre-populate cache (skips Init)
+
+	require.NoError(t, b.MarkInProgress(context.Background(), "55"))
+
+	// The state transition must use "In Dev B" (ID 302), not "In Dev A" (ID 301).
+	assert.Equal(t, int64(302), statePayload["workflow_state_id"],
+		"expected transition to 'In Dev B' (state 302) based on mapping 2")
+}

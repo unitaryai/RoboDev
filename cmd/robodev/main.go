@@ -709,6 +709,34 @@ func initShortcutBackend(cfg *config.Config, k8sClient kubernetes.Interface, nam
 		opts = append(opts, scticket.WithExcludeLabels(excludeLabels))
 	}
 
+	// Multi-workflow support: the workflows array takes precedence over the
+	// legacy flat workflow_state_name / in_progress_state_name keys.
+	if workflowsRaw, ok := m["workflows"]; ok {
+		workflows, ok := workflowsRaw.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("shortcut workflows must be a list")
+		}
+		var mappings []scticket.WorkflowMapping
+		for i, wfRaw := range workflows {
+			wf, ok := wfRaw.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("shortcut workflow entry %d must be a map", i)
+			}
+			triggerState, _ := wf["trigger_state"].(string)
+			inProgressState, _ := wf["in_progress_state"].(string)
+			if triggerState == "" {
+				return nil, fmt.Errorf("shortcut workflow entry %d missing trigger_state", i)
+			}
+			mappings = append(mappings, scticket.WorkflowMapping{
+				TriggerState:    triggerState,
+				InProgressState: inProgressState,
+			})
+		}
+		if len(mappings) > 0 {
+			opts = append(opts, scticket.WithWorkflowMappings(mappings))
+		}
+	}
+
 	// workflowStateID of 0 is valid here — Init will resolve it from
 	// workflow_state_name. If no name is given either, PollReadyTickets will
 	// return an error with a helpful message.

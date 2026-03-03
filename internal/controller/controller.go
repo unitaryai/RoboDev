@@ -602,6 +602,29 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 		return
 	}
 
+	// Optional code review gate — only runs when explicitly enabled.
+	if r.config.CodeReview.Enabled && r.reviewBackend != nil {
+		timeoutMinutes := r.config.CodeReview.TimeoutMinutes
+		if timeoutMinutes <= 0 {
+			timeoutMinutes = 15
+		}
+		reviewCtx, reviewCancel := context.WithTimeout(ctx, time.Duration(timeoutMinutes)*time.Minute)
+		defer reviewCancel()
+		gateResult, reviewErr := r.reviewBackend.ReviewDiff(reviewCtx, tr.ID, "")
+		if reviewErr != nil {
+			r.logger.WarnContext(ctx, "code review failed, continuing without review",
+				"task_run_id", tr.ID,
+				"error", reviewErr,
+			)
+		} else {
+			r.logger.InfoContext(ctx, "code review completed",
+				"task_run_id", tr.ID,
+				"passed", gateResult.Passed,
+				"summary", gateResult.Summary,
+			)
+		}
+	}
+
 	r.mu.Lock()
 	if err := tr.Transition(taskrun.StateSucceeded); err != nil {
 		r.mu.Unlock()

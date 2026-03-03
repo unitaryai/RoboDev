@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Agent Stream Logging Processor (`internal/agentstream/logging.go`)
+- New `NewLoggingEventProcessor(logger *slog.Logger) StreamEventProcessor` — logs each NDJSON stream event as a human-readable structured `slog` line in the controller's own logs, giving operators a clean view of agent activity without touching (or losing) the raw pod logs
+- Log format per event type: `tool_use` → INFO `"agent tool call"` with `tool` and `input` (first 80 chars of args); `content` → DEBUG `"agent content"` with `role` only (content text deliberately elided to avoid logging LLM output); `result` → INFO `"agent result"` with `success`, `summary`, `mr_url`; `cost` → INFO `"agent cost"` with token counts and USD; system/unknown → DEBUG `"agent system event"`
+- Comprehensive table-driven tests covering all event types, nil-Parsed guards, content elision at both INFO and DEBUG levels, and the 80-character args truncation boundary
+
+#### Multi-Workflow Shortcut Support (`pkg/plugin/ticketing/shortcut/shortcut.go`)
+- New exported `WorkflowMapping` struct pairing a trigger state name with an in-progress state name
+- New `WithWorkflowMappings(mappings []WorkflowMapping) Option` — configures multiple trigger states; `PollReadyTickets` issues one API call per trigger state and merges/deduplicates results by story ID
+- `Init` resolves `triggerStateID` for every mapping; backward-compatible: single `WithWorkflowStateName`/`WithInProgressStateName` pair is automatically synthesised into a single mapping
+- `MarkInProgress` now selects the correct in-progress state by matching the story's current `workflow_state_id` against the mapping whose trigger state it was found in; falls back to the first mapping with a warning if no match is found
+- `WorkflowStateID()` returns the first mapping's resolved trigger state ID (for webhook filtering)
+- New `WorkflowMappings() []WorkflowMapping` accessor
+- New `pollQuery` helper to avoid duplicating query-build/parse logic across multiple trigger states
+- `cmd/robodev/main.go` `initShortcutBackend` reads the `workflows` array from the Shortcut config map and calls `WithWorkflowMappings`; the legacy `workflow_state_name` / `in_progress_state_name` keys continue to work unchanged
+- New tests: multi-mapping Init, multi-workflow poll merge, overlap deduplication, mapping selection in `MarkInProgress`
+
+#### Configurable Code Review Gate (`internal/config/config.go`, `internal/controller/controller.go`)
+- New `CodeReviewConfig` struct with `enabled`, `backend`, `wait_for_comments`, `timeout_minutes`, `token_secret` fields; added as `code_review:` top-level key in `Config`
+- Controller `handleJobComplete` now respects `config.CodeReview.Enabled`: when `false` (the default) no review wait occurs; when `true` and a `reviewBackend` is wired, calls `ReviewDiff` with a configurable timeout (default 15 minutes) and logs the outcome before proceeding
+- New `ShortcutWorkflow` struct (`trigger_state`, `in_progress_state`) exported from `internal/config/` for typed config parsing
+
+#### Roadmap (`docs/roadmap.md`)
+- Added Phase K (near-term) items 21–23: Transcript Storage & Audit Log, Multi-SCM Backend Routing, Skills/Subagents/Per-Task MCP Plugins
+- Added Phase L (longer-term) items 24–25: Non-Standard Task Types (requires design doc), Supervisor Agent (requires design doc)
+- Updated summary table
+
 #### All Plugin Backends Wired into Controller (`cmd/robodev/main.go`)
 - **Linear ticketing**: `initLinearBackend` reads token secret, team_id, state_filter, labels, and exclude_labels from config
 - **Discord notifications**: `initDiscordChannel` reads webhook_url from config

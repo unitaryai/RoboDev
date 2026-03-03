@@ -23,6 +23,7 @@ type Config struct {
 	Tenancy          TenancyConfig        `yaml:"tenancy"`
 	Approval         ApprovalConfig       `yaml:"approval"`
 	Review           ReviewConfig         `yaml:"review"`
+	CodeReview       CodeReviewConfig     `yaml:"code_review"`
 	SCM              SCMConfig            `yaml:"scm"`
 	ProgressWatchdog WatchdogConfig       `yaml:"progress_watchdog"`
 	Webhook          WebhookConfig        `yaml:"webhook"`
@@ -359,6 +360,27 @@ type ReviewConfig struct {
 type SCMConfig struct {
 	Backend string         `yaml:"backend"`
 	Config  map[string]any `yaml:"config"`
+}
+
+// ShortcutWorkflow configures a single trigger→in-progress workflow mapping for
+// the Shortcut ticketing backend. Multiple entries allow RoboDev to pick up
+// stories from different workflow states, each transitioning to its own
+// in-progress state.
+type ShortcutWorkflow struct {
+	TriggerState    string `yaml:"trigger_state"`     // e.g. "Ready for Development"
+	InProgressState string `yaml:"in_progress_state"` // e.g. "In Development"
+}
+
+// CodeReviewConfig configures the optional automated code review gate. When
+// enabled, the controller requests a review from the configured backend after a
+// job completes and optionally waits for comments before marking the task
+// complete. Set enabled: false (the default) to skip the review gate entirely.
+type CodeReviewConfig struct {
+	Enabled         bool   `yaml:"enabled"`
+	Backend         string `yaml:"backend"`           // "coderabbit" | "custom" | "none"
+	WaitForComments bool   `yaml:"wait_for_comments"` // wait for review before marking complete
+	TimeoutMinutes  int    `yaml:"timeout_minutes"`   // give up waiting after this many minutes
+	TokenSecret     string `yaml:"token_secret"`      // K8s Secret name for the review token
 }
 
 // WatchdogConfig configures the progress watchdog.

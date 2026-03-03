@@ -716,6 +716,193 @@ A single agent pass rarely produces merge-ready code on complex tasks. This clos
 
 ---
 
+---
+
+### Phase K — Post-Testing Improvements (Near-Term)
+
+These items were identified during live testing and have clear designs ready for implementation.
+
+---
+
+#### 21. Transcript Storage & Audit Log
+
+**Priority:** High
+**Scope:** Medium (4-6 files)
+**Dependencies:** agentstream Forwarder (already has event pipeline)
+
+Agent transcripts are currently ephemeral pod logs — once the K8s Job is GC'd they are gone. Add a `TranscriptSink` interface that buffers NDJSON events and flushes to object storage (S3, GCS, or local filesystem) on completion.
+
+**Design:** `oss-plan.md §3.6` already describes this pattern. Implement as a `StreamEventProcessor` registered on the Forwarder.
+
+- [ ] Add `TranscriptSink` interface in `pkg/plugin/transcript/transcript.go`
+  - `Append(event *StreamEvent) error`
+  - `Flush(ctx, taskRunID string) error`
+- [ ] Implement `pkg/plugin/transcript/local/local.go` — writes to local filesystem; suitable for dev/test, Docker Compose mode
+- [ ] Implement `pkg/plugin/transcript/s3/s3.go` — streams to S3-compatible object storage (AWS S3, MinIO, Ceph)
+- [ ] Implement `pkg/plugin/transcript/gcs/gcs.go` — streams to Google Cloud Storage
+- [ ] Register sink as a `StreamEventProcessor` in the Forwarder (buffers events in-memory, flushes on result event or explicit Flush call)
+- [ ] Wire sink into controller: create per-TaskRun sink in `startStreamReader`, call `Flush` in `handleJobComplete` and `handleJobFailed`
+- [ ] Add `AuditConfig` to `internal/config/config.go`:
+  ```yaml
+  audit:
+    transcript_storage:
+      backend: s3         # s3 | gcs | local | disabled
+      bucket: robodev-transcripts
+      prefix: "transcripts/{year}/{month}/{task_run_id}/"
+      credentials_secret: aws-credentials
+  ```
+- [ ] Unit tests: mock sink; verify all event types are buffered and flushed correctly
+- [ ] Integration test: run a task with local sink, verify transcript file is written
+
+**Key files:** `pkg/plugin/transcript/`, `internal/agentstream/forwarder.go`, `internal/controller/controller.go`, `internal/config/config.go`
+
+---
+
+#### 22. Multi-SCM Backend Routing (GitLab + GitHub simultaneously)
+
+**Priority:** High
+**Scope:** Medium (3-5 files)
+**Dependencies:** Both `pkg/plugin/scm/github/` and `pkg/plugin/scm/gitlab/` already implement the same interface
+
+Today the controller holds a single `scmBackend`. Teams that use GitLab for private repos and GitHub for public repos cannot configure both. The `RepoURL` field on every ticket provides the host needed to route to the correct backend.
+
+**Design:** Replace the single `scmBackend` field on the `Reconciler` with a `SCMRouter` that selects the correct backend by matching the ticket's `RepoURL` against a configured host pattern.
+
+- [ ] Add `SCMBackendConfig` and update `SCMConfig` in `internal/config/config.go`:
+  ```yaml
+  scm:
+    backends:
+      - backend: gitlab
+        match: "gitlab.com"      # exact host or glob pattern
+        config:
+          token_secret: gitlab-token
+      - backend: github
+        match: "github.com"
+        config:
+          token_secret: github-token
+  ```
+- [ ] Create `internal/scmrouter/` package with `Router` struct:
+  - `For(repoURL string) (scm.Backend, error)` — selects backend by matching URL host against each entry's pattern (exact host or `filepath.Match`-style glob)
+  - Falls back to the first configured backend if no match
+- [ ] Update `Reconciler` to hold `scmRouter *scmrouter.Router` instead of `scmBackend scm.Backend`
+- [ ] Update `cmd/robodev/main.go` to initialise multiple backends and construct the router
+- [ ] Preserve backward compatibility: single `backend` + `config` at the top level still works (treated as a single-entry backends list)
+- [ ] Unit tests for `scmrouter.Router.For` (exact match, glob match, no match fallback, empty URL)
+- [ ] Integration test: two-backend config, verify correct backend selected per URL
+
+**Key files:** `internal/scmrouter/`, `internal/config/config.go`, `internal/controller/controller.go`, `cmd/robodev/main.go`
+
+---
+
+#### 23. Skills, Subagents, and Per-Task MCP Plugins
+
+**Priority:** Medium
+**Scope:** Small–Medium (3-4 files)
+**Dependencies:** Claude Code engine (`pkg/engine/claudecode/`)
+
+The Claude Code engine supports custom skills (`.claude/skills/`), agent teams, and MCP servers, but these are not yet wired into the RoboDev config system in a way that allows per-task or per-profile customisation.
+
+- [ ] Add `Skills []SkillConfig` to `ClaudeCodeEngineConfig` in `internal/config/config.go`:
+  ```yaml
+  engines:
+    claude-code:
+      skills:
+        - name: create-changelog
+          path: /opt/robodev/skills/create-changelog.md   # bundled skill
+        - name: custom
+          inline: |
+            # Custom skill
+            Do the thing.
+  ```
+  `SkillConfig` has `Name string`, `Path string`, `Inline string` fields.
+- [ ] Wire skills into `BuildExecutionSpec` in `pkg/engine/claudecode/engine.go`: write each skill to `/workspace/.claude/skills/<name>.md` as an init container command or volume mount
+- [ ] Add `MCPServers` override to `TaskProfileConfig` — allows per-task-type MCP server overrides on top of the global engine config
+- [ ] Document `agent_teams` boolean + `AgentTeamsConfig` clearly in a configuration reference doc — this already works but is undiscoverable
+- [ ] Unit tests for skill file generation in execution spec
+- [ ] Integration test: verify skill files appear in the correct location in the generated job spec
+
+**Key files:** `internal/config/config.go`, `pkg/engine/claudecode/engine.go`, docs
+
+---
+
+### Phase L — Post-Testing Improvements (Longer-Term)
+
+These items require design discussion before implementation begins. A design document / ADR should be produced first.
+
+---
+
+#### 24. Non-Standard Task Types (Analysis, Reporting, Review)
+
+**Priority:** Medium
+**Scope:** Large (10+ files — requires controller, prompt builder, execution spec changes)
+**Dependencies:** Task profiles (partially implemented), prompt builder
+
+Tasks like "review open MRs and report which need approval" do not fit the standard clone-fix-push-MR flow. They need read-only execution and a ticket comment + Slack notification as output rather than an MR.
+
+**Design required before implementation.** Key decisions:
+
+1. **Execution mode taxonomy**: `clone_push_mr` (default today) | `read_only` (no git clone, workspace is ephemeral) | `api_read` (no workspace at all, just SCM API access)
+2. **Result handler taxonomy**: `open_mr` (default) | `comment_and_notify` (post `result.Summary` as a ticket comment + notify all channels)
+3. **Task profile → execution mode mapping**: label-based or story-type-based dispatch
+
+**Rough implementation plan (draft):**
+
+- [ ] Extend `TaskProfileConfig` with `ExecutionMode string` and `ResultHandler string`
+- [ ] Add label-to-profile matching config:
+  ```yaml
+  guardrails:
+    task_profiles:
+      robodev:analysis:
+        execution_mode: read_only
+        result_handler: comment_and_notify
+  ```
+- [ ] Update `BuildExecutionSpec` in all engines to skip git clone for `read_only` mode (no `RepoURL`, no git tooling in container)
+- [ ] Add `result_handler` dispatch in `handleJobComplete`: branch on `comment_and_notify` vs `open_mr`
+- [ ] Update prompt builder to inject a different system prompt for analysis vs fix tasks
+- [ ] Integration tests: verify `read_only` spec has no git-related commands, verify `comment_and_notify` result handler posts comment and skips MR creation
+
+**Key files:** `internal/controller/controller.go`, `internal/promptbuilder/`, `pkg/engine/claudecode/engine.go`, `internal/config/config.go`
+
+---
+
+#### 25. Supervisor Agent
+
+**Priority:** Medium
+**Scope:** Large (new `internal/supervisor/` package + controller wiring)
+**Dependencies:** agentstream Forwarder (event pipeline), PRM (hint file infrastructure)
+
+A lightweight LLM-based supervisor that monitors the agent stream and steers the worker without terminating it — more intelligent than the rule-based watchdog, cheaper than full tournament execution.
+
+**Design required before implementation.** Key questions to resolve:
+
+1. Should the supervisor have access to the full task description + codebase context, or only the recent event window?
+2. Should it be able to ask the human (via `NeedsHuman`) or only write hints?
+3. How do we avoid supervisor thrashing (over-correcting a worker that is on the right track)?
+4. What model to use? Haiku is cheap enough for frequent calls (~every 10 tool calls).
+
+**Rough design:**
+
+- `SupervisorAgent` implements `StreamEventProcessor` — subscribes to the agentstream event pipeline
+- Maintains a sliding window of the last N tool calls and their results
+- Every M tool calls (or M minutes), sends the window to a cheap LLM call (Haiku) with a structured prompt: "Is the worker on track? Is it stuck? Making a bad architectural decision?"
+- If off-track: writes a steering prompt to `/workspace/.robodev-hint.md` (the same file the PRM uses)
+- If severely off-track: escalates to the watchdog with a diagnosis string for a retry
+- Budget-enforced via `internal/llm/` (configured max USD per supervision session)
+
+**Config:**
+```yaml
+supervisor:
+  enabled: false
+  model: claude-haiku-4-5     # cheap model for supervision
+  evaluation_interval: 10     # evaluate every N tool calls
+  max_budget_usd: 0.10        # max spend per supervised job
+  hint_file_path: /workspace/.robodev-hint.md
+```
+
+**Key files:** `internal/supervisor/` (new package), `internal/agentstream/forwarder.go`, `internal/controller/controller.go`, `internal/config/config.go`
+
+---
+
 ## Summary
 
 | # | Feature | Phase | Priority | Status |
@@ -740,3 +927,8 @@ A single agent pass rarely produces merge-ready code on complex tasks. This clos
 | 18 | Competitive Execution (Tournament) | I | Medium | **Scaffolding complete** |
 | 19 | Shortcut webhook noise — filter story updates that don't transition to the target state | Backlog | Low | **Complete** (fixed in `internal/webhook/shortcut.go` via `WithShortcutTargetStateID`) |
 | 20 | PR/MR Comment Response — monitor review comments (human and AI agents) and create follow-up jobs to address feedback; resolve conversations once addressed; GitHub + GitLab | J | High | Not started |
+| 21 | Transcript Storage & Audit Log | K | High | Not started |
+| 22 | Multi-SCM Backend Routing (GitLab + GitHub simultaneously) | K | High | Not started |
+| 23 | Skills, Subagents & Per-Task MCP Plugins | K | Medium | Not started |
+| 24 | Non-Standard Task Types (Analysis, Reporting, Review) | L | Medium | Not started — design doc required |
+| 25 | Supervisor Agent | L | Medium | Not started — design doc required |
