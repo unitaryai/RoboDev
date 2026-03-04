@@ -7,7 +7,7 @@
        check-prereqs kind-create kind-delete kind-load \
        deploy deploy-test undeploy local-up local-down local-redeploy \
        live-up live-redeploy live-deploy setup-secrets \
-       e2e-test e2e-workflow-test e2e-workflow-test-verbose integration-test test-report test-all logs \
+       e2e-test e2e-workflow-test e2e-workflow-test-verbose e2e-live-test integration-test test-report test-all logs \
        compose-up compose-down \
        docs-serve docs-build \
        fake-agent-image fake-agent-load
@@ -184,6 +184,11 @@ e2e-workflow-test-verbose: ## Run E2E workflow pipeline tests with verbose loggi
 	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
 	FAKE_AGENT_IMAGE=$(FAKE_AGENT_IMAGE) \
 	$(GO) test -tags=e2e -count=1 -v -timeout=600s ./tests/e2e/ -run TestWorkflow
+
+e2e-live-test: ## Run live E2E tests against the running controller (requires kind-robodev + live secrets)
+	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
+	ROBODEV_LIVE_NAMESPACE=robodev \
+	$(GO) test -tags=live -count=1 -v -timeout=1200s ./tests/e2e/ -run TestLive
 
 e2e-test: ## Run end-to-end tests against the kind cluster
 	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
