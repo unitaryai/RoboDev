@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### E2E Workflow Pipeline Tests
+
+- **`hack/fake-agent/`** — standalone Go module with a pure-stdlib fake agent binary.
+  Reads `ROBODEV_SCENARIO` and emits a pre-scripted NDJSON event stream, then exits with the
+  appropriate code. Scenarios: `success`, `loop`, `thrash`, `fail`, `tournament_a`,
+  `tournament_b`, `judge`. Built into a scratch container image (UID 10000, read-only
+  root FS) via `hack/fake-agent/Dockerfile`.
+- **`tests/e2e/workflow_helpers_test.go`** — shared helpers for workflow E2E tests:
+  `workflowFakeEngine`, `workflowSecondEngine`, `mockWorkflowTicketing`,
+  `testLogWriter`, and utility functions (`ensureNamespace`, `waitForTicketComplete`,
+  `waitForTicketFailed`, `runReconcilerInBackground`, etc.).
+- **`tests/e2e/workflow_test.go`** — seven end-to-end workflow tests that exercise the
+  full pipeline against a real kind cluster (real K8s Jobs, real pod log streaming):
+  - `TestWorkflowHappyPath` — ticket → Job → NDJSON stream → `StateSucceeded`
+  - `TestWorkflowJobFailure` — non-zero exit → retry exhaustion → `StateFailed`
+  - `TestWorkflowEngineChainFallback` — primary fails → fallback engine succeeds
+  - `TestWorkflowPRMHintDelivery` — looping agent triggers PRM nudge intervention
+  - `TestWorkflowWatchdogTermination` — cost-thrashing agent terminated by watchdog
+  - `TestWorkflowSequentialTasksMemory` — episodic memory injected into second task
+  - `TestWorkflowTournamentEndToEnd` — 2 candidates + 1 judge → winner selected
+- **Makefile** — new targets `fake-agent-image`, `fake-agent-load`, and
+  `e2e-workflow-test` (`FAKE_AGENT_IMAGE` variable; runs `TestWorkflow*` suite).
+
 #### SQLite Persistence for Routing, Estimator, and Watchdog Stores
 
 - **`internal/routing/sqlite.go`** — `SQLiteFingerprintStore` implementing `FingerprintStore`;

@@ -17,24 +17,24 @@ plan (12/13 complete).
 ## Current Priority Order
 
 ```
-1. Active Integration (remaining gaps)  — E2E tests
-2. High-Priority Upcoming               — items 20 (PR/MR comments), 10 (dashboard)
+1. High-Priority Upcoming               — items 20 (PR/MR comments), 10 (dashboard)
+2. Live-backend E2E validation          — long-running / real-GitHub items below
 3. Design-First (ADR before code)       — items 24, 25
 4. Infrastructure                       — items 9 (plugin SDKs), 11 (docs — in progress)
 ```
 
 ---
 
-## 1. Active Integration — Remaining Gaps
+## 1. Live-Backend E2E Validation — Remaining Gaps
 
-Phase 2 wired diagnosis, calibration, routing, estimator, SCM router, and transcript into
-the live controller. Tournament coordinator, PRM hint writer, SQLite persistence, LLM V2
-upgrades, and security hardening are all complete. Only E2E tests against a live cluster
-remain before the integration layer is fully production-ready.
+The fake-agent E2E workflow test suite (Phase 5) covers all subsystem interactions
+end-to-end against a real kind cluster. The items below require real live workloads
+(real Claude Code agent, real GitHub repositories, extended task history) and will
+be validated once a staging environment is available.
 
 ---
 
-### End-to-End Tests
+### End-to-End Tests (Live Backend)
 
 - [ ] PRM with live Claude Code agent — verify scoring and interventions fire at correct thresholds
 - [ ] Memory across 50+ tasks — verify accumulation, decay, and prompt injection resistance
@@ -219,6 +219,26 @@ Everything below is implemented and merged.
 
 ---
 
+### Active Integration — Phase 5 ✅
+
+E2E workflow pipeline tests with fake-agent binary:
+
+| Test | Validates | Status |
+|------|-----------|--------|
+| `TestWorkflowHappyPath` | Ticket → K8s Job → NDJSON stream → `StateSucceeded` + result | ✅ |
+| `TestWorkflowJobFailure` | Non-zero exit → retry exhaustion → `StateFailed` + `MarkFailed` | ✅ |
+| `TestWorkflowEngineChainFallback` | Primary engine fails → fallback engine completes → `StateSucceeded` | ✅ |
+| `TestWorkflowPRMHintDelivery` | Looping agent triggers PRM nudge intervention and logs | ✅ |
+| `TestWorkflowWatchdogTermination` | Cost-thrashing agent terminated by watchdog → `StateFailed` | ✅ |
+| `TestWorkflowSequentialTasksMemory` | Memory extracted after task 1; injected into task 2 prompt | ✅ |
+| `TestWorkflowTournamentEndToEnd` | 2 candidates + 1 judge → judge selects winner → `MarkComplete` | ✅ |
+
+Infrastructure added:
+- `hack/fake-agent/` — standalone Go module; `Dockerfile` (scratch, UID 10000)
+- `make fake-agent-image` / `make fake-agent-load` / `make e2e-workflow-test`
+
+---
+
 ### Active Integration — Phase 4 ✅
 
 SQLite persistence, security hardening, LLM V2 upgrades, and integration tests:
@@ -320,7 +340,8 @@ live controller and `main.go`:
 | — | SQLite persistence (routing, estimator, calibrator) | Medium | ✅ Complete |
 | — | LLM V2 upgrades (PRM, memory, diagnosis, judge) | Medium | ✅ Complete |
 | — | Security hardening | High | ✅ Complete |
-| — | E2E test suite | High | Not started |
+| — | E2E workflow suite (fake-agent, 7 tests) | High | ✅ Complete |
+| — | E2E live-backend validation | High | In progress |
 | 20 | PR/MR Comment Response | High | Not started |
 | 10 | Agent Dashboard | High | Not started |
 | 24 | Non-Standard Task Types | Medium | Design doc required |

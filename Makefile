@@ -7,9 +7,10 @@
        check-prereqs kind-create kind-delete kind-load \
        deploy deploy-test undeploy local-up local-down local-redeploy \
        live-up live-redeploy live-deploy setup-secrets \
-       e2e-test integration-test test-report test-all logs \
+       e2e-test e2e-workflow-test integration-test test-report test-all logs \
        compose-up compose-down \
-       docs-serve docs-build
+       docs-serve docs-build \
+       fake-agent-image fake-agent-load
 
 BINARY := bin/robodev
 GO := go
@@ -19,6 +20,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 # Local development settings
 KIND_CLUSTER_NAME ?= robodev
+FAKE_AGENT_IMAGE  ?= fake-agent:latest
 KIND_CONFIG       ?= hack/kind-config.yaml
 HELM_RELEASE      ?= robodev
 HELM_NAMESPACE    ?= robodev
@@ -166,6 +168,17 @@ deploy-test: ## Deploy to kind cluster with test values overlay
 		-f hack/values-dev.yaml \
 		-f hack/values-test.yaml \
 		--wait --timeout 120s
+
+fake-agent-image: ## Build the fake-agent container image for E2E workflow tests
+	docker build -t $(FAKE_AGENT_IMAGE) hack/fake-agent/
+
+fake-agent-load: fake-agent-image ## Build and load the fake-agent image into the kind cluster
+	kind load docker-image $(FAKE_AGENT_IMAGE) --name $(KIND_CLUSTER_NAME)
+
+e2e-workflow-test: ## Run E2E workflow pipeline tests (requires kind cluster + fake-agent-load)
+	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
+	FAKE_AGENT_IMAGE=$(FAKE_AGENT_IMAGE) \
+	$(GO) test -tags=e2e -v -timeout=600s ./tests/e2e/ -run TestWorkflow
 
 e2e-test: ## Run end-to-end tests against the kind cluster
 	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
