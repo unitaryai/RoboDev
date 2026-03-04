@@ -1,0 +1,307 @@
+package reviewpoller
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/unitaryai/robodev/internal/config"
+	"github.com/unitaryai/robodev/internal/scmrouter"
+	"github.com/unitaryai/robodev/pkg/plugin/scm"
+)
+
+// Poller monitors open pull/merge requests created by RoboDev and emits
+// FollowUpRequests when actionable review comments are found.
+type Poller struct {
+	scmBackend scm.Backend       // non-nil when using a single backend
+	scmRouter  *scmrouter.Router // non-nil when using multi-backend routing
+	classifier Classifier
+	cfg        config.ReviewResponseConfig
+	logger     *slog.Logger
+
+	mu        sync.Mutex
+	tracked   map[string]*TrackedPR // keyed by PR URL
+	followUps []FollowUpRequest
+}
+
+// New creates a new Poller with the given configuration and classifier.
+// Call WithSCMBackend or WithSCMRouter before starting the poller.
+func New(cfg config.ReviewResponseConfig, classifier Classifier, logger *slog.Logger) *Poller {
+	return &Poller{
+		cfg:        cfg,
+		classifier: classifier,
+		logger:     logger,
+		tracked:    make(map[string]*TrackedPR),
+	}
+}
+
+// WithSCMBackend configures the poller to use a single SCM backend.
+func (p *Poller) WithSCMBackend(b scm.Backend) *Poller {
+	p.scmBackend = b
+	return p
+}
+
+// WithSCMRouter configures the poller to route SCM calls through a
+// multi-backend router.
+func (p *Poller) WithSCMRouter(r *scmrouter.Router) *Poller {
+	p.scmRouter = r
+	return p
+}
+
+// Register begins monitoring a pull/merge request for review comments. If
+// the PR URL is already tracked this call is a no-op.
+func (p *Poller) Register(prURL, ticketID, originalTitle, originalDescription, repoURL string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if _, ok := p.tracked[prURL]; ok {
+		return
+	}
+
+	p.tracked[prURL] = &TrackedPR{
+		PRURL:               prURL,
+		TicketID:            ticketID,
+		OriginalTitle:       originalTitle,
+		OriginalDescription: originalDescription,
+		RepoURL:             repoURL,
+		ProcessedIDs:        make(map[string]bool),
+		RegisteredAt:        time.Now(),
+	}
+
+	p.logger.Info("registered PR for review monitoring",
+		"pr_url", prURL,
+		"ticket_id", ticketID,
+	)
+}
+
+// DrainFollowUps returns and clears the accumulated list of follow-up
+// requests. The caller is responsible for submitting jobs for each request.
+func (p *Poller) DrainFollowUps() []FollowUpRequest {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if len(p.followUps) == 0 {
+		return nil
+	}
+	out := p.followUps
+	p.followUps = nil
+	return out
+}
+
+// Start runs the polling loop in the current goroutine until ctx is cancelled.
+// It should be called as a background goroutine: go poller.Start(ctx).
+func (p *Poller) Start(ctx context.Context) {
+	interval := p.cfg.PollIntervalMinutes
+	if interval <= 0 {
+		interval = 5
+	}
+	ticker := time.NewTicker(time.Duration(interval) * time.Minute)
+	defer ticker.Stop()
+
+	p.logger.Info("review poller started", "poll_interval_minutes", interval)
+
+	for {
+		select {
+		case <-ctx.Done():
+			p.logger.Info("review poller stopped")
+			return
+		case <-ticker.C:
+			p.poll(ctx)
+		}
+	}
+}
+
+// poll inspects all tracked PRs once, classifying new comments and emitting
+// follow-up requests as needed.
+func (p *Poller) poll(ctx context.Context) {
+	p.mu.Lock()
+	// Snapshot the tracked map so we can release the lock during I/O.
+	snapshot := make(map[string]*TrackedPR, len(p.tracked))
+	for k, v := range p.tracked {
+		snapshot[k] = v
+	}
+	p.mu.Unlock()
+
+	for prURL, pr := range snapshot {
+		p.pollPR(ctx, prURL, pr)
+	}
+}
+
+// pollPR inspects a single tracked PR. Untracked PRs (merged/closed) are
+// removed; new actionable comments trigger follow-up requests.
+func (p *Poller) pollPR(ctx context.Context, prURL string, pr *TrackedPR) {
+	backend, err := p.scmFor(pr.RepoURL)
+	if err != nil {
+		p.logger.Warn("no SCM backend for PR, skipping",
+			"pr_url", prURL,
+			"error", err,
+		)
+		return
+	}
+
+	// Check PR status — untrack merged or closed PRs.
+	status, err := backend.GetPullRequestStatus(ctx, prURL)
+	if err != nil {
+		p.logger.Warn("failed to get PR status", "pr_url", prURL, "error", err)
+		return
+	}
+	if status.State == "merged" || status.State == "closed" {
+		p.mu.Lock()
+		delete(p.tracked, prURL)
+		p.mu.Unlock()
+		p.logger.Info("PR merged or closed, untracking", "pr_url", prURL, "state", status.State)
+		return
+	}
+
+	// Fetch all comments.
+	comments, err := backend.ListReviewComments(ctx, prURL)
+	if err != nil {
+		p.logger.Warn("failed to list review comments", "pr_url", prURL, "error", err)
+		return
+	}
+
+	maxFollowUps := p.cfg.MaxFollowUpJobs
+	if maxFollowUps <= 0 {
+		maxFollowUps = 3
+	}
+
+	minSeverity := p.cfg.MinSeverity
+	if minSeverity == "" {
+		minSeverity = "warning"
+	}
+
+	for _, comment := range comments {
+		p.mu.Lock()
+		alreadyProcessed := pr.ProcessedIDs[comment.ID]
+		p.mu.Unlock()
+
+		if alreadyProcessed {
+			continue
+		}
+
+		classified, err := p.classifier.Classify(ctx, comment)
+		if err != nil {
+			p.logger.Warn("comment classification failed",
+				"pr_url", prURL,
+				"comment_id", comment.ID,
+				"error", err,
+			)
+			// Mark as processed to avoid infinite retry.
+			p.mu.Lock()
+			pr.ProcessedIDs[comment.ID] = true
+			p.mu.Unlock()
+			continue
+		}
+
+		// Always mark the comment as processed regardless of classification.
+		p.mu.Lock()
+		pr.ProcessedIDs[comment.ID] = true
+		p.mu.Unlock()
+
+		if classified.Classification != ClassificationRequiresAction {
+			continue
+		}
+
+		if !meetsMinSeverity(classified.Severity, minSeverity) {
+			continue
+		}
+
+		p.mu.Lock()
+		if pr.FollowUpCount >= maxFollowUps {
+			p.mu.Unlock()
+			p.logger.Info("max follow-up limit reached for PR, skipping comment",
+				"pr_url", prURL,
+				"follow_up_count", pr.FollowUpCount,
+				"max", maxFollowUps,
+			)
+			continue
+		}
+		pr.FollowUpCount++
+		p.mu.Unlock()
+
+		// Optionally reply to the comment to acknowledge it.
+		if p.cfg.ReplyToComments {
+			if replyErr := backend.ReplyToComment(ctx, prURL, comment.ID,
+				"👋 RoboDev is addressing this feedback."); replyErr != nil {
+				p.logger.Warn("failed to reply to comment",
+					"pr_url", prURL,
+					"comment_id", comment.ID,
+					"error", replyErr,
+				)
+			}
+		}
+
+		req := FollowUpRequest{
+			PRURL:               pr.PRURL,
+			TicketID:            pr.TicketID,
+			OriginalTitle:       pr.OriginalTitle,
+			OriginalDescription: pr.OriginalDescription,
+			RepoURL:             pr.RepoURL,
+			Comment:             classified,
+			EnrichedDescription: buildEnrichedDescription(pr.OriginalDescription, classified),
+			ThreadID:            comment.ThreadID,
+		}
+
+		if p.cfg.ReplyToComments {
+			req.ReplyCommentID = comment.ID
+		}
+
+		p.mu.Lock()
+		p.followUps = append(p.followUps, req)
+		p.mu.Unlock()
+
+		p.logger.Info("follow-up request emitted",
+			"pr_url", prURL,
+			"ticket_id", pr.TicketID,
+			"comment_id", comment.ID,
+			"severity", classified.Severity,
+		)
+	}
+}
+
+// scmFor returns the appropriate SCM backend for the given repository URL.
+func (p *Poller) scmFor(repoURL string) (scm.Backend, error) {
+	if p.scmRouter != nil {
+		return p.scmRouter.For(repoURL)
+	}
+	if p.scmBackend != nil {
+		return p.scmBackend, nil
+	}
+	return nil, fmt.Errorf("no SCM backend configured")
+}
+
+// buildEnrichedDescription constructs the follow-up task description by
+// appending the review comment context to the original ticket description.
+func buildEnrichedDescription(originalDescription string, comment ClassifiedComment) string {
+	var sb strings.Builder
+	sb.WriteString(originalDescription)
+	sb.WriteString("\n\n---\n\n# Review Comment from @")
+	sb.WriteString(comment.Author)
+	sb.WriteString("\n\n> ")
+	// Quote the comment body (prefix each line with "> ").
+	lines := strings.Split(comment.Body, "\n")
+	sb.WriteString(strings.Join(lines, "\n> "))
+
+	if comment.FilePath != "" {
+		sb.WriteString("\n\n")
+		sb.WriteString(comment.FilePath)
+		if comment.Line > 0 {
+			sb.WriteString(fmt.Sprintf(":%d", comment.Line))
+		}
+	}
+
+	sb.WriteString("\n\nPlease address the above review comment. Open a new merge request with the fix.")
+	return sb.String()
+}
+
+// meetsMinSeverity returns true if the given severity is at least as severe
+// as the minimum required severity.
+//
+// Severity order (ascending): info < warning < error.
+func meetsMinSeverity(severity, minSeverity string) bool {
+	order := map[string]int{"info": 0, "warning": 1, "error": 2}
+	return order[severity] >= order[minSeverity]
+}

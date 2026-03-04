@@ -79,6 +79,20 @@ type TaskRun struct {
 	TournamentID              string             `json:"tournament_id,omitempty"`
 	CandidateIndex            int                `json:"candidate_index,omitempty"`
 	TournamentState           string             `json:"tournament_state,omitempty"`
+
+	// Review follow-up fields — populated for TaskRuns created in response
+	// to review comments on a PR/MR opened by a previous RoboDev task.
+
+	// ParentTicketID is the original ticket ID. When set, handleJobComplete
+	// posts a comment on this ticket rather than calling MarkComplete.
+	ParentTicketID string `json:"parent_ticket_id,omitempty"`
+	// ReviewCommentID is the comment ID to reply to on the original PR/MR
+	// once the follow-up job completes.
+	ReviewCommentID string `json:"review_comment_id,omitempty"`
+	// ReviewThreadID is the discussion thread ID to resolve on completion.
+	ReviewThreadID string `json:"review_thread_id,omitempty"`
+	// ReviewPRURL is the PR/MR URL used for SCM reply and thread resolution.
+	ReviewPRURL string `json:"review_pr_url,omitempty"`
 }
 
 // New creates a new TaskRun in the Queued state with the given parameters.

@@ -95,5 +95,14 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	if c.ReviewResponse.Enabled && c.ReviewResponse.MinSeverity != "" {
+		switch c.ReviewResponse.MinSeverity {
+		case "info", "warning", "error":
+			// valid
+		default:
+			return fmt.Errorf("review_response.min_severity must be one of info|warning|error, got %q", c.ReviewResponse.MinSeverity)
+		}
+	}
+
 	return nil
 }

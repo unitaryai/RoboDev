@@ -26,6 +26,7 @@ import (
 	"github.com/unitaryai/robodev/internal/jobbuilder"
 	"github.com/unitaryai/robodev/internal/memory"
 	"github.com/unitaryai/robodev/internal/prm"
+	"github.com/unitaryai/robodev/internal/reviewpoller"
 	"github.com/unitaryai/robodev/internal/routing"
 	"github.com/unitaryai/robodev/internal/sandboxbuilder"
 	"github.com/unitaryai/robodev/internal/scmrouter"
@@ -588,6 +589,42 @@ func main() {
 		logger.Info("tournament coordinator enabled",
 			"default_candidates", cfg.CompetitiveExecution.DefaultCandidates,
 			"judge_engine", cfg.CompetitiveExecution.JudgeEngine,
+		)
+	}
+
+	// --- Review response (PR/MR comment monitoring) ---
+	if cfg.ReviewResponse.Enabled {
+		classifier := reviewpoller.NewRuleBasedClassifier()
+		poller := reviewpoller.New(cfg.ReviewResponse, classifier, logger.With("component", "review-poller"))
+		if len(cfg.SCM.Backends) > 0 {
+			// Re-use the already-constructed router from the SCM section above.
+			// The router has been added to opts via WithSCMRouter; retrieve it
+			// by examining the opts slice is not idiomatic, so we build a second
+			// lightweight router for the poller here. The overhead is negligible
+			// since no HTTP connections are established at construction time.
+			var entries []scmrouter.Entry
+			for _, be := range cfg.SCM.Backends {
+				beCfg := &config.Config{SCM: config.SCMConfig{Backend: be.Backend, Config: be.Config}}
+				backend, beErr := initSCMBackend(beCfg, k8sClient, *namespace, logger)
+				if beErr == nil {
+					entries = append(entries, scmrouter.Entry{Match: be.Match, Backend: backend})
+				}
+			}
+			if len(entries) > 0 {
+				poller.WithSCMRouter(scmrouter.NewRouter(entries...))
+			}
+		} else if cfg.SCM.Backend != "" {
+			scmBackend, scmErr := initSCMBackend(cfg, k8sClient, *namespace, logger)
+			if scmErr == nil {
+				poller.WithSCMBackend(scmBackend)
+			}
+		}
+		opts = append(opts, controller.WithReviewPoller(poller))
+		go poller.Start(ctx)
+		logger.Info("review response poller enabled",
+			"poll_interval_minutes", cfg.ReviewResponse.PollIntervalMinutes,
+			"min_severity", cfg.ReviewResponse.MinSeverity,
+			"max_follow_up_jobs", cfg.ReviewResponse.MaxFollowUpJobs,
 		)
 	}
 

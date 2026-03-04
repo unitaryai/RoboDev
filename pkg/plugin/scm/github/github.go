@@ -12,8 +12,10 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/unitaryai/robodev/pkg/plugin/scm"
 )
@@ -193,6 +195,131 @@ func (b *GitHubSCMBackend) Name() string {
 // InterfaceVersion returns the SCM interface version implemented.
 func (b *GitHubSCMBackend) InterfaceVersion() int {
 	return scm.InterfaceVersion
+}
+
+// ghReviewComment is the subset of a GitHub pull request review comment we parse.
+type ghReviewComment struct {
+	ID          int    `json:"id"`
+	InReplyToID *int   `json:"in_reply_to_id,omitempty"`
+	User        struct {
+		Login string `json:"login"`
+	} `json:"user"`
+	Body      string `json:"body"`
+	Path      string `json:"path"`
+	Line      int    `json:"line"`
+	CreatedAt string `json:"created_at"`
+}
+
+// ghIssueComment is the subset of a GitHub issue/PR general comment we parse.
+type ghIssueComment struct {
+	ID   int `json:"id"`
+	User struct {
+		Login string `json:"login"`
+	} `json:"user"`
+	Body      string `json:"body"`
+	CreatedAt string `json:"created_at"`
+}
+
+// ListReviewComments returns all review and general comments on the pull
+// request, sorted by creation time.
+func (b *GitHubSCMBackend) ListReviewComments(ctx context.Context, prURL string) ([]scm.ReviewComment, error) {
+	owner, repo, number, err := parsePRURL(prURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing pull request URL: %w", err)
+	}
+
+	var all []scm.ReviewComment
+
+	// Fetch line-level review comments.
+	reviewURL := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/comments", b.baseURL, owner, repo, number)
+	reviewBody, err := b.doGet(ctx, reviewURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetching review comments: %w", err)
+	}
+	defer reviewBody.Close()
+
+	var reviewComments []ghReviewComment
+	if err := json.NewDecoder(reviewBody).Decode(&reviewComments); err != nil {
+		return nil, fmt.Errorf("decoding review comments: %w", err)
+	}
+
+	for _, rc := range reviewComments {
+		created, _ := time.Parse(time.RFC3339, rc.CreatedAt)
+		threadID := strconv.Itoa(rc.ID)
+		if rc.InReplyToID != nil {
+			threadID = strconv.Itoa(*rc.InReplyToID)
+		}
+		all = append(all, scm.ReviewComment{
+			ID:       strconv.Itoa(rc.ID),
+			ThreadID: threadID,
+			Author:   rc.User.Login,
+			Body:     rc.Body,
+			FilePath: rc.Path,
+			Line:     rc.Line,
+			Created:  created,
+		})
+	}
+
+	// Fetch general PR comments (issue comments).
+	issueURL := fmt.Sprintf("%s/repos/%s/%s/issues/%d/comments", b.baseURL, owner, repo, number)
+	issueBody, err := b.doGet(ctx, issueURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetching issue comments: %w", err)
+	}
+	defer issueBody.Close()
+
+	var issueComments []ghIssueComment
+	if err := json.NewDecoder(issueBody).Decode(&issueComments); err != nil {
+		return nil, fmt.Errorf("decoding issue comments: %w", err)
+	}
+
+	for _, ic := range issueComments {
+		created, _ := time.Parse(time.RFC3339, ic.CreatedAt)
+		id := strconv.Itoa(ic.ID)
+		all = append(all, scm.ReviewComment{
+			ID:      id,
+			ThreadID: id,
+			Author:  ic.User.Login,
+			Body:    ic.Body,
+			Created: created,
+		})
+	}
+
+	// Sort by creation time.
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].Created.Before(all[j].Created)
+	})
+
+	return all, nil
+}
+
+// ReplyToComment posts a reply to an existing comment. For review comments
+// it posts to the review comment reply endpoint; for general comments it
+// posts a new issue comment. It attempts the review endpoint first and falls
+// back to the issue comment endpoint.
+func (b *GitHubSCMBackend) ReplyToComment(ctx context.Context, prURL string, commentID string, body string) error {
+	owner, repo, number, err := parsePRURL(prURL)
+	if err != nil {
+		return fmt.Errorf("parsing pull request URL: %w", err)
+	}
+
+	// Try the review comment reply endpoint first.
+	reviewReplyURL := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/comments/%s/replies",
+		b.baseURL, owner, repo, number, commentID)
+	replyErr := b.doPost(ctx, reviewReplyURL, map[string]string{"body": body})
+	if replyErr == nil {
+		return nil
+	}
+
+	// Fall back to posting a general issue comment.
+	issueCommentURL := fmt.Sprintf("%s/repos/%s/%s/issues/%d/comments", b.baseURL, owner, repo, number)
+	return b.doPost(ctx, issueCommentURL, map[string]string{"body": body})
+}
+
+// ResolveThread is a no-op for GitHub. The GitHub REST API does not support
+// resolving conversation threads; callers should use the GraphQL API for that.
+func (b *GitHubSCMBackend) ResolveThread(_ context.Context, _ string, _ string) error {
+	return nil
 }
 
 // prFromGH converts a GitHub PR response to the scm.PullRequest type.

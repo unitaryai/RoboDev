@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/unitaryai/robodev/pkg/plugin/scm"
 )
@@ -181,6 +182,156 @@ func (b *GitLabSCMBackend) Name() string {
 // InterfaceVersion returns the SCM interface version implemented.
 func (b *GitLabSCMBackend) InterfaceVersion() int {
 	return scm.InterfaceVersion
+}
+
+// glNote is the subset of a GitLab MR note (comment) we parse.
+type glNote struct {
+	ID     int  `json:"id"`
+	System bool `json:"system"`
+	Author struct {
+		Username string `json:"username"`
+	} `json:"author"`
+	Body         string `json:"body"`
+	Position     *glPosition `json:"position,omitempty"`
+	DiscussionID string      `json:"discussion_id,omitempty"`
+	CreatedAt    string      `json:"created_at"`
+}
+
+// glPosition holds the file position for a line-level note.
+type glPosition struct {
+	NewPath string `json:"new_path"`
+	NewLine int    `json:"new_line"`
+}
+
+// ListReviewComments returns all non-system notes on the merge request,
+// sorted ascending by creation time.
+func (b *GitLabSCMBackend) ListReviewComments(ctx context.Context, prURL string) ([]scm.ReviewComment, error) {
+	projectPath, mrIID, err := parseMRURL(prURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing merge request URL: %w", err)
+	}
+
+	encodedPath := url.PathEscape(projectPath)
+	apiURL := fmt.Sprintf("%s/projects/%s/merge_requests/%d/notes?sort=asc&order_by=created_at",
+		b.baseURL, encodedPath, mrIID)
+
+	body, err := b.doGet(ctx, apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetching merge request notes: %w", err)
+	}
+	defer body.Close()
+
+	var notes []glNote
+	if err := json.NewDecoder(body).Decode(&notes); err != nil {
+		return nil, fmt.Errorf("decoding merge request notes: %w", err)
+	}
+
+	var comments []scm.ReviewComment
+	for _, n := range notes {
+		if n.System {
+			continue
+		}
+		created, _ := time.Parse(time.RFC3339, n.CreatedAt)
+		rc := scm.ReviewComment{
+			ID:       strconv.Itoa(n.ID),
+			ThreadID: n.DiscussionID,
+			Author:   n.Author.Username,
+			Body:     n.Body,
+			Created:  created,
+		}
+		if n.Position != nil {
+			rc.FilePath = n.Position.NewPath
+			rc.Line = n.Position.NewLine
+		}
+		comments = append(comments, rc)
+	}
+
+	return comments, nil
+}
+
+// ReplyToComment posts a reply to an existing comment on the merge request.
+// When threadID is non-empty the reply is added to the discussion; otherwise
+// a standalone note is posted.
+func (b *GitLabSCMBackend) ReplyToComment(ctx context.Context, prURL string, commentID string, body string) error {
+	projectPath, mrIID, err := parseMRURL(prURL)
+	if err != nil {
+		return fmt.Errorf("parsing merge request URL: %w", err)
+	}
+
+	encodedPath := url.PathEscape(projectPath)
+
+	// Look up the discussion ID for this comment by fetching the notes list.
+	// We need the discussion_id to post a reply to the correct thread.
+	notesURL := fmt.Sprintf("%s/projects/%s/merge_requests/%d/notes?sort=asc&order_by=created_at",
+		b.baseURL, encodedPath, mrIID)
+	notesBody, err := b.doGet(ctx, notesURL)
+	if err != nil {
+		return fmt.Errorf("fetching notes to locate discussion: %w", err)
+	}
+	defer notesBody.Close()
+
+	var notes []glNote
+	if err := json.NewDecoder(notesBody).Decode(&notes); err != nil {
+		return fmt.Errorf("decoding notes: %w", err)
+	}
+
+	threadID := ""
+	for _, n := range notes {
+		if strconv.Itoa(n.ID) == commentID {
+			threadID = n.DiscussionID
+			break
+		}
+	}
+
+	if threadID != "" {
+		apiURL := fmt.Sprintf("%s/projects/%s/merge_requests/%d/discussions/%s/notes",
+			b.baseURL, encodedPath, mrIID, threadID)
+		return b.doPost(ctx, apiURL, map[string]string{"body": body})
+	}
+
+	// Fall back to posting a standalone note.
+	apiURL := fmt.Sprintf("%s/projects/%s/merge_requests/%d/notes", b.baseURL, encodedPath, mrIID)
+	return b.doPost(ctx, apiURL, map[string]string{"body": body})
+}
+
+// ResolveThread marks a GitLab merge request discussion thread as resolved.
+func (b *GitLabSCMBackend) ResolveThread(ctx context.Context, prURL string, threadID string) error {
+	projectPath, mrIID, err := parseMRURL(prURL)
+	if err != nil {
+		return fmt.Errorf("parsing merge request URL: %w", err)
+	}
+
+	encodedPath := url.PathEscape(projectPath)
+	apiURL := fmt.Sprintf("%s/projects/%s/merge_requests/%d/discussions/%s",
+		b.baseURL, encodedPath, mrIID, threadID)
+
+	return b.doPut(ctx, apiURL, map[string]bool{"resolved": true})
+}
+
+// doPut performs a PUT request with a JSON body, discarding the response.
+func (b *GitLabSCMBackend) doPut(ctx context.Context, u string, payload any) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshalling payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	b.setAuthHeaders(req)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := b.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("executing request: %w", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status %d", resp.StatusCode)
+	}
+	return nil
 }
 
 // prFromMR converts a GitLab MR response to the scm.PullRequest type.

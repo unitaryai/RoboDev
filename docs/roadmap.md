@@ -17,10 +17,54 @@ plan (12/13 complete).
 ## Current Priority Order
 
 ```
-1. High-Priority Upcoming               — items 20 (PR/MR comments), 10 (dashboard)
+1. High-Priority Upcoming               — item 10 (dashboard); item 20 complete ✅
 2. Live-backend E2E validation          — long-running / real-GitHub items below
 3. Design-First (ADR before code)       — items 24, 25
 4. Infrastructure                       — items 9 (plugin SDKs), 11 (docs — in progress)
+```
+
+---
+
+## Item 20: PR/MR Comment Response ✅ (2026-03-04)
+
+RoboDev now monitors open pull/merge requests it creates and spawns follow-up
+jobs to address actionable review feedback.
+
+**Implemented:**
+
+- `pkg/plugin/scm` — `ReviewComment` type; `ListReviewComments`, `ReplyToComment`,
+  `ResolveThread` added to the `Backend` interface
+- `pkg/plugin/scm/github` — GitHub REST implementation of the three new methods
+  (`ListReviewComments` merges review + issue comment endpoints; `ReplyToComment`
+  attempts review reply then falls back to issue comment; `ResolveThread` is a
+  no-op since GitHub REST does not support thread resolution)
+- `pkg/plugin/scm/gitlab` — GitLab REST implementation (notes endpoint;
+  discussion-aware reply; PUT `resolved: true` for thread resolution)
+- `internal/reviewpoller` — new package:
+  - `types.go` — `Classification`, `ClassifiedComment`, `TrackedPR`, `FollowUpRequest`
+  - `classifier.go` — `RuleBasedClassifier` (keyword + bot author heuristics) and
+    `LLMClassifier` (ChainOfThought with rule-based fallback)
+  - `poller.go` — background `Poller` with `Register`, `DrainFollowUps`, `Start`
+- `internal/config` — `ReviewResponseConfig` struct + validation
+- `internal/taskrun` — `ParentTicketID`, `ReviewCommentID`, `ReviewThreadID`,
+  `ReviewPRURL` fields on `TaskRun`
+- `internal/controller` — `reviewPoller` field, `WithReviewPoller` option,
+  `handleFollowUpComplete`, `processFollowUpTask`, `scmFor` helper; drain in
+  `reconcileOnce`; register in `handleJobComplete`
+- `cmd/robodev/main.go` — review response subsystem wiring
+- `tests/integration/review_response_test.go` — 9 integration tests
+
+**Configuration** (`robodev-config.yaml`):
+
+```yaml
+review_response:
+  enabled: true
+  poll_interval_minutes: 5
+  min_severity: warning        # info | warning | error
+  max_follow_up_jobs: 3        # per PR
+  reply_to_comments: true
+  resolve_threads: false       # GitLab only; no-op on GitHub REST
+  llm_classifier: false        # set true to enable LLM-backed classification
 ```
 
 ---

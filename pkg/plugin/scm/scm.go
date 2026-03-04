@@ -6,10 +6,31 @@ package scm
 
 import (
 	"context"
+	"time"
 )
 
 // InterfaceVersion is the current version of the SCMBackend interface.
 const InterfaceVersion = 1
+
+// ReviewComment is a comment posted on a pull or merge request.
+type ReviewComment struct {
+	// ID is the unique identifier of the comment.
+	ID string
+	// ThreadID is the discussion or thread ID. Used for ResolveThread.
+	// For GitHub, this is the in_reply_to_id if set, otherwise the comment ID.
+	// For GitLab, this is the discussion_id from the API response.
+	ThreadID string
+	// Author is the username of the comment author.
+	Author string
+	// Body is the text content of the comment.
+	Body string
+	// FilePath is the file the comment is attached to. Empty for general comments.
+	FilePath string
+	// Line is the line number the comment is attached to. 0 for general comments.
+	Line int
+	// Created is the timestamp when the comment was created.
+	Created time.Time
+}
 
 // PullRequest represents a pull request or merge request created by an agent.
 type PullRequest struct {
@@ -48,6 +69,21 @@ type Backend interface {
 	// by its URL. This is used by the controller to check CI status and
 	// review state.
 	GetPullRequestStatus(ctx context.Context, prURL string) (*PullRequest, error)
+
+	// ListReviewComments returns all review and general comments on the
+	// pull or merge request identified by prURL, sorted by creation time.
+	ListReviewComments(ctx context.Context, prURL string) ([]ReviewComment, error)
+
+	// ReplyToComment posts a reply to an existing comment on a pull or
+	// merge request. For line-level review comments the reply is attached
+	// to the same thread; for general comments a new top-level comment is
+	// posted.
+	ReplyToComment(ctx context.Context, prURL string, commentID string, body string) error
+
+	// ResolveThread marks a review thread as resolved. Implementations
+	// that do not support thread resolution (e.g. GitHub REST) should
+	// return nil silently.
+	ResolveThread(ctx context.Context, prURL string, threadID string) error
 
 	// Name returns the unique identifier for this backend (e.g. "github", "gitlab").
 	Name() string

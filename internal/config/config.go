@@ -37,6 +37,31 @@ type Config struct {
 	Estimator             EstimatorConfig             `yaml:"estimator"`
 	CompetitiveExecution  CompetitiveExecutionConfig  `yaml:"competitive_execution"`
 	Audit                 AuditConfig                 `yaml:"audit"`
+	ReviewResponse        ReviewResponseConfig        `yaml:"review_response"`
+}
+
+// ReviewResponseConfig configures the PR/MR review comment response subsystem.
+// When enabled, RoboDev monitors open pull/merge requests it created and
+// spawns follow-up jobs to address actionable review feedback.
+type ReviewResponseConfig struct {
+	// Enabled activates the review response subsystem.
+	Enabled bool `yaml:"enabled"`
+	// PollIntervalMinutes is how often to check for new comments. Default: 5.
+	PollIntervalMinutes int `yaml:"poll_interval_minutes"`
+	// MinSeverity sets the minimum comment severity that triggers a follow-up.
+	// Must be one of "info", "warning", or "error". Default: "warning".
+	MinSeverity string `yaml:"min_severity"`
+	// MaxFollowUpJobs is the maximum number of follow-up jobs per PR. Default: 3.
+	MaxFollowUpJobs int `yaml:"max_follow_up_jobs"`
+	// ReplyToComments causes RoboDev to reply to actionable comments
+	// acknowledging that it is addressing them. Default: true.
+	ReplyToComments bool `yaml:"reply_to_comments"`
+	// ResolveThreads causes RoboDev to resolve the discussion thread once
+	// the follow-up job completes. Not supported by GitHub REST. Default: false.
+	ResolveThreads bool `yaml:"resolve_threads"`
+	// LLMClassifier enables LLM-backed comment classification with rule-based
+	// fallback. Requires an LLM client to be configured. Default: false.
+	LLMClassifier bool `yaml:"llm_classifier"`
 }
 
 // CompetitiveExecutionConfig configures competitive execution with tournament selection.

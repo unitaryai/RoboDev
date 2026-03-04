@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### PR/MR Comment Response (Item 20)
+
+- **`pkg/plugin/scm`** — `ReviewComment` type; `ListReviewComments`,
+  `ReplyToComment`, and `ResolveThread` added to the `Backend` interface.
+- **`pkg/plugin/scm/github`** — GitHub REST implementation: `ListReviewComments`
+  merges review-comment and issue-comment endpoints sorted by creation time;
+  `ReplyToComment` tries the review reply endpoint and falls back to issue comment;
+  `ResolveThread` is a documented no-op (GitHub REST does not support thread resolution).
+- **`pkg/plugin/scm/gitlab`** — GitLab REST implementation: `ListReviewComments`
+  fetches notes with `system: false` filter; `ReplyToComment` resolves discussion ID
+  then posts a discussion note; `ResolveThread` calls `PUT …/discussions/{id}` with
+  `resolved: true`.
+- **`internal/reviewpoller`** — new package implementing the review response polling
+  subsystem:
+  - `types.go` — `Classification` enum, `ClassifiedComment`, `TrackedPR`, `FollowUpRequest`.
+  - `classifier.go` — `RuleBasedClassifier` (bot-author ignore list, keyword tiers for
+    informational/warning/error) and `LLMClassifier` (ChainOfThought with rule-based
+    fallback; disabled by default).
+  - `poller.go` — `Poller` with `Register`, `DrainFollowUps`, and `Start` (background
+    ticker); routes SCM calls via `scmBackend` or `scmRouter`; enforces `MaxFollowUpJobs`
+    per PR; optionally replies to comments acknowledging receipt.
+- **`internal/config`** — `ReviewResponseConfig` struct with `enabled`,
+  `poll_interval_minutes`, `min_severity`, `max_follow_up_jobs`, `reply_to_comments`,
+  `resolve_threads`, `llm_classifier`; validation rejects invalid `min_severity` values.
+- **`internal/taskrun`** — `ParentTicketID`, `ReviewCommentID`, `ReviewThreadID`,
+  `ReviewPRURL` fields on `TaskRun` for follow-up lifecycle tracking.
+- **`internal/controller`** — `reviewPoller` field, `WithReviewPoller` option,
+  `handleFollowUpComplete` (posts ticket comment, replies to review comment, resolves
+  thread), `processFollowUpTask` (builds and launches a K8s follow-up Job), and
+  `scmFor` helper; drain in `reconcileOnce`; register in `handleJobComplete`.
+- **`cmd/robodev/main.go`** — review response subsystem wiring under `review_response.enabled`.
+- **`tests/integration/review_response_test.go`** — 9 integration tests covering
+  bot-ignore, requires-action, informational, follow-up emission, processed-ID
+  idempotency, max-follow-up limit, merged-PR untracking, reply-on-action, and
+  config validation.
+
 #### E2E Workflow Pipeline Tests
 
 - **`hack/fake-agent/`** — standalone Go module with a pure-stdlib fake agent binary.

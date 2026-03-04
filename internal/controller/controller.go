@@ -30,6 +30,7 @@ import (
 	"github.com/unitaryai/robodev/internal/memory"
 	"github.com/unitaryai/robodev/internal/metrics"
 	"github.com/unitaryai/robodev/internal/prm"
+	"github.com/unitaryai/robodev/internal/reviewpoller"
 	"github.com/unitaryai/robodev/internal/routing"
 	"github.com/unitaryai/robodev/internal/scmrouter"
 	"github.com/unitaryai/robodev/internal/secretresolver"
@@ -133,6 +134,10 @@ type Reconciler struct {
 
 	// taskRunToTournament maps a candidate or judge task run ID to its tournament ID.
 	taskRunToTournament map[string]string
+
+	// reviewPoller monitors open PRs/MRs for review comments and emits
+	// follow-up task requests. Nil when review response is disabled.
+	reviewPoller *reviewpoller.Poller
 }
 
 // ReconcilerOption configures the Reconciler.
@@ -228,6 +233,13 @@ func WithSecretsResolver(sr *secretresolver.Resolver) ReconcilerOption {
 // repository URL, superseding the single scmBackend field.
 func WithSCMRouter(router *scmrouter.Router) ReconcilerOption {
 	return func(r *Reconciler) { r.scmRouter = router }
+}
+
+// WithReviewPoller sets the review comment poller. When non-nil, the
+// controller registers newly opened PRs for monitoring and processes
+// follow-up task requests on each reconciliation tick.
+func WithReviewPoller(p *reviewpoller.Poller) ReconcilerOption {
+	return func(r *Reconciler) { r.reviewPoller = p }
 }
 
 // WithDiagnosis enables the causal failure diagnosis subsystem. When both
@@ -382,6 +394,13 @@ func (r *Reconciler) reconcileOnce(ctx context.Context) error {
 	// Previously this was only called when tickets > 0, which caused completed
 	// jobs to go undetected until the next ticket was ready.
 	defer r.checkRunningJobs(ctx)
+
+	// Drain any follow-up requests from the review poller and submit jobs.
+	if r.reviewPoller != nil {
+		for _, req := range r.reviewPoller.DrainFollowUps() {
+			r.processFollowUpTask(ctx, req)
+		}
+	}
 
 	if len(tickets) == 0 {
 		return nil
@@ -737,6 +756,12 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 	r.cleanupHintFile(ctx, tr.ID)
 	defer r.cleanupPodName(tr.ID)
 
+	// Dispatch review follow-up completions before any other handling.
+	if tr.ParentTicketID != "" {
+		r.handleFollowUpComplete(ctx, tr)
+		return
+	}
+
 	// Dispatch to tournament-specific handler when this is a candidate or judge run.
 	r.mu.RLock()
 	role := r.taskRunRole[tr.ID]
@@ -866,6 +891,22 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 		go r.extractMemory(ctx, tr)
 	}
 
+	// Register the opened PR/MR for review comment monitoring.
+	if r.reviewPoller != nil && result.MergeRequestURL != "" {
+		r.mu.RLock()
+		cachedT, hasCachedT := r.ticketCache[tr.TicketID]
+		r.mu.RUnlock()
+		if hasCachedT {
+			r.reviewPoller.Register(
+				result.MergeRequestURL,
+				tr.TicketID,
+				cachedT.Title,
+				cachedT.Description,
+				cachedT.RepoURL,
+			)
+		}
+	}
+
 	// Record outcome for calibration, routing, and cost estimation.
 	r.recordTaskOutcome(ctx, tr, true)
 	r.cleanupHeartbeat(tr.ID)
@@ -875,6 +916,237 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 		"ticket_id", tr.TicketID,
 		"duration", time.Since(tr.CreatedAt),
 	)
+}
+
+// handleFollowUpComplete processes the completion of a review follow-up job.
+// It posts a comment on the original ticket and, if configured, replies to
+// the originating review comment and resolves its thread.
+func (r *Reconciler) handleFollowUpComplete(ctx context.Context, tr *taskrun.TaskRun) {
+	r.mu.Lock()
+	if err := tr.Transition(taskrun.StateSucceeded); err != nil {
+		r.mu.Unlock()
+		r.logger.ErrorContext(ctx, "failed to transition follow-up task run to succeeded",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+		return
+	}
+	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save follow-up task run",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Dec()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateSucceeded)).Inc()
+
+	r.mu.RLock()
+	result := engine.TaskResult{Success: true, Summary: "review follow-up completed successfully"}
+	if tr.Result != nil {
+		result = *tr.Result
+	}
+	r.mu.RUnlock()
+	tr.Result = &result
+
+	// Post a comment on the original ticket.
+	if r.ticketing != nil {
+		msg := "✅ Review follow-up complete.\n\n**Summary:** " + result.Summary
+		if err := r.ticketing.AddComment(ctx, tr.ParentTicketID, msg); err != nil {
+			r.logger.WarnContext(ctx, "failed to add follow-up completion comment",
+				"ticket_id", tr.ParentTicketID,
+				"error", err,
+			)
+		}
+	}
+
+	// Reply to the original review comment if configured.
+	if tr.ReviewCommentID != "" && tr.ReviewPRURL != "" {
+		backend, scmErr := r.scmFor(tr.ReviewPRURL)
+		if scmErr == nil {
+			replyBody := "Addressed. " + result.Summary
+			if replyErr := backend.ReplyToComment(ctx, tr.ReviewPRURL, tr.ReviewCommentID, replyBody); replyErr != nil {
+				r.logger.WarnContext(ctx, "failed to reply to review comment",
+					"pr_url", tr.ReviewPRURL,
+					"comment_id", tr.ReviewCommentID,
+					"error", replyErr,
+				)
+			}
+		}
+
+		// Resolve the discussion thread if configured and a thread ID was set.
+		if r.config.ReviewResponse.ResolveThreads && tr.ReviewThreadID != "" {
+			if backend == nil {
+				backend, scmErr = r.scmFor(tr.ReviewPRURL)
+			}
+			if scmErr == nil {
+				if resolveErr := backend.ResolveThread(ctx, tr.ReviewPRURL, tr.ReviewThreadID); resolveErr != nil {
+					r.logger.WarnContext(ctx, "failed to resolve review thread",
+						"pr_url", tr.ReviewPRURL,
+						"thread_id", tr.ReviewThreadID,
+						"error", resolveErr,
+					)
+				}
+			}
+		}
+	}
+
+	r.recordTaskOutcome(ctx, tr, true)
+	r.cleanupHeartbeat(tr.ID)
+
+	r.logger.InfoContext(ctx, "review follow-up task run succeeded",
+		"task_run_id", tr.ID,
+		"parent_ticket_id", tr.ParentTicketID,
+		"duration", time.Since(tr.CreatedAt),
+	)
+}
+
+// processFollowUpTask creates and launches a K8s Job for a review follow-up
+// request. Unlike ProcessTicket, it skips ticketing backend calls (no
+// MarkInProgress) and sets the review-specific TaskRun fields.
+func (r *Reconciler) processFollowUpTask(ctx context.Context, req reviewpoller.FollowUpRequest) {
+	// Derive a synthetic ticket for engine selection and job building.
+	ticket := ticketing.Ticket{
+		ID:          fmt.Sprintf("%s-review-%d", req.TicketID, time.Now().UnixMilli()),
+		Title:       req.OriginalTitle + " [review follow-up]",
+		Description: req.EnrichedDescription,
+		RepoURL:     req.RepoURL,
+		TicketType:  "issue",
+	}
+
+	engineChain := r.engineSelector.SelectEngines(ticket)
+	if len(engineChain) == 0 {
+		r.logger.WarnContext(ctx, "no engine available for review follow-up",
+			"ticket_id", req.TicketID,
+		)
+		return
+	}
+	engineName := engineChain[0]
+	eng, ok := r.engines[engineName]
+	if !ok {
+		r.logger.WarnContext(ctx, "engine not registered for review follow-up",
+			"engine", engineName,
+		)
+		return
+	}
+
+	idempotencyKey := fmt.Sprintf("%s-1", ticket.ID)
+	tr := taskrun.New(
+		fmt.Sprintf("tr-%s-%d", ticket.ID, time.Now().UnixMilli()),
+		idempotencyKey,
+		ticket.ID,
+		engineName,
+	)
+	tr.CurrentEngine = engineName
+	tr.EngineAttempts = []string{engineName}
+	tr.ParentTicketID = req.TicketID
+	tr.ReviewCommentID = req.ReplyCommentID
+	tr.ReviewThreadID = req.ThreadID
+	tr.ReviewPRURL = req.PRURL
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save review follow-up task run",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	task := engine.Task{
+		ID:          ticket.ID,
+		TicketID:    ticket.ID,
+		Title:       ticket.Title,
+		Description: ticket.Description,
+		RepoURL:     ticket.RepoURL,
+	}
+
+	engineCfg := engine.EngineConfig{
+		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
+		Image:          r.config.Engines.ImageFor(engineName),
+		SecretKeyRefs:  r.agentSecretKeyRefs(),
+		Env:            r.slackEnv(),
+	}
+
+	spec, err := eng.BuildExecutionSpec(task, engineCfg)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to build execution spec for review follow-up",
+			"ticket_id", req.TicketID,
+			"error", err,
+		)
+		return
+	}
+
+	if r.jobBuilder == nil {
+		r.logger.WarnContext(ctx, "no job builder configured, skipping review follow-up")
+		return
+	}
+
+	job, err := r.jobBuilder.Build(tr.ID, engineName, spec)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to build K8s job for review follow-up",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+		return
+	}
+
+	if r.k8sClient != nil {
+		if _, err := r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
+			r.logger.ErrorContext(ctx, "failed to create K8s job for review follow-up",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+			return
+		}
+	}
+
+	if err := tr.Transition(taskrun.StateRunning); err != nil {
+		r.logger.ErrorContext(ctx, "failed to transition review follow-up to running",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+		return
+	}
+	tr.JobName = job.Name
+
+	r.mu.Lock()
+	r.taskRuns[idempotencyKey] = tr
+	r.engineChains[idempotencyKey] = engineChain
+	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save review follow-up task run after launch",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Inc()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
+
+	if engineName == "claude-code" {
+		r.startStreamReader(ctx, tr)
+	}
+
+	r.logger.InfoContext(ctx, "review follow-up job created",
+		"parent_ticket_id", req.TicketID,
+		"pr_url", req.PRURL,
+		"task_run_id", tr.ID,
+		"engine", engineName,
+		"job", job.Name,
+	)
+}
+
+// scmFor returns the appropriate SCM backend for the given URL.
+func (r *Reconciler) scmFor(url string) (scm.Backend, error) {
+	if r.scmRouter != nil {
+		return r.scmRouter.For(url)
+	}
+	if r.scmBackend != nil {
+		return r.scmBackend, nil
+	}
+	return nil, fmt.Errorf("no SCM backend configured")
 }
 
 // handleJobFailed processes a failed job, attempting engine fallback or
