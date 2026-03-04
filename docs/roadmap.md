@@ -28,13 +28,27 @@ plan (12/13 complete).
 ## 1. Live-Backend E2E Validation — Remaining Gaps
 
 The fake-agent E2E workflow test suite (Phase 5) covers all subsystem interactions
-end-to-end against a real kind cluster. The items below require real live workloads
-(real Claude Code agent, real GitHub repositories, extended task history) and will
-be validated once a staging environment is available.
+end-to-end against a real kind cluster. Two live tests (`make e2e-live-test`) now
+run against the real Shortcut + GitLab + Claude Code stack. The items below require
+extended live workloads (50+ tasks, 3-engine comparison) and will be validated once
+a staging environment is available.
 
 ---
 
-### End-to-End Tests (Live Backend)
+### Live Test Suite ✅ (initial coverage)
+
+- [x] Happy path — story created → Claude Code picks up → MR opened → story done (`TestLiveHappyPath`)
+- [x] Graceful clone failure — invalid repo URL → Claude Code handles error → story done with failure description (`TestLiveGracefulCloneFailure`)
+
+Key finding from initial live testing: Claude Code handles clone failures at the
+application level (exits 0, writes error description). `MarkFailed` / `robodev-failed`
+label is triggered by K8s-level failures only (watchdog termination, OOM kill, etc.).
+
+Run with: `make e2e-live-test` (requires `make live-up` + valid secrets)
+
+---
+
+### End-to-End Tests (Live Backend) — Extended Coverage
 
 - [ ] PRM with live Claude Code agent — verify scoring and interventions fire at correct thresholds
 - [ ] Memory across 50+ tasks — verify accumulation, decay, and prompt injection resistance
@@ -346,7 +360,8 @@ live controller and `main.go`:
 | — | LLM V2 upgrades (PRM, memory, diagnosis, judge) | Medium | ✅ Complete |
 | — | Security hardening | High | ✅ Complete |
 | — | E2E workflow suite (fake-agent, 7 tests) | High | ✅ Complete |
-| — | E2E live-backend validation | High | In progress |
+| — | E2E live-backend validation (initial 2 tests) | High | ✅ Complete |
+| — | E2E live-backend extended coverage (50+ tasks) | High | In progress |
 | 20 | PR/MR Comment Response | High | Not started |
 | 10 | Agent Dashboard | High | Not started |
 | 24 | Non-Standard Task Types | Medium | Design doc required |
