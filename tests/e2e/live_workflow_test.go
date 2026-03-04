@@ -81,34 +81,41 @@ Do not modify any other files. Open a merge request with the change.`
 	)
 }
 
-// TestLiveFailureDiagnosis validates the failure path: a story whose repo URL
-// is inaccessible causes the agent's git clone to fail, exhausting all retries
-// and triggering MarkFailed on the ticketing backend.
+// TestLiveGracefulCloneFailure validates the graceful error-handling path: a
+// story whose repo URL is inaccessible causes the agent's git clone to fail.
+// The Claude Code agent handles this at the application level — it detects the
+// error, records a description, and exits 0. The controller therefore calls
+// MarkComplete (not MarkFailed), transitioning the story to a done-type state
+// with a comment that includes the clone-failure details.
 //
 // Asserts:
-//   - Story is labelled "robodev-failed" within the timeout.
-//   - At least one comment contains a failure reason.
+//   - Story reaches a done-type workflow state within the timeout.
+//   - At least one comment describes the clone failure (contains "failed",
+//     "error", or "could not").
 //
 // No SHORTCUT_TEST_REPO_URL is required — the invalid URL is intentional.
-func TestLiveFailureDiagnosis(t *testing.T) {
+func TestLiveGracefulCloneFailure(t *testing.T) {
 	sc := newShortcutTestClient(t)
 
-	title := fmt.Sprintf("RoboDev E2E: failure/diagnosis test — %d", time.Now().Unix())
+	title := fmt.Sprintf("RoboDev E2E: clone-failure graceful handling — %d", time.Now().Unix())
 	description := "Fix the authentication bug in the login module."
 
 	// This repo does not exist; the git clone inside the agent container will
-	// fail immediately, triggering the retry → failure → diagnosis path.
+	// fail. Claude Code detects this, writes a result describing the error, and
+	// exits 0 — so the controller calls MarkComplete with the error summary.
 	invalidRepoURL := "https://gitlab.com/robodev-e2e-nonexistent/repo-does-not-exist"
 
 	storyID := sc.createStory(t, title, description, invalidRepoURL)
 	t.Cleanup(func() { sc.deleteStory(t, storyID) })
 
-	// Clone failure + one retry takes ~2 minutes; allow 10 to be safe.
-	sc.waitForStoryFailed(t, storyID, 10*time.Minute)
+	// Clone failure is detected quickly; allow 5 minutes for the full cycle.
+	sc.waitForStoryDone(t, storyID, 5*time.Minute)
 
 	comments := sc.storyComments(t, storyID)
 	assert.True(t,
-		hasCommentContaining(comments, "failed") || hasCommentContaining(comments, "error"),
-		"expected a failure reason comment on story #%s; got: %v", storyID, comments,
+		hasCommentContaining(comments, "failed") ||
+			hasCommentContaining(comments, "error") ||
+			hasCommentContaining(comments, "could not"),
+		"expected a comment describing the clone failure on story #%s; got: %v", storyID, comments,
 	)
 }
