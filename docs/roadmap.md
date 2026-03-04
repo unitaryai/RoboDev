@@ -17,7 +17,7 @@ plan (12/13 complete).
 ## Current Priority Order
 
 ```
-1. Active Integration (remaining gaps)  — SQLite persistence, LLM V2, security hardening, E2E tests
+1. Active Integration (remaining gaps)  — E2E tests
 2. High-Priority Upcoming               — items 20 (PR/MR comments), 10 (dashboard)
 3. Design-First (ADR before code)       — items 24, 25
 4. Infrastructure                       — items 9 (plugin SDKs), 11 (docs — in progress)
@@ -28,52 +28,9 @@ plan (12/13 complete).
 ## 1. Active Integration — Remaining Gaps
 
 Phase 2 wired diagnosis, calibration, routing, estimator, SCM router, and transcript into
-the live controller. Tournament coordinator and PRM hint writer are also complete. The
-following gaps remain before the integration layer is fully production-ready.
-
----
-
-### Persistence Layer
-
-All learning stores currently use in-memory backends — routing fingerprints, cost
-predictions, and calibrator observations are lost on controller restart.
-
-- [ ] `routing.SQLiteFingerprintStore` — reuse memory's SQLite DB and schema pattern
-- [ ] `estimator.SQLiteEstimatorStore` — ditto
-- [ ] Persist calibrator observations in a SQLite table
-- [ ] Verify `memory.SQLiteStore` handles concurrent writes, migration idempotency, and
-  corruption recovery
-- [ ] Confirm data survives controller restarts (integration test)
-
-**Key files:** `internal/routing/`, `internal/estimator/`, `internal/watchdog/`
-
----
-
-### LLM Integration — V2 Upgrades
-
-Replace rule-based heuristics with LLM-powered reasoning. `internal/llm/` is complete —
-this is prompt engineering + integration work.
-
-- [ ] **PRM V2**: scoring prompt — given recent tool calls, rate productivity 1–10 with
-  reasoning; iterate on real agent transcripts until reliable
-- [ ] **Memory V2**: extraction prompt — given TaskRun data, extract structured facts;
-  handle empty results, hallucinated facts, duplicates
-- [ ] **Diagnosis V2**: classification prompt — given failure transcript, classify failure
-  mode and generate prescription; must resist prompt injection from agent output
-- [ ] **Tournament Judge**: judging prompt — given N diffs, select best with reasoning;
-  test with real side-by-side diffs
-- [ ] Rate limiting for LLM scoring calls (avoid overwhelming the API during active jobs)
-
----
-
-### Security Hardening
-
-- [x] PRM hint file path — `validateHintPath` rejects `..` components before every exec
-- [ ] Memory graph tenant isolation — adversarial tests: tenant A cannot read tenant B's facts
-- [ ] Diagnosis templates — verify agent output cannot escape into injected retry prompts
-- [ ] Tournament judge prompt — verify candidate diffs cannot inject instructions into the judge
-- [ ] LLM scoring prompts — verify agent stream events cannot manipulate PRM scores
-- [ ] Config validation — reject negative thresholds, path traversal in file paths
+the live controller. Tournament coordinator, PRM hint writer, SQLite persistence, LLM V2
+upgrades, and security hardening are all complete. Only E2E tests against a live cluster
+remain before the integration layer is fully production-ready.
 
 ---
 
@@ -262,6 +219,28 @@ Everything below is implemented and merged.
 
 ---
 
+### Active Integration — Phase 4 ✅
+
+SQLite persistence, security hardening, LLM V2 upgrades, and integration tests:
+
+| Subsystem | Status |
+|-----------|--------|
+| SQLite persistence — routing (`SQLiteFingerprintStore`) | ✅ WAL mode, upserts, persistence tests |
+| SQLite persistence — estimator (`SQLiteEstimatorStore`) | ✅ kNN similarity in Go, persistence tests |
+| SQLite persistence — watchdog (`SQLiteProfileStore`) | ✅ composite PK `(repo_pattern, engine, task_type)` |
+| Memory graph tenant isolation | ✅ `ListNodes`/`DeleteNode` tenant params; cross-tenant `SaveEdge` rejected; adversarial tests |
+| Diagnosis prompt injection defence | ✅ `sanitiseForPrompt`; XML delimiters in retry builder |
+| Tournament judge prompt injection defence | ✅ `CANDIDATE-DIFF-BEGIN/END` comment markers |
+| Config validation | ✅ `validate.go`; `Config.Validate()` called in `Load()` |
+| Rate-limited LLM client | ✅ `RateLimitedClient` with configurable RPS |
+| PRM LLM scorer V2 | ✅ `LLMScorer` with `ChainOfThought` + V1 fallback |
+| Memory LLM extractor V2 | ✅ `LLMExtractor` merging LLM + V1 results |
+| Diagnosis LLM analyser V2 | ✅ `LLMAnalyser` with failure-mode validation + V1 fallback |
+| Integration tests — 8 subsystem scenarios | ✅ `tests/integration/subsystems_test.go` |
+| Integration tests — all-features smoke test | ✅ `tests/integration/all_features_test.go` |
+
+---
+
 ### Active Integration — Phase 3 ✅
 
 Tournament coordinator, PRM hint file writer:
@@ -338,9 +317,9 @@ live controller and `main.go`:
 |---|---------|----------|--------|
 | — | Tournament coordinator wiring | High | ✅ Complete |
 | — | PRM hint file writer | High | ✅ Complete |
-| — | SQLite persistence (routing, estimator, calibrator) | Medium | Not started |
-| — | LLM V2 upgrades (PRM, memory, diagnosis, judge) | Medium | Not started |
-| — | Security hardening | High | Not started |
+| — | SQLite persistence (routing, estimator, calibrator) | Medium | ✅ Complete |
+| — | LLM V2 upgrades (PRM, memory, diagnosis, judge) | Medium | ✅ Complete |
+| — | Security hardening | High | ✅ Complete |
 | — | E2E test suite | High | Not started |
 | 20 | PR/MR Comment Response | High | Not started |
 | 10 | Agent Dashboard | High | Not started |
