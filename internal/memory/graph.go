@@ -199,10 +199,15 @@ func (g *Graph) PruneStale(ctx context.Context, threshold float64) int {
 
 	g.mu.Unlock()
 
-	// Delete from backing store.
+	// Delete from backing store. Pass the node's tenant so the store-level
+	// tenant check is satisfied; pruning is an internal operation.
 	if g.store != nil {
 		for _, id := range pruned {
-			if err := g.store.DeleteNode(ctx, id); err != nil {
+			tenant := ""
+			if n, ok := g.nodes[id]; ok {
+				tenant = n.GetTenantID()
+			}
+			if err := g.store.DeleteNode(ctx, id, tenant); err != nil {
 				g.logger.Warn("failed to delete pruned node from store",
 					"node_id", id,
 					"error", err,
@@ -242,7 +247,8 @@ func (g *Graph) LoadFromStore(ctx context.Context) error {
 		return nil
 	}
 
-	nodes, err := g.store.ListNodes(ctx)
+	// Pass empty tenantID to load all nodes for all tenants at startup.
+	nodes, err := g.store.ListNodes(ctx, "")
 	if err != nil {
 		return fmt.Errorf("loading nodes from store: %w", err)
 	}

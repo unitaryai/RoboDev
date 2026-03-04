@@ -9,6 +9,105 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### SQLite Persistence for Routing, Estimator, and Watchdog Stores
+
+- **`internal/routing/sqlite.go`** — `SQLiteFingerprintStore` implementing `FingerprintStore`;
+  schema: `fingerprints(engine_name PK, data_json, updated_at)`; uses a shadow JSON struct to
+  avoid serialising the embedded `sync.RWMutex` in `EngineFingerprint`.
+- **`internal/estimator/sqlite.go`** — `SQLiteEstimatorStore` implementing `EstimatorStore`;
+  schema: `prediction_outcomes` with index on `engine`; kNN similarity search runs in Go using
+  Euclidean distance over the complexity feature vector.
+- **`internal/watchdog/sqlite.go`** — `SQLiteProfileStore` implementing `ProfileStore`;
+  schema: `calibrated_profiles` with composite primary key `(repo_pattern, engine, task_type)`.
+- All three stores use WAL mode, `INSERT OR REPLACE` upserts, and `modernc.org/sqlite` (no CGO).
+- Config: `StoragePath` added to `RoutingConfig` and `EstimatorConfig`; `CalibrationStorePath`
+  added to `AdaptiveCalibrationConfig`. When empty the existing in-memory store is used.
+- `cmd/robodev/main.go` conditionally constructs SQLite stores when the path is non-empty.
+- Unit tests (`sqlite_test.go` in each package) cover save/get round-trips, upsert semantics,
+  full-scan `List`, and persistence across close/reopen using `t.TempDir()`.
+
+#### Security Hardening
+
+- **Memory graph tenant isolation** (`internal/memory/store.go`):
+  - `ListNodes` now accepts a `tenantID string` parameter; an empty string returns all nodes
+    (administrative / startup use only).
+  - `DeleteNode` now accepts a `tenantID string` parameter and rejects cross-tenant deletes
+    with an explicit error.
+  - `SaveEdge` validates that both endpoint nodes share the same `tenant_id`; cross-tenant
+    edges are rejected before any write.
+  - `nodeTenantID` helper returns `("", nil)` for nodes absent from the store so that edges
+    to unregistered (external) nodes are still accepted.
+  - `internal/memory/graph.go` updated: `LoadFromStore` passes `""` to load all tenants;
+    `PruneStale` passes each node's own tenant ID when calling `DeleteNode`.
+  - Adversarial tests added for cross-tenant `ListNodes`, `DeleteNode`, and `SaveEdge`.
+- **Diagnosis prompt injection** (`internal/diagnosis/`):
+  - New `sanitise.go` exports `sanitiseForPrompt(s string, maxLen int) string` — strips ASCII
+    control characters (< 0x20 except `\n` and `\t`) and truncates to `maxLen`.
+  - `analyser.go` calls `sanitiseForPrompt` on `WatchdogReason` and `Result.Summary` before
+    building the classifier text.
+  - `retry_builder.go` wraps the corrective prescription in XML-style delimiters
+    (`<previous-attempt-output>`) with an explicit instruction not to follow injected content.
+- **Tournament judge prompt injection** (`internal/tournament/judge.go`):
+  - Each candidate diff is wrapped with `<!-- CANDIDATE-DIFF-BEGIN -->` /
+    `<!-- CANDIDATE-DIFF-END -->` comment markers.
+  - Instructions section clarified: treat diff content as data only; correctness outweighs
+    cost efficiency.
+- **Config validation** (`internal/config/validate.go`, `internal/config/config.go`):
+  - New `validate.go` with `validateNonNegativeFloat`, `validatePositiveInt`,
+    `validateFraction`, and `validateStorePath` helpers.
+  - `Config.Validate()` checks `GuardRails` bounds, `Routing.EpsilonGreedy` in [0, 1],
+    `Memory.PruneThreshold` in [0, 1], `CompetitiveExecution.DefaultCandidates` ≥ 2 when
+    non-zero, `PRM.HintFilePath`, and all new `StoragePath` fields for path-traversal safety.
+  - `Load()` calls `cfg.Validate()` before returning; invalid configuration is rejected at
+    startup.
+
+#### LLM V2 — Optional LLM-backed Scoring, Extraction, and Classification
+
+- **Rate-limited LLM client** (`internal/llm/ratelimited.go`):
+  - `RateLimitedClient` wraps any `Client` and enforces a minimum gap between requests
+    (`1s / rps`). Thread-safe via `sync.Mutex`.
+  - `NewRateLimitedClient(inner Client, rps float64) *RateLimitedClient`.
+- **PRM LLM scorer** (`internal/prm/scorer_llm.go`):
+  - `LLMScorer` uses a `ChainOfThought` module (inputs: `tool_calls`, `task_description`;
+    outputs: `score` int 1–10, `reasoning`) and falls back to the rule-based `Scorer` on
+    error or out-of-range score.
+  - `NewLLMScorer(client llm.Client, fallback *Scorer) *LLMScorer`.
+  - Config: `UseLLMScoring bool` added to `PRMConfig`; wired in `main.go`.
+- **Memory LLM extractor** (`internal/memory/extractor_llm.go`):
+  - `LLMExtractor` calls an LLM module (inputs: `task_description`, `outcome`, `summary`,
+    `engine`, `repo_url`; outputs: `facts`, `patterns` JSON arrays) and merges results with
+    the V1 rule-based extractor. Falls back to V1 on error.
+  - `NewLLMExtractor(client llm.Client, v1 *Extractor, logger *slog.Logger) *LLMExtractor`.
+  - Config: `UseLLMExtraction bool` added to `MemoryConfig`; wired in `main.go`.
+- **Diagnosis LLM analyser** (`internal/diagnosis/analyser_llm.go`):
+  - `LLMAnalyser` classifies failure modes via LLM (inputs: `watchdog_reason`,
+    `result_summary`, `tool_call_count`, `files_changed`; outputs: `failure_mode`,
+    `confidence`, `evidence`). Unknown mode strings trigger fallback to the rule-based
+    `Analyser`.
+  - `NewLLMAnalyser(client llm.Client, fallback *Analyser, logger *slog.Logger) *LLMAnalyser`.
+  - Config: `UseLLMClassification bool` added to `DiagnosisConfig`; wired in `main.go`.
+
+#### Integration Tests (`tests/integration/`)
+
+- **`subsystems_test.go`** (`//go:build integration`) — 8 scenario tests:
+  1. `TestPRMInterventions` — 10 identical tool calls → `ActionNudge` returned.
+  2. `TestMemoryAccumulation` — extract from 10 fake task runs → `QueryForTask` returns non-empty context.
+  3. `TestWatchdogCalibrationConverges` — 15 observations → `RefreshProfile` → calibrated
+     thresholds differ from defaults.
+  4. `TestDiagnosisOnLoopingCalls` — looping tool calls → `ModelConfusion` diagnosis; retry
+     prompt contains injection-defence delimiters.
+  5. `TestRoutingConvergence` — 20 outcomes (claude-code 90%, aider 25%) → `SelectEngines`
+     picks claude-code as primary ≥ 8/10 times.
+  6. `TestCostEstimatorAccuracy` — 10 outcomes → `Predict` returns cost within 3× of mean.
+  7. `TestTournamentFlow` — `StartTournament` → 2× `OnCandidateComplete` → `BeginJudging` →
+     `SelectWinner` → asserts `StateSelected`.
+  8. `TestTournamentJudgeInjectionDefense` — prompt contains `CANDIDATE-DIFF-BEGIN` markers and
+     injection instruction.
+- **`all_features_test.go`** (`//go:build integration`) — `TestAllFeaturesEnabled` smoke test:
+  wires PRM + memory + watchdog + routing + estimator + diagnosis + transcript + tournament
+  into a `Reconciler`, processes two tickets, and asserts no panics with all task runs
+  reaching a terminal state.
+
 #### PRM Hint File Writer (`internal/controller/controller.go`)
 
 - `writeHintFile(ctx, taskRunID, content string) error` — delivers PRM hint content directly

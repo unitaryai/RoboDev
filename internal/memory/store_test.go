@@ -82,7 +82,7 @@ func TestSQLiteStore_SaveAndListNodes(t *testing.T) {
 			err := store.SaveNode(ctx, tt.node)
 			require.NoError(t, err)
 
-			nodes, err := store.ListNodes(ctx)
+			nodes, err := store.ListNodes(ctx, "")
 			require.NoError(t, err)
 			require.Len(t, nodes, 1)
 
@@ -135,10 +135,10 @@ func TestSQLiteStore_DeleteNode(t *testing.T) {
 		FromID: "to-delete", ToID: "other", Relation: RelationRelatesTo, Weight: 1.0, CreatedAt: time.Now(),
 	}))
 
-	err := store.DeleteNode(ctx, "to-delete")
+	err := store.DeleteNode(ctx, "to-delete", "")
 	require.NoError(t, err)
 
-	nodes, err := store.ListNodes(ctx)
+	nodes, err := store.ListNodes(ctx, "")
 	require.NoError(t, err)
 	assert.Empty(t, nodes)
 }
@@ -200,8 +200,80 @@ func TestSQLiteStore_UpsertNode(t *testing.T) {
 	node.Content = "updated"
 	require.NoError(t, store.SaveNode(ctx, node))
 
-	nodes, err := store.ListNodes(ctx)
+	nodes, err := store.ListNodes(ctx, "")
 	require.NoError(t, err)
 	require.Len(t, nodes, 1)
 	assert.InDelta(t, 0.9, nodes[0].GetConfidence(), 0.001)
+}
+
+func TestSQLiteStore_TenantIsolation_ListNodes(t *testing.T) {
+	t.Parallel()
+
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	// Tenant A saves a node.
+	require.NoError(t, store.SaveNode(ctx, &Fact{
+		ID: "ta-node", Content: "tenant a fact", Confidence: 0.9,
+		DecayRate: 0.01, ValidFrom: time.Now(), TenantID: "tenant-a",
+	}))
+
+	// Tenant B lists nodes — must see empty result.
+	nodes, err := store.ListNodes(ctx, "tenant-b")
+	require.NoError(t, err)
+	assert.Empty(t, nodes, "tenant-b must not see tenant-a nodes")
+
+	// Tenant A lists nodes — must see its own node.
+	nodes, err = store.ListNodes(ctx, "tenant-a")
+	require.NoError(t, err)
+	assert.Len(t, nodes, 1)
+}
+
+func TestSQLiteStore_TenantIsolation_DeleteNode(t *testing.T) {
+	t.Parallel()
+
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	// Tenant A saves a node.
+	require.NoError(t, store.SaveNode(ctx, &Fact{
+		ID: "ta-node2", Content: "tenant a fact", Confidence: 0.9,
+		DecayRate: 0.01, ValidFrom: time.Now(), TenantID: "tenant-a",
+	}))
+
+	// Tenant B attempts to delete tenant A's node — must receive an error.
+	err := store.DeleteNode(ctx, "ta-node2", "tenant-b")
+	assert.Error(t, err, "cross-tenant delete must be rejected")
+
+	// Node must still exist.
+	nodes, err := store.ListNodes(ctx, "tenant-a")
+	require.NoError(t, err)
+	assert.Len(t, nodes, 1)
+}
+
+func TestSQLiteStore_TenantIsolation_CrossTenantEdge(t *testing.T) {
+	t.Parallel()
+
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	// Save nodes for different tenants.
+	require.NoError(t, store.SaveNode(ctx, &Fact{
+		ID: "ta-n1", Content: "a", Confidence: 0.9,
+		DecayRate: 0.01, ValidFrom: time.Now(), TenantID: "tenant-a",
+	}))
+	require.NoError(t, store.SaveNode(ctx, &Fact{
+		ID: "tb-n1", Content: "b", Confidence: 0.9,
+		DecayRate: 0.01, ValidFrom: time.Now(), TenantID: "tenant-b",
+	}))
+
+	// SaveEdge across tenants must be rejected.
+	err := store.SaveEdge(ctx, Edge{
+		FromID:    "ta-n1",
+		ToID:      "tb-n1",
+		Relation:  RelationRelatesTo,
+		Weight:    0.5,
+		CreatedAt: time.Now(),
+	})
+	assert.Error(t, err, "cross-tenant edge must be rejected")
 }

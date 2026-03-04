@@ -61,10 +61,10 @@ func (a *Analyser) Analyse(_ context.Context, input DiagnosisInput) (*Diagnosis,
 	eventTexts := extractEventTexts(input.Events)
 	allText := strings.Join(eventTexts, "\n")
 	if input.WatchdogReason != "" {
-		allText += "\n" + input.WatchdogReason
+		allText += "\n" + sanitiseForPrompt(input.WatchdogReason, 2000)
 	}
 	if input.Result != nil && input.Result.Summary != "" {
-		allText += "\n" + input.Result.Summary
+		allText += "\n" + sanitiseForPrompt(input.Result.Summary, 2000)
 	}
 
 	// Check each failure pattern in priority order.

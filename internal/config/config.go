@@ -58,6 +58,8 @@ type PRMConfig struct {
 	HintFilePath           string  `yaml:"hint_file_path"`
 	MaxTrajectoryLength    int     `yaml:"max_trajectory_length"`
 	MaxBudgetUSD           float64 `yaml:"max_budget_usd"`
+	// UseLLMScoring enables LLM-backed step scoring with rule-based fallback.
+	UseLLMScoring bool `yaml:"use_llm_scoring"`
 }
 
 // ExecutionConfig configures how agent workloads are executed.
@@ -440,6 +442,9 @@ type AdaptiveCalibrationConfig struct {
 	MinSampleCount      int    `yaml:"min_sample_count"`       // minimum observations before overriding static defaults (default 10)
 	PercentileThreshold string `yaml:"percentile_threshold"`   // "p50", "p90", or "p99" (default "p90")
 	ColdStartFallback   bool   `yaml:"cold_start_fallback"`    // use static defaults when insufficient data (default true)
+	// StorePath is the path for the SQLite-backed calibration profile store.
+	// When empty, an in-memory store is used.
+	StorePath string `yaml:"store_path,omitempty"`
 }
 
 // DiagnosisConfig configures the causal diagnosis subsystem for
@@ -448,15 +453,20 @@ type DiagnosisConfig struct {
 	Enabled              bool `yaml:"enabled"`
 	MaxDiagnosesPerTask  int  `yaml:"max_diagnoses_per_task"`  // maximum diagnoses before terminal failure (default 3)
 	EnableEngineSwitch   bool `yaml:"enable_engine_switch"`    // allow diagnosis to recommend engine switches
+	// UseLLMClassification enables LLM-backed failure classification with rule-based fallback.
+	UseLLMClassification bool `yaml:"use_llm_classification"`
 }
 
 // EstimatorConfig configures the predictive cost and duration estimation
 // subsystem.
 type EstimatorConfig struct {
-	Enabled                bool                       `yaml:"enabled"`
-	MaxPredictedCostPerJob float64                    `yaml:"max_predicted_cost_per_job"` // auto-reject above this (USD)
-	DefaultCostPerEngine   map[string]CostRange       `yaml:"default_cost_per_engine"`
+	Enabled                  bool                      `yaml:"enabled"`
+	MaxPredictedCostPerJob   float64                   `yaml:"max_predicted_cost_per_job"` // auto-reject above this (USD)
+	DefaultCostPerEngine     map[string]CostRange      `yaml:"default_cost_per_engine"`
 	DefaultDurationPerEngine map[string]DurationRange  `yaml:"default_duration_per_engine"`
+	// StoragePath is the path for the SQLite-backed outcome store.
+	// When empty, an in-memory store is used.
+	StoragePath string `yaml:"storage_path,omitempty"`
 }
 
 // CostRange represents a low/high cost range in USD.
@@ -487,6 +497,8 @@ type MemoryConfig struct {
 	PruneThreshold     float64 `yaml:"prune_threshold"`      // nodes below this confidence are pruned
 	MaxFactsPerQuery   int     `yaml:"max_facts_per_query"`  // maximum nodes returned per query
 	TenantIsolation    bool    `yaml:"tenant_isolation"`     // enforce strict tenant-scoped queries
+	// UseLLMExtraction enables LLM-backed knowledge extraction merged with V1 heuristics.
+	UseLLMExtraction bool `yaml:"use_llm_extraction"`
 }
 
 // AuditConfig configures audit log storage for task run transcripts.
@@ -503,6 +515,7 @@ type TranscriptConfig struct {
 }
 
 // Load reads and parses a RoboDev configuration file from the given path.
+// It returns an error if the file cannot be read, parsed, or fails validation.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -512,6 +525,10 @@ func Load(path string) (*Config, error) {
 	cfg := &Config{}
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parsing config file: %w", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	return cfg, nil

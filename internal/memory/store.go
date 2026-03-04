@@ -23,11 +23,14 @@ type MemoryStore interface {
 	// QueryNodes returns nodes matching the given query parameters.
 	QueryNodes(ctx context.Context, query GraphQuery) ([]Node, error)
 
-	// DeleteNode removes a node by ID.
-	DeleteNode(ctx context.Context, id string) error
+	// DeleteNode removes a node by ID. If tenantID is non-empty, an error is
+	// returned if the node belongs to a different tenant.
+	DeleteNode(ctx context.Context, id, tenantID string) error
 
-	// ListNodes returns all stored nodes.
-	ListNodes(ctx context.Context) ([]Node, error)
+	// ListNodes returns all stored nodes. If tenantID is non-empty, only nodes
+	// belonging to that tenant are returned; an empty string returns all nodes
+	// (for internal/administrative use).
+	ListNodes(ctx context.Context, tenantID string) ([]Node, error)
 
 	// Close releases any resources held by the store.
 	Close() error
@@ -130,9 +133,24 @@ func (s *SQLiteStore) SaveNode(ctx context.Context, node Node) error {
 	return nil
 }
 
-// SaveEdge persists an edge by upserting its row.
+// SaveEdge persists an edge by upserting its row. It validates that both
+// endpoint nodes belong to the same tenant to prevent cross-tenant edges.
 func (s *SQLiteStore) SaveEdge(ctx context.Context, edge Edge) error {
-	_, err := s.db.ExecContext(ctx,
+	// Validate tenant isolation: both nodes must share the same tenant.
+	fromTenant, err := s.nodeTenantID(ctx, edge.FromID)
+	if err != nil {
+		return fmt.Errorf("looking up tenant for from_id %q: %w", edge.FromID, err)
+	}
+	toTenant, err := s.nodeTenantID(ctx, edge.ToID)
+	if err != nil {
+		return fmt.Errorf("looking up tenant for to_id %q: %w", edge.ToID, err)
+	}
+	if fromTenant != toTenant {
+		return fmt.Errorf("cross-tenant edge rejected: %q (tenant %q) -> %q (tenant %q)",
+			edge.FromID, fromTenant, edge.ToID, toTenant)
+	}
+
+	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO edges (from_id, to_id, relation, weight, created_at)
 		 VALUES (?, ?, ?, ?, ?)
 		 ON CONFLICT(from_id, to_id, relation) DO UPDATE SET
@@ -147,6 +165,21 @@ func (s *SQLiteStore) SaveEdge(ctx context.Context, edge Edge) error {
 		return fmt.Errorf("upserting edge %q->%q: %w", edge.FromID, edge.ToID, err)
 	}
 	return nil
+}
+
+// nodeTenantID retrieves the tenant_id for a node by its ID. If the node does
+// not exist in the store (e.g. it is managed externally), an empty string is
+// returned and no error is raised, effectively treating the node as untenanted.
+func (s *SQLiteStore) nodeTenantID(ctx context.Context, nodeID string) (string, error) {
+	var tenantID string
+	err := s.db.QueryRowContext(ctx, `SELECT tenant_id FROM nodes WHERE id = ?`, nodeID).Scan(&tenantID)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("querying tenant for node %q: %w", nodeID, err)
+	}
+	return tenantID, nil
 }
 
 // QueryNodes returns nodes filtered by tenant_id. Additional filtering
@@ -164,8 +197,21 @@ func (s *SQLiteStore) QueryNodes(ctx context.Context, query GraphQuery) ([]Node,
 	return s.scanNodes(rows)
 }
 
-// DeleteNode removes a node and its associated edges.
-func (s *SQLiteStore) DeleteNode(ctx context.Context, id string) error {
+// DeleteNode removes a node and its associated edges. If tenantID is non-empty,
+// it checks that the node belongs to that tenant before deleting; a mismatch
+// returns an error without modifying the store.
+func (s *SQLiteStore) DeleteNode(ctx context.Context, id, tenantID string) error {
+	if tenantID != "" {
+		nodeTenant, err := s.nodeTenantID(ctx, id)
+		if err != nil {
+			return fmt.Errorf("looking up node %q for deletion: %w", id, err)
+		}
+		if nodeTenant != tenantID {
+			return fmt.Errorf("tenant mismatch: node %q belongs to tenant %q, not %q",
+				id, nodeTenant, tenantID)
+		}
+	}
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
@@ -181,9 +227,21 @@ func (s *SQLiteStore) DeleteNode(ctx context.Context, id string) error {
 	return tx.Commit()
 }
 
-// ListNodes returns all nodes from the store.
-func (s *SQLiteStore) ListNodes(ctx context.Context) ([]Node, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT type, content_json FROM nodes ORDER BY confidence DESC`)
+// ListNodes returns nodes from the store. If tenantID is non-empty, only nodes
+// belonging to that tenant are returned; an empty string returns all nodes.
+func (s *SQLiteStore) ListNodes(ctx context.Context, tenantID string) ([]Node, error) {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	if tenantID != "" {
+		rows, err = s.db.QueryContext(ctx,
+			`SELECT type, content_json FROM nodes WHERE tenant_id = ? ORDER BY confidence DESC`,
+			tenantID,
+		)
+	} else {
+		rows, err = s.db.QueryContext(ctx, `SELECT type, content_json FROM nodes ORDER BY confidence DESC`)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("listing nodes: %w", err)
 	}
