@@ -4,9 +4,13 @@
 package controller
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +18,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	k8sscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
 
 	"github.com/unitaryai/robodev/internal/agentstream"
 	"github.com/unitaryai/robodev/internal/config"
@@ -27,6 +34,7 @@ import (
 	"github.com/unitaryai/robodev/internal/scmrouter"
 	"github.com/unitaryai/robodev/internal/secretresolver"
 	"github.com/unitaryai/robodev/internal/taskrun"
+	"github.com/unitaryai/robodev/internal/tournament"
 	"github.com/unitaryai/robodev/internal/watchdog"
 	"github.com/unitaryai/robodev/pkg/engine"
 	"github.com/unitaryai/robodev/pkg/plugin/approval"
@@ -108,6 +116,23 @@ type Reconciler struct {
 
 	// Transcript storage — persists agent event streams as audit logs.
 	transcriptSink transcript.TranscriptSink
+
+	// restConfig is the Kubernetes REST config used for pod exec (hint file writes).
+	restConfig *rest.Config
+
+	// podNames maps task run IDs to the resolved pod name, populated once
+	// the stream reader finds the running agent pod.
+	podNames map[string]string
+
+	// Tournament coordinator — manages competitive parallel execution.
+	tournamentCoordinator *tournament.Coordinator
+
+	// taskRunRole tracks whether a task run is a tournament "candidate" or "judge".
+	// Absent entries are treated as normal (non-tournament) runs.
+	taskRunRole map[string]string
+
+	// taskRunToTournament maps a candidate or judge task run ID to its tournament ID.
+	taskRunToTournament map[string]string
 }
 
 // ReconcilerOption configures the Reconciler.
@@ -253,19 +278,35 @@ func WithTranscriptSink(sink transcript.TranscriptSink) ReconcilerOption {
 	return func(r *Reconciler) { r.transcriptSink = sink }
 }
 
+// WithRestConfig sets the Kubernetes REST config used for pod exec operations
+// such as writing PRM hint files directly to the agent pod's workspace.
+func WithRestConfig(cfg *rest.Config) ReconcilerOption {
+	return func(r *Reconciler) { r.restConfig = cfg }
+}
+
+// WithTournamentCoordinator enables competitive execution mode. When set,
+// ProcessTicket launches multiple candidate jobs in parallel and uses a
+// judge engine to select the best result.
+func WithTournamentCoordinator(c *tournament.Coordinator) ReconcilerOption {
+	return func(r *Reconciler) { r.tournamentCoordinator = c }
+}
+
 // NewReconciler creates a new Reconciler with the given configuration.
 func NewReconciler(cfg *config.Config, logger *slog.Logger, opts ...ReconcilerOption) *Reconciler {
 	r := &Reconciler{
-		config:        cfg,
-		logger:        logger,
-		engines:       make(map[string]engine.ExecutionEngine),
-		taskRuns:      make(map[string]*taskrun.TaskRun),
-		engineChains:  make(map[string][]string),
-		streamReaders: make(map[string]context.CancelFunc),
-		prmEvaluators: make(map[string]*prm.Evaluator),
-		ticketCache:   make(map[string]ticketing.Ticket),
-		heartbeats:    make(map[string]*watchdog.Heartbeat),
-		heartbeatSeqs: make(map[string]int64),
+		config:              cfg,
+		logger:              logger,
+		engines:             make(map[string]engine.ExecutionEngine),
+		taskRuns:            make(map[string]*taskrun.TaskRun),
+		engineChains:        make(map[string][]string),
+		streamReaders:       make(map[string]context.CancelFunc),
+		prmEvaluators:       make(map[string]*prm.Evaluator),
+		ticketCache:         make(map[string]ticketing.Ticket),
+		heartbeats:          make(map[string]*watchdog.Heartbeat),
+		heartbeatSeqs:       make(map[string]int64),
+		podNames:            make(map[string]string),
+		taskRunRole:         make(map[string]string),
+		taskRunToTournament: make(map[string]string),
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -432,6 +473,17 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 				return r.ticketing.MarkFailed(ctx, ticket.ID, "predicted cost exceeds configured maximum")
 			}
 		}
+	}
+
+	// When the tournament coordinator is active and enough engines are
+	// registered, launch multiple candidate jobs in parallel instead of a
+	// single job. launchTournament handles ticket caching, metrics, and
+	// notification itself, so we return directly after calling it.
+	if r.tournamentCoordinator != nil &&
+		r.config.CompetitiveExecution.Enabled &&
+		r.config.CompetitiveExecution.DefaultCandidates >= 2 &&
+		len(r.engines) >= 2 {
+		return r.launchTournament(ctx, ticket)
 	}
 
 	// Create TaskRun.
@@ -682,6 +734,22 @@ func (r *Reconciler) checkJobStatus(ctx context.Context, tr *taskrun.TaskRun) {
 func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun) {
 	r.cancelStreamReader(tr.ID)
 	r.cleanupPRMEvaluator(tr.ID)
+	r.cleanupHintFile(ctx, tr.ID)
+	defer r.cleanupPodName(tr.ID)
+
+	// Dispatch to tournament-specific handler when this is a candidate or judge run.
+	r.mu.RLock()
+	role := r.taskRunRole[tr.ID]
+	tournamentID := r.taskRunToTournament[tr.ID]
+	r.mu.RUnlock()
+	switch role {
+	case "candidate":
+		r.handleCandidateComplete(ctx, tr, tournamentID)
+		return
+	case "judge":
+		r.handleJudgeComplete(ctx, tr, tournamentID)
+		return
+	}
 
 	// Check pre-merge approval gate: hold the TaskRun in NeedsHuman state
 	// before marking the ticket complete, so a human can review the output.
@@ -814,6 +882,38 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 func (r *Reconciler) handleJobFailed(ctx context.Context, tr *taskrun.TaskRun, reason string) {
 	r.cancelStreamReader(tr.ID)
 	r.cleanupPRMEvaluator(tr.ID)
+	r.cleanupHintFile(ctx, tr.ID)
+	defer r.cleanupPodName(tr.ID)
+
+	// For tournament candidates/judges, record failure with the coordinator
+	// before falling through to normal failure handling.
+	r.mu.RLock()
+	role := r.taskRunRole[tr.ID]
+	tournamentID := r.taskRunToTournament[tr.ID]
+	r.mu.RUnlock()
+	if role == "candidate" && tournamentID != "" {
+		result := &tournament.CandidateResult{
+			TaskRunID: tr.ID,
+			Engine:    tr.CurrentEngine,
+			Success:   false,
+			Summary:   reason,
+		}
+		if _, err := r.tournamentCoordinator.OnCandidateComplete(ctx, tournamentID, result); err != nil {
+			r.logger.WarnContext(ctx, "recording failed candidate in tournament",
+				"task_run_id", tr.ID,
+				"tournament_id", tournamentID,
+				"error", err,
+			)
+		}
+	}
+	if role == "judge" && tournamentID != "" {
+		if err := r.tournamentCoordinator.CancelTournament(ctx, tournamentID); err != nil {
+			r.logger.WarnContext(ctx, "cancelling tournament after judge failure",
+				"tournament_id", tournamentID,
+				"error", err,
+			)
+		}
+	}
 
 	r.mu.Lock()
 
@@ -1176,6 +1276,9 @@ func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun)
 				"task_run_id", tr.ID,
 				"pod", podName,
 			)
+			r.mu.Lock()
+			r.podNames[tr.ID] = podName
+			r.mu.Unlock()
 
 			if err := reader.ReadPodLogs(streamCtx, r.k8sClient, r.namespace, podName, "agent", eventCh); err != nil {
 				if streamCtx.Err() == nil {
@@ -1270,10 +1373,9 @@ func (r *Reconciler) cancelStreamReader(taskRunID string) {
 	}
 }
 
-// recordPRMHint logs the PRM intervention and records it on the TaskRun so
-// that the quality gate and audit trail have visibility. In v1 we do not
-// write directly to the agent pod; a future iteration will deliver hints
-// via a projected ConfigMap volume.
+// recordPRMHint logs the PRM intervention, increments metrics, and delivers
+// the hint content to the running agent pod via writeHintFile. The file write
+// is performed asynchronously so the stream reader is not blocked.
 func (r *Reconciler) recordPRMHint(ctx context.Context, tr *taskrun.TaskRun, intervention *prm.Intervention) {
 	r.logger.InfoContext(ctx, "prm nudge recorded",
 		"task_run_id", tr.ID,
@@ -1282,6 +1384,25 @@ func (r *Reconciler) recordPRMHint(ctx context.Context, tr *taskrun.TaskRun, int
 	)
 
 	metrics.PRMInterventionsTotal.WithLabelValues(string(intervention.Action)).Inc()
+
+	if intervention.HintContent == "" || r.restConfig == nil {
+		return
+	}
+
+	// Capture values for the goroutine before r.mu can be modified.
+	taskRunID := tr.ID
+	content := intervention.HintContent
+
+	go func() {
+		writeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := r.writeHintFile(writeCtx, taskRunID, content); err != nil {
+			r.logger.Warn("prm hint file write failed",
+				"task_run_id", taskRunID,
+				"error", err,
+			)
+		}
+	}()
 }
 
 // cleanupPRMEvaluator removes the PRM evaluator for the given task run ID.
@@ -1450,9 +1571,9 @@ func (r *Reconciler) launchRetryJob(ctx context.Context, tr *taskrun.TaskRun, pr
 		TicketID: tr.TicketID,
 	}
 	if hasTicket {
-		task.Title   = cachedTicket.Title
+		task.Title = cachedTicket.Title
 		task.RepoURL = cachedTicket.RepoURL
-		task.Labels  = cachedTicket.Labels
+		task.Labels = cachedTicket.Labels
 	}
 	task.Description = desc
 
@@ -1554,16 +1675,16 @@ func (r *Reconciler) recordTaskOutcome(ctx context.Context, tr *taskrun.TaskRun,
 			taskType = cachedTicket.TicketType
 		}
 		obs := watchdog.Observation{
-			RepoURL:             repoURL,
-			Engine:              tr.CurrentEngine,
-			TaskType:            taskType,
-			TokensConsumed:      int64(tr.TokensConsumed),
-			ToolCallsTotal:      tr.ToolCallsTotal,
-			FilesChanged:        tr.FilesChanged,
-			CostEstimateUSD:     costUSD,
-			DurationSeconds:     duration.Seconds(),
+			RepoURL:              repoURL,
+			Engine:               tr.CurrentEngine,
+			TaskType:             taskType,
+			TokensConsumed:       int64(tr.TokensConsumed),
+			ToolCallsTotal:       tr.ToolCallsTotal,
+			FilesChanged:         tr.FilesChanged,
+			CostEstimateUSD:      costUSD,
+			DurationSeconds:      duration.Seconds(),
 			ConsecutiveIdentical: tr.ConsecutiveIdenticalTools,
-			CompletedAt:         time.Now(),
+			CompletedAt:          time.Now(),
 		}
 		r.calibrator.Record(ctx, obs)
 
@@ -1715,4 +1836,752 @@ func matchGlob(pattern, value string) bool {
 		return len(value) >= len(suffix) && value[len(value)-len(suffix):] == suffix
 	}
 	return pattern == value
+}
+
+// validateHintPath verifies that a configured PRM hint file path does not
+// contain path traversal components. Returns an error if any component is "..".
+func validateHintPath(path string) error {
+	if path == "" {
+		return fmt.Errorf("hint file path is empty")
+	}
+	for _, component := range strings.Split(filepath.ToSlash(path), "/") {
+		if component == ".." {
+			return fmt.Errorf("hint file path %q contains path traversal", path)
+		}
+	}
+	return nil
+}
+
+// writeHintFile delivers PRM hint content to the running agent pod by
+// executing a tee command inside the container via the Kubernetes exec API.
+// The hint path defaults to /workspace/.robodev-hint.md when not configured.
+func (r *Reconciler) writeHintFile(ctx context.Context, taskRunID, content string) error {
+	if r.restConfig == nil || r.k8sClient == nil {
+		return fmt.Errorf("rest config or k8s client not available for hint write")
+	}
+
+	hintPath := r.config.PRM.HintFilePath
+	if hintPath == "" {
+		hintPath = "/workspace/.robodev-hint.md"
+	}
+	if err := validateHintPath(hintPath); err != nil {
+		return fmt.Errorf("invalid hint file path: %w", err)
+	}
+
+	r.mu.RLock()
+	podName := r.podNames[taskRunID]
+	r.mu.RUnlock()
+
+	if podName == "" {
+		return fmt.Errorf("pod name not yet resolved for task run %q", taskRunID)
+	}
+
+	req := r.k8sClient.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(r.namespace).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: "agent",
+			Command:   []string{"tee", hintPath},
+			Stdin:     true,
+			Stdout:    true,
+			Stderr:    true,
+		}, k8sscheme.ParameterCodec)
+
+	executor, err := remotecommand.NewSPDYExecutor(r.restConfig, "POST", req.URL())
+	if err != nil {
+		return fmt.Errorf("creating SPDY executor for hint write: %w", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if err := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdin:  strings.NewReader(content),
+		Stdout: &stdout,
+		Stderr: &stderr,
+	}); err != nil {
+		return fmt.Errorf("writing hint file to pod %q: %w (stderr: %s)", podName, err, stderr.String())
+	}
+
+	r.logger.Debug("prm hint file written",
+		"task_run_id", taskRunID,
+		"pod", podName,
+		"hint_path", hintPath,
+		"bytes", len(content),
+	)
+	return nil
+}
+
+// cleanupHintFile removes the PRM hint file from the agent pod when the task
+// run completes. It uses a short timeout and treats errors as non-fatal since
+// hint cleanup must not block task completion.
+func (r *Reconciler) cleanupHintFile(ctx context.Context, taskRunID string) {
+	if r.restConfig == nil || r.k8sClient == nil {
+		return
+	}
+
+	hintPath := r.config.PRM.HintFilePath
+	if hintPath == "" {
+		hintPath = "/workspace/.robodev-hint.md"
+	}
+	if err := validateHintPath(hintPath); err != nil {
+		r.logger.Warn("skipping hint cleanup: invalid path",
+			"task_run_id", taskRunID,
+			"error", err,
+		)
+		return
+	}
+
+	r.mu.RLock()
+	podName := r.podNames[taskRunID]
+	r.mu.RUnlock()
+
+	if podName == "" {
+		return // pod already gone or name never resolved
+	}
+
+	req := r.k8sClient.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(r.namespace).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: "agent",
+			Command:   []string{"rm", "-f", hintPath},
+			Stdin:     false,
+			Stdout:    true,
+			Stderr:    true,
+		}, k8sscheme.ParameterCodec)
+
+	executor, err := remotecommand.NewSPDYExecutor(r.restConfig, "POST", req.URL())
+	if err != nil {
+		r.logger.Warn("failed to create SPDY executor for hint cleanup",
+			"task_run_id", taskRunID,
+			"pod", podName,
+			"error", err,
+		)
+		return
+	}
+
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var stderr bytes.Buffer
+	if err := executor.StreamWithContext(cleanupCtx, remotecommand.StreamOptions{
+		Stderr: &stderr,
+	}); err != nil {
+		r.logger.Warn("hint file cleanup failed",
+			"task_run_id", taskRunID,
+			"pod", podName,
+			"error", err,
+		)
+	}
+}
+
+// cleanupPodName removes the cached pod name for a completed or failed task
+// run. Safe to call even when no pod name was cached.
+func (r *Reconciler) cleanupPodName(taskRunID string) {
+	r.mu.Lock()
+	delete(r.podNames, taskRunID)
+	r.mu.Unlock()
+}
+
+// launchTournament starts a competitive execution tournament by creating
+// multiple candidate jobs in parallel. Each candidate runs the same ticket
+// on a different engine; a judge engine later selects the best result.
+func (r *Reconciler) launchTournament(ctx context.Context, ticket ticketing.Ticket) error {
+	cfg := r.config.CompetitiveExecution
+	candidateCount := cfg.DefaultCandidates
+
+	// Build the ordered list of candidate engines from the selector, padding
+	// with unselected engines when the chain is shorter than candidateCount.
+	engineChain := r.engineSelector.SelectEngines(ticket)
+	if len(engineChain) < candidateCount {
+		seen := make(map[string]bool, len(engineChain))
+		for _, e := range engineChain {
+			seen[e] = true
+		}
+		for name := range r.engines {
+			if !seen[name] {
+				engineChain = append(engineChain, name)
+			}
+		}
+	}
+	if candidateCount > len(engineChain) {
+		candidateCount = len(engineChain)
+	}
+	candidateEngines := engineChain[:candidateCount]
+
+	// Cache the ticket so completion handlers can access its metadata.
+	r.mu.Lock()
+	r.ticketCache[ticket.ID] = ticket
+	r.mu.Unlock()
+
+	// Query episodic memory once and share the context across all candidates.
+	var memoryContext string
+	if r.memoryQuery != nil {
+		if mc, qErr := r.memoryQuery.QueryForTask(ctx, ticket.Description, ticket.RepoURL, candidateEngines[0], ""); qErr == nil && mc != nil {
+			memoryContext = mc.FormattedSection
+		}
+	}
+
+	tournamentID := fmt.Sprintf("tournament-%s-%d", ticket.ID, time.Now().UnixMilli())
+
+	// Create and launch a TaskRun + Job for each candidate engine.
+	var candidateTaskRunIDs []string
+	var createdTaskRuns []*taskrun.TaskRun
+
+	for i, engineName := range candidateEngines {
+		eng, ok := r.engines[engineName]
+		if !ok {
+			r.logger.WarnContext(ctx, "tournament candidate engine not registered, skipping",
+				"engine", engineName,
+			)
+			continue
+		}
+
+		task := engine.Task{
+			ID:            ticket.ID,
+			TicketID:      ticket.ID,
+			Title:         ticket.Title,
+			Description:   ticket.Description,
+			RepoURL:       ticket.RepoURL,
+			Labels:        ticket.Labels,
+			MemoryContext: memoryContext,
+		}
+
+		engineCfg := engine.EngineConfig{
+			TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
+			Image:          r.config.Engines.ImageFor(engineName),
+			SecretKeyRefs:  r.agentSecretKeyRefs(),
+			Env:            r.slackEnv(),
+		}
+
+		spec, err := eng.BuildExecutionSpec(task, engineCfg)
+		if err != nil {
+			r.logger.ErrorContext(ctx, "failed to build tournament candidate execution spec",
+				"engine", engineName,
+				"ticket_id", ticket.ID,
+				"error", err,
+			)
+			continue
+		}
+
+		// Use the standard idempotency key for the first candidate so the
+		// per-ticket idempotency check in ProcessTicket works correctly when
+		// the ticket is polled again before the tournament completes.
+		var idempotencyKey string
+		if i == 0 {
+			idempotencyKey = fmt.Sprintf("%s-1", ticket.ID)
+		} else {
+			idempotencyKey = fmt.Sprintf("%s-t%d", ticket.ID, i)
+		}
+
+		tr := taskrun.New(
+			fmt.Sprintf("tr-%s-%s-%d", ticket.ID, engineName, time.Now().UnixMilli()),
+			idempotencyKey,
+			ticket.ID,
+			engineName,
+		)
+		tr.CurrentEngine = engineName
+		tr.EngineAttempts = []string{engineName}
+
+		if err := r.taskRunStore.Save(ctx, tr); err != nil {
+			r.logger.ErrorContext(ctx, "failed to save tournament candidate task run",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+		}
+
+		job, err := r.jobBuilder.Build(tr.ID, engineName, spec)
+		if err != nil {
+			r.logger.ErrorContext(ctx, "failed to build tournament candidate k8s job",
+				"engine", engineName,
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+			continue
+		}
+
+		if r.k8sClient != nil {
+			if _, err := r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
+				r.logger.ErrorContext(ctx, "failed to create tournament candidate k8s job",
+					"engine", engineName,
+					"task_run_id", tr.ID,
+					"error", err,
+				)
+				continue
+			}
+		}
+
+		if err := tr.Transition(taskrun.StateRunning); err != nil {
+			r.logger.ErrorContext(ctx, "failed to transition tournament candidate to running",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+			continue
+		}
+		tr.JobName = job.Name
+
+		candidateTaskRunIDs = append(candidateTaskRunIDs, tr.ID)
+		createdTaskRuns = append(createdTaskRuns, tr)
+	}
+
+	if len(candidateTaskRunIDs) < 2 {
+		return fmt.Errorf("only %d tournament candidates launched (need at least 2)", len(candidateTaskRunIDs))
+	}
+
+	// Register the tournament with the coordinator.
+	tournamentCfg := tournament.TournamentConfig{
+		CandidateCount:            len(candidateTaskRunIDs),
+		CandidateEngines:          candidateEngines,
+		JudgeEngine:               cfg.JudgeEngine,
+		EarlyTerminationThreshold: cfg.EarlyTerminationThreshold,
+		MaxConcurrentTournaments:  cfg.MaxConcurrentTournaments,
+	}
+	if _, err := r.tournamentCoordinator.StartTournament(ctx, tournamentID, ticket.ID, candidateTaskRunIDs, tournamentCfg); err != nil {
+		return fmt.Errorf("starting tournament: %w", err)
+	}
+
+	// Register all task runs and their tournament roles.
+	r.mu.Lock()
+	for _, tr := range createdTaskRuns {
+		r.taskRuns[tr.IdempotencyKey] = tr
+		r.engineChains[tr.IdempotencyKey] = []string{tr.CurrentEngine}
+		r.taskRunRole[tr.ID] = "candidate"
+		r.taskRunToTournament[tr.ID] = tournamentID
+	}
+	r.mu.Unlock()
+
+	// Persist state for all created task runs.
+	for _, tr := range createdTaskRuns {
+		if err := r.taskRunStore.Save(ctx, tr); err != nil {
+			r.logger.ErrorContext(ctx, "failed to persist tournament candidate task run state",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
+		}
+	}
+
+	metrics.ActiveJobs.Add(float64(len(createdTaskRuns)))
+	for range createdTaskRuns {
+		metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
+	}
+
+	if err := r.ticketing.MarkInProgress(ctx, ticket.ID); err != nil {
+		r.logger.ErrorContext(ctx, "failed to mark ticket in progress for tournament",
+			"ticket_id", ticket.ID,
+			"error", err,
+		)
+	}
+
+	for _, n := range r.notifiers {
+		if err := n.NotifyStart(ctx, ticket); err != nil {
+			r.logger.ErrorContext(ctx, "notification failed",
+				"channel", n.Name(),
+				"error", err,
+			)
+		}
+	}
+
+	for _, tr := range createdTaskRuns {
+		if tr.CurrentEngine == "claude-code" {
+			r.startStreamReader(ctx, tr)
+		}
+	}
+
+	r.logger.InfoContext(ctx, "tournament launched",
+		"tournament_id", tournamentID,
+		"ticket_id", ticket.ID,
+		"candidates", len(candidateTaskRunIDs),
+	)
+
+	return nil
+}
+
+// handleCandidateComplete processes a tournament candidate that has finished
+// execution. It records the result with the coordinator and, when the
+// early-termination threshold is met, cancels lagging candidates and starts
+// the judging phase.
+func (r *Reconciler) handleCandidateComplete(ctx context.Context, tr *taskrun.TaskRun, tournamentID string) {
+	r.mu.Lock()
+	if err := tr.Transition(taskrun.StateSucceeded); err != nil {
+		r.mu.Unlock()
+		r.logger.ErrorContext(ctx, "failed to transition tournament candidate to succeeded",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+		return
+	}
+	result := engine.TaskResult{Success: true, Summary: "candidate completed"}
+	if tr.Result != nil {
+		result = *tr.Result
+	}
+	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save tournament candidate task run",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Dec()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateSucceeded)).Inc()
+
+	var costUSD float64
+	if tr.Result != nil {
+		costUSD = tr.Result.CostEstimateUSD
+	}
+
+	candidateResult := &tournament.CandidateResult{
+		TaskRunID: tr.ID,
+		Engine:    tr.CurrentEngine,
+		Summary:   result.Summary,
+		Success:   result.Success,
+		Cost:      costUSD,
+		Duration:  time.Since(tr.CreatedAt),
+	}
+
+	readyForJudging, err := r.tournamentCoordinator.OnCandidateComplete(ctx, tournamentID, candidateResult)
+	if err != nil {
+		r.logger.WarnContext(ctx, "recording tournament candidate result",
+			"task_run_id", tr.ID,
+			"tournament_id", tournamentID,
+			"error", err,
+		)
+		return
+	}
+
+	r.logger.InfoContext(ctx, "tournament candidate completed",
+		"task_run_id", tr.ID,
+		"tournament_id", tournamentID,
+		"engine", tr.CurrentEngine,
+		"success", result.Success,
+		"ready_for_judging", readyForJudging,
+	)
+
+	if !readyForJudging {
+		return
+	}
+
+	// Cancel stream readers for candidates that haven't finished yet.
+	for _, lagID := range r.tournamentCoordinator.LaggingCandidates(tournamentID) {
+		r.cancelStreamReader(lagID)
+	}
+
+	r.launchJudge(ctx, tournamentID)
+}
+
+// launchJudge creates the judge job for a tournament. It atomically
+// transitions the tournament to the judging phase (preventing duplicate
+// judges), builds a judge prompt from completed candidates, and launches
+// a K8s Job using the configured judge engine.
+func (r *Reconciler) launchJudge(ctx context.Context, tournamentID string) {
+	t := r.tournamentCoordinator.GetTournament(tournamentID)
+	if t == nil {
+		r.logger.ErrorContext(ctx, "tournament not found when launching judge",
+			"tournament_id", tournamentID,
+		)
+		return
+	}
+
+	if len(t.CompletedResults()) < 2 {
+		r.logger.WarnContext(ctx, "not enough completed candidates to judge, cancelling",
+			"tournament_id", tournamentID,
+			"completed", len(t.CompletedResults()),
+		)
+		_ = r.tournamentCoordinator.CancelTournament(ctx, tournamentID)
+		return
+	}
+
+	// Determine the judge engine.
+	judgeEngineName := t.Config.JudgeEngine
+	if judgeEngineName == "" {
+		for name := range r.engines {
+			judgeEngineName = name
+			break
+		}
+	}
+	judgeEng, ok := r.engines[judgeEngineName]
+	if !ok {
+		r.logger.ErrorContext(ctx, "judge engine not registered",
+			"engine", judgeEngineName,
+			"tournament_id", tournamentID,
+		)
+		_ = r.tournamentCoordinator.CancelTournament(ctx, tournamentID)
+		return
+	}
+
+	// Pre-generate the judge task run ID so it can be passed to BeginJudging
+	// atomically, preventing any concurrent goroutine from launching a second judge.
+	judgeRunID := fmt.Sprintf("tr-%s-judge-%d", t.TicketID, time.Now().UnixMilli())
+
+	// Transition tournament to judging state. This call is atomic under the
+	// coordinator's mutex, so only one goroutine succeeds.
+	candidates, err := r.tournamentCoordinator.BeginJudging(ctx, tournamentID, judgeRunID)
+	if err != nil {
+		r.logger.WarnContext(ctx, "tournament judging already started or transition failed",
+			"tournament_id", tournamentID,
+			"error", err,
+		)
+		return
+	}
+
+	// Retrieve the task description from the ticket cache.
+	r.mu.RLock()
+	cachedTicket, hasTicket := r.ticketCache[t.TicketID]
+	r.mu.RUnlock()
+
+	taskDescription := t.TicketID // fallback to ticket ID when not cached
+	if hasTicket {
+		taskDescription = cachedTicket.Description
+	}
+
+	// Build the judge prompt from completed candidate results.
+	promptBuilder := tournament.NewJudgePromptBuilder()
+	judgePrompt, err := promptBuilder.BuildPrompt(taskDescription, candidates)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to build judge prompt",
+			"tournament_id", tournamentID,
+			"error", err,
+		)
+		_ = r.tournamentCoordinator.CancelTournament(ctx, tournamentID)
+		return
+	}
+
+	judgeTask := engine.Task{
+		ID:          t.TicketID + "-judge",
+		TicketID:    t.TicketID,
+		Title:       "Tournament Judge: " + t.TicketID,
+		Description: judgePrompt,
+	}
+	if hasTicket {
+		judgeTask.RepoURL = cachedTicket.RepoURL
+	}
+
+	judgeEngineCfg := engine.EngineConfig{
+		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
+		Image:          r.config.Engines.ImageFor(judgeEngineName),
+		SecretKeyRefs:  r.agentSecretKeyRefs(),
+		Env:            r.slackEnv(),
+	}
+
+	spec, err := judgeEng.BuildExecutionSpec(judgeTask, judgeEngineCfg)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to build judge execution spec",
+			"engine", judgeEngineName,
+			"tournament_id", tournamentID,
+			"error", err,
+		)
+		_ = r.tournamentCoordinator.CancelTournament(ctx, tournamentID)
+		return
+	}
+
+	judgeTR := taskrun.New(
+		judgeRunID,
+		fmt.Sprintf("%s-judge", t.TicketID),
+		t.TicketID,
+		judgeEngineName,
+	)
+	judgeTR.CurrentEngine = judgeEngineName
+	judgeTR.EngineAttempts = []string{judgeEngineName}
+
+	job, err := r.jobBuilder.Build(judgeTR.ID, judgeEngineName, spec)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to build judge k8s job",
+			"engine", judgeEngineName,
+			"task_run_id", judgeTR.ID,
+			"error", err,
+		)
+		_ = r.tournamentCoordinator.CancelTournament(ctx, tournamentID)
+		return
+	}
+
+	if r.k8sClient != nil {
+		if _, err := r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
+			r.logger.ErrorContext(ctx, "failed to create judge k8s job",
+				"engine", judgeEngineName,
+				"task_run_id", judgeTR.ID,
+				"error", err,
+			)
+			_ = r.tournamentCoordinator.CancelTournament(ctx, tournamentID)
+			return
+		}
+	}
+
+	if err := judgeTR.Transition(taskrun.StateRunning); err != nil {
+		r.logger.ErrorContext(ctx, "failed to transition judge task run to running",
+			"task_run_id", judgeTR.ID,
+			"error", err,
+		)
+		return
+	}
+	judgeTR.JobName = job.Name
+
+	r.mu.Lock()
+	r.taskRuns[judgeTR.IdempotencyKey] = judgeTR
+	r.engineChains[judgeTR.IdempotencyKey] = []string{judgeEngineName}
+	r.taskRunRole[judgeTR.ID] = "judge"
+	r.taskRunToTournament[judgeTR.ID] = tournamentID
+	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, judgeTR); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save judge task run",
+			"task_run_id", judgeTR.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Inc()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
+
+	if judgeEngineName == "claude-code" {
+		r.startStreamReader(ctx, judgeTR)
+	}
+
+	r.logger.InfoContext(ctx, "tournament judge job launched",
+		"tournament_id", tournamentID,
+		"judge_task_run_id", judgeTR.ID,
+		"engine", judgeEngineName,
+		"job", job.Name,
+	)
+}
+
+// handleJudgeComplete processes a completed tournament judge run. It parses
+// the JudgeDecision from the result summary (expected as a JSON object),
+// records the winner with the coordinator, and completes the ticket using
+// the winning candidate's result.
+func (r *Reconciler) handleJudgeComplete(ctx context.Context, tr *taskrun.TaskRun, tournamentID string) {
+	r.mu.Lock()
+	if err := tr.Transition(taskrun.StateSucceeded); err != nil {
+		r.mu.Unlock()
+		r.logger.ErrorContext(ctx, "failed to transition judge task run to succeeded",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+		return
+	}
+	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save judge task run",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Dec()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateSucceeded)).Inc()
+
+	t := r.tournamentCoordinator.GetTournament(tournamentID)
+	if t == nil {
+		r.logger.ErrorContext(ctx, "tournament not found when processing judge result",
+			"tournament_id", tournamentID,
+			"task_run_id", tr.ID,
+		)
+		return
+	}
+
+	// Parse the JudgeDecision from the result summary. The judge may embed
+	// prose around the JSON block, so we extract the first {...} substring.
+	summaryJSON := ""
+	if tr.Result != nil {
+		summaryJSON = tr.Result.Summary
+	}
+	if start := strings.Index(summaryJSON, "{"); start >= 0 {
+		if end := strings.LastIndex(summaryJSON, "}"); end > start {
+			summaryJSON = summaryJSON[start : end+1]
+		}
+	}
+
+	var decision tournament.JudgeDecision
+	if err := json.Unmarshal([]byte(summaryJSON), &decision); err != nil {
+		r.logger.WarnContext(ctx, "failed to parse judge decision, defaulting to candidate 0",
+			"tournament_id", tournamentID,
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+		decision.WinnerIndex = 0
+	}
+
+	candidates := t.CompletedResults()
+	if len(candidates) == 0 {
+		r.logger.ErrorContext(ctx, "no candidates available for winner selection",
+			"tournament_id", tournamentID,
+		)
+		_ = r.tournamentCoordinator.CancelTournament(ctx, tournamentID)
+		return
+	}
+
+	if decision.WinnerIndex < 0 || decision.WinnerIndex >= len(candidates) {
+		r.logger.WarnContext(ctx, "judge winner index out of range, defaulting to 0",
+			"tournament_id", tournamentID,
+			"winner_index", decision.WinnerIndex,
+			"candidates", len(candidates),
+		)
+		decision.WinnerIndex = 0
+	}
+
+	winnerResult := candidates[decision.WinnerIndex]
+	if err := r.tournamentCoordinator.SelectWinner(ctx, tournamentID, winnerResult.TaskRunID); err != nil {
+		r.logger.ErrorContext(ctx, "failed to record tournament winner",
+			"tournament_id", tournamentID,
+			"winner_task_run_id", winnerResult.TaskRunID,
+			"error", err,
+		)
+		return
+	}
+
+	r.logger.InfoContext(ctx, "tournament winner selected",
+		"tournament_id", tournamentID,
+		"winner_task_run_id", winnerResult.TaskRunID,
+		"winner_engine", winnerResult.Engine,
+		"reasoning", decision.Reasoning,
+	)
+
+	result := engine.TaskResult{
+		Success: winnerResult.Success,
+		Summary: winnerResult.Summary,
+	}
+
+	r.mu.RLock()
+	cachedTicket, hasTicket := r.ticketCache[t.TicketID]
+	r.mu.RUnlock()
+
+	if r.ticketing != nil {
+		if err := r.ticketing.MarkComplete(ctx, t.TicketID, result); err != nil {
+			r.logger.ErrorContext(ctx, "failed to mark ticket complete after tournament",
+				"ticket_id", t.TicketID,
+				"error", err,
+			)
+		}
+	}
+
+	if hasTicket {
+		for _, n := range r.notifiers {
+			if err := n.NotifyComplete(ctx, cachedTicket, result); err != nil {
+				r.logger.ErrorContext(ctx, "completion notification failed after tournament",
+					"ticket_id", t.TicketID,
+					"error", err,
+				)
+			}
+		}
+	}
+
+	// Extract memory from the winning candidate's task run.
+	if r.memoryExtractor != nil {
+		r.mu.RLock()
+		var winningTR *taskrun.TaskRun
+		for _, storedTR := range r.taskRuns {
+			if storedTR.ID == winnerResult.TaskRunID {
+				winningTR = storedTR
+				break
+			}
+		}
+		r.mu.RUnlock()
+		if winningTR != nil {
+			go r.extractMemory(ctx, winningTR)
+		}
+	}
 }

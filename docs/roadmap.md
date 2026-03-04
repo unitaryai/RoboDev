@@ -32,30 +32,31 @@ the live controller. The following gaps remain before the integration layer is c
 
 ---
 
-### Tournament Coordinator Wiring
+### Tournament Coordinator Wiring ✅
 
-The `tournament` package is fully scaffolded but not wired into the controller or `main.go`.
+The `tournament` package is fully scaffolded and wired into the controller and `main.go`.
 
-- [ ] Add `tournamentCoordinator` field + `WithTournament` option to `Reconciler`
-- [ ] Wire into `ProcessTicket`: detect tournament-eligible tasks (label or profile flag),
-  launch N parallel jobs, wait for results, select winner via judge, cancel losers
-- [ ] Initialise `tournament.Coordinator` in `cmd/robodev/main.go` when
-  `config.CompetitiveExecution.Enabled`
+- [x] `tournamentCoordinator` field + `WithTournamentCoordinator` option on `Reconciler`
+- [x] `ProcessTicket` detects tournament-eligible tasks and calls `launchTournament`
+- [x] `launchTournament`: N parallel candidate jobs + `StartTournament`
+- [x] `handleCandidateComplete`: `OnCandidateComplete` + early-termination + `launchJudge`
+- [x] `launchJudge`: atomic `BeginJudging` + judge prompt + judge K8s Job
+- [x] `handleJudgeComplete`: parse `JudgeDecision`, `SelectWinner`, mark ticket complete
+- [x] `WithTournamentCoordinator` wired in `main.go` when `CompetitiveExecution.Enabled`
 
 ---
 
-### PRM Hint File Writer
+### PRM Hint File Writer ✅
 
-The PRM already scores tool calls and decides to write hints; the actual file delivery to
-the agent pod is not yet implemented. The agent's `PostToolUse` hook reads
-`/workspace/.robodev-hint.md` if it exists.
+The PRM already scores tool calls and decides to write hints; hint delivery is now implemented.
 
-- [ ] Create volume writer that accesses the shared workspace PVC
-- [ ] Write `HintContent` to `/workspace/.robodev-hint.md` (or configured `hint_file_path`)
-- [ ] Handle concurrent writes (multiple PRM evaluations for the same TaskRun)
-- [ ] Clean up hint file on task completion
+- [x] `writeHintFile` via K8s pod exec (`remotecommand.NewSPDYExecutor`) — no PVC needed
+- [x] Write `HintContent` to `/workspace/.robodev-hint.md` (or configured `hint_file_path`)
+- [x] Async write (10 s timeout goroutine) so stream reader is not blocked
+- [x] `cleanupHintFile` on task completion (best-effort, 5 s timeout)
+- [x] `validateHintPath` — rejects `..` components to prevent path traversal
 
-**Key files:** `internal/prm/`, `internal/controller/controller.go`
+**Key files:** `internal/controller/controller.go`
 
 ---
 
@@ -351,8 +352,8 @@ live controller and `main.go`:
 
 | # | Feature | Priority | Status |
 |---|---------|----------|--------|
-| — | Tournament coordinator wiring | High | Not started |
-| — | PRM hint file writer | High | Not started |
+| — | Tournament coordinator wiring | High | ✅ Complete |
+| — | PRM hint file writer | High | ✅ Complete |
 | — | SQLite persistence (routing, estimator, calibrator) | Medium | Not started |
 | — | LLM V2 upgrades (PRM, memory, diagnosis, judge) | Medium | Not started |
 | — | Security hardening | High | Not started |
@@ -370,5 +371,5 @@ live controller and `main.go`:
 | 15 | Adaptive Watchdog Calibration | High | ✅ Complete |
 | 16 | Engine Fingerprinting + Routing | Medium | ✅ Complete |
 | 17 | Predictive Cost Estimation | Medium | ✅ Complete |
-| 18 | Competitive Execution (Tournament) | Medium | Scaffolding ✅ · Wiring pending |
+| 18 | Competitive Execution (Tournament) | Medium | ✅ Complete |
 | 19 | Shortcut webhook state filtering | Low | ✅ Complete |

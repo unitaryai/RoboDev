@@ -30,6 +30,7 @@ import (
 	"github.com/unitaryai/robodev/internal/sandboxbuilder"
 	"github.com/unitaryai/robodev/internal/scmrouter"
 	"github.com/unitaryai/robodev/internal/secretresolver"
+	"github.com/unitaryai/robodev/internal/tournament"
 	"github.com/unitaryai/robodev/internal/watchdog"
 	"github.com/unitaryai/robodev/internal/webhook"
 	"github.com/unitaryai/robodev/pkg/plugin/transcript/local"
@@ -57,17 +58,17 @@ import (
 	slackapproval "github.com/unitaryai/robodev/pkg/plugin/approval/slack"
 
 	// SCM backends.
+	scmPkg "github.com/unitaryai/robodev/pkg/plugin/scm"
 	ghscm "github.com/unitaryai/robodev/pkg/plugin/scm/github"
 	glscm "github.com/unitaryai/robodev/pkg/plugin/scm/gitlab"
-	scmPkg "github.com/unitaryai/robodev/pkg/plugin/scm"
 
 	// Secrets backends.
 	k8ssecrets "github.com/unitaryai/robodev/pkg/plugin/secrets/k8s"
 	vaultsecrets "github.com/unitaryai/robodev/pkg/plugin/secrets/vault"
 
 	// Review backend.
-	crreview "github.com/unitaryai/robodev/pkg/plugin/review/coderabbit"
 	reviewPkg "github.com/unitaryai/robodev/pkg/plugin/review"
+	crreview "github.com/unitaryai/robodev/pkg/plugin/review/coderabbit"
 
 	// Webhook event bridge.
 	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
@@ -109,7 +110,7 @@ func main() {
 	)
 
 	// --- Build Kubernetes client ---
-	k8sClient, err := buildK8sClient()
+	k8sClient, restCfg, err := buildK8sClient()
 	if err != nil {
 		logger.Error("failed to create kubernetes client", "error", err)
 		os.Exit(1)
@@ -120,6 +121,7 @@ func main() {
 	opts := []controller.ReconcilerOption{
 		controller.WithNamespace(*namespace),
 		controller.WithK8sClient(k8sClient),
+		controller.WithRestConfig(restCfg),
 	}
 
 	// --- Ticketing backend ---
@@ -579,6 +581,16 @@ func main() {
 		}()
 	}
 
+	// --- Competitive execution (tournament coordinator) ---
+	if cfg.CompetitiveExecution.Enabled {
+		tc := tournament.NewCoordinator(logger.With("component", "tournament"))
+		opts = append(opts, controller.WithTournamentCoordinator(tc))
+		logger.Info("tournament coordinator enabled",
+			"default_candidates", cfg.CompetitiveExecution.DefaultCandidates,
+			"judge_engine", cfg.CompetitiveExecution.JudgeEngine,
+		)
+	}
+
 	// Readiness flag — set to true once the controller is fully initialised.
 	var ready atomic.Bool
 
@@ -687,8 +699,9 @@ func main() {
 }
 
 // buildK8sClient creates a Kubernetes clientset, trying in-cluster config
-// first and falling back to kubeconfig for local development.
-func buildK8sClient() (kubernetes.Interface, error) {
+// first and falling back to kubeconfig for local development. It returns
+// both the clientset and the underlying rest.Config (needed for pod exec).
+func buildK8sClient() (kubernetes.Interface, *rest.Config, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		// Fall back to kubeconfig (local dev).
@@ -697,15 +710,15 @@ func buildK8sClient() (kubernetes.Interface, error) {
 		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 		cfg, err = kubeConfig.ClientConfig()
 		if err != nil {
-			return nil, fmt.Errorf("building kubeconfig: %w", err)
+			return nil, nil, fmt.Errorf("building kubeconfig: %w", err)
 		}
 	}
 
 	client, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("creating kubernetes client: %w", err)
+		return nil, nil, fmt.Errorf("creating kubernetes client: %w", err)
 	}
-	return client, nil
+	return client, cfg, nil
 }
 
 // readSecretValue reads a single key from a Kubernetes Secret.

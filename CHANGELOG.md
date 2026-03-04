@@ -9,6 +9,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### PRM Hint File Writer (`internal/controller/controller.go`)
+
+- `writeHintFile(ctx, taskRunID, content string) error` — delivers PRM hint content directly
+  to the running agent pod via the Kubernetes exec API (`remotecommand.NewSPDYExecutor`).
+  Uses `tee` rather than a shell script to avoid injection. Caches pod names from the stream
+  reader to avoid repeated pod lookups.
+- `cleanupHintFile(ctx, taskRunID string)` — best-effort `rm -f` of the hint file on task
+  completion (5 s timeout, errors are logged but not propagated).
+- `cleanupPodName(taskRunID string)` — removes the cached pod name entry after task completion.
+- `validateHintPath(path string) error` — rejects paths containing `..` components to prevent
+  path traversal; called before every exec operation.
+- `recordPRMHint` updated to deliver hints asynchronously (10 s timeout goroutine) instead of
+  only logging.
+- `buildK8sClient()` in `main.go` now returns `*rest.Config` alongside the client;
+  `WithRestConfig(cfg)` option passes it to the controller.
+
+#### Tournament Coordinator Wiring (`internal/controller/controller.go`, `cmd/robodev/main.go`)
+
+- `ProcessTicket` now detects tournament-eligible tasks: when `tournamentCoordinator` is set,
+  `competitive_execution.enabled=true`, `default_candidates >= 2`, and `len(engines) >= 2`,
+  it calls `launchTournament` instead of launching a single job.
+- `launchTournament(ctx, ticket)` — creates N parallel candidate `TaskRun`s + K8s Jobs,
+  registers the tournament with `tournament.Coordinator.StartTournament`, records role/ID
+  maps, and starts stream readers for claude-code candidates. The first candidate is stored
+  under the standard idempotency key (`ticketID-1`) to prevent double-processing.
+- `handleCandidateComplete(ctx, tr, tournamentID)` — transitions the candidate to Succeeded,
+  calls `OnCandidateComplete`, and triggers `launchJudge` when the early-termination threshold
+  is met. Lagging candidates' stream readers are cancelled before judging begins.
+- `launchJudge(ctx, tournamentID)` — pre-generates the judge task run ID, calls `BeginJudging`
+  atomically (preventing duplicate judges under concurrent candidate completions), builds a
+  judge prompt via `tournament.JudgePromptBuilder`, and launches the judge K8s Job.
+- `handleJudgeComplete(ctx, tr, tournamentID)` — parses a `JudgeDecision` JSON object from the
+  judge's result summary (extracting the first `{...}` block to tolerate surrounding prose),
+  calls `SelectWinner`, marks the ticket complete with the winner's result, and sends
+  notifications. Defaults to candidate 0 when parsing fails.
+- `handleJobComplete` and `handleJobFailed` both dispatch via `taskRunRole` map to the above
+  handlers before normal flow; both call `cleanupHintFile` and `cleanupPodName` on completion.
+- `WithTournamentCoordinator(c)` option wired in `main.go` when
+  `config.CompetitiveExecution.Enabled` is true.
+- `go.sum` updated for `github.com/gorilla/websocket`, `github.com/moby/spdystream`, and
+  `github.com/mxk/go-flowrate` (transitive deps of `k8s.io/client-go/tools/remotecommand`).
+
 #### Item 23 — Skills, Subagents, and Per-Task MCP Plugins
 
 **Custom skills for Claude Code** (`pkg/engine/claudecode/skills.go`, `pkg/engine/claudecode/engine.go`)
