@@ -7,7 +7,7 @@
        check-prereqs kind-create kind-delete kind-load \
        deploy deploy-test undeploy local-up local-down local-redeploy \
        live-up live-redeploy live-deploy setup-secrets \
-       e2e-test e2e-workflow-test integration-test test-report test-all logs \
+       e2e-test e2e-workflow-test e2e-workflow-test-verbose integration-test test-report test-all logs \
        compose-up compose-down \
        docs-serve docs-build \
        fake-agent-image fake-agent-load
@@ -20,7 +20,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 # Local development settings
 KIND_CLUSTER_NAME ?= robodev
-FAKE_AGENT_IMAGE  ?= fake-agent:latest
+FAKE_AGENT_IMAGE  ?= fake-agent:e2e
 KIND_CONFIG       ?= hack/kind-config.yaml
 HELM_RELEASE      ?= robodev
 HELM_NAMESPACE    ?= robodev
@@ -178,7 +178,12 @@ fake-agent-load: fake-agent-image ## Build and load the fake-agent image into th
 e2e-workflow-test: ## Run E2E workflow pipeline tests (requires kind cluster + fake-agent-load)
 	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
 	FAKE_AGENT_IMAGE=$(FAKE_AGENT_IMAGE) \
-	$(GO) test -tags=e2e -v -timeout=600s ./tests/e2e/ -run TestWorkflow
+	$(GO) test -tags=e2e -count=1 -timeout=600s ./tests/e2e/ -run TestWorkflow
+
+e2e-workflow-test-verbose: ## Run E2E workflow pipeline tests with verbose logging (for debugging)
+	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true
+	FAKE_AGENT_IMAGE=$(FAKE_AGENT_IMAGE) \
+	$(GO) test -tags=e2e -count=1 -v -timeout=600s ./tests/e2e/ -run TestWorkflow
 
 e2e-test: ## Run end-to-end tests against the kind cluster
 	@kubectl config use-context kind-$(KIND_CLUSTER_NAME) >/dev/null 2>&1 || true

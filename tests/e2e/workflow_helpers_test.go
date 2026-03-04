@@ -54,7 +54,13 @@ func (e *workflowFakeEngine) InterfaceVersion() int { return 1 }
 // scenario. When the task title starts with "Tournament Judge:", the scenario
 // is automatically overridden to "judge" so the coordinator gets a valid winner
 // JSON block in the result summary.
+//
+// BuildPrompt is called first (mirroring real engine implementations) so that
+// lastTask is captured with the full engine.Task, including MemoryContext.
 func (e *workflowFakeEngine) BuildExecutionSpec(task engine.Task, _ engine.EngineConfig) (*engine.ExecutionSpec, error) {
+	if _, err := e.BuildPrompt(task); err != nil {
+		return nil, err
+	}
 	scenario := e.scenario
 	if strings.HasPrefix(task.Title, "Tournament Judge:") {
 		scenario = "judge"
@@ -198,7 +204,7 @@ func fakeAgentImage() string {
 	if img := os.Getenv("FAKE_AGENT_IMAGE"); img != "" {
 		return img
 	}
-	return "fake-agent:latest"
+	return "fake-agent:e2e"
 }
 
 // workflowNamespace returns the namespace for workflow E2E tests.

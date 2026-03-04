@@ -235,7 +235,12 @@ E2E workflow pipeline tests with fake-agent binary:
 
 Infrastructure added:
 - `hack/fake-agent/` — standalone Go module; `Dockerfile` (scratch, UID 10000)
-- `make fake-agent-image` / `make fake-agent-load` / `make e2e-workflow-test`
+- `make fake-agent-image` / `make fake-agent-load` / `make e2e-workflow-test` / `make e2e-workflow-test-verbose`
+
+Test suite hardening (post-merge fixes):
+- Job list queries filtered by `LabelTaskRunID` label to prevent stale-job count failures across runs
+- `workflowFakeEngine.BuildExecutionSpec` now calls `BuildPrompt` (mirrors real engine pattern) so `MemoryContext` is correctly captured in `TestWorkflowSequentialTasksMemory`
+- `make e2e-workflow-test` switched to quiet mode (failures only) + `-count=1` to prevent cached results
 
 ---
 

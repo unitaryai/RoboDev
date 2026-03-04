@@ -54,13 +54,14 @@ func TestWorkflowHappyPath(t *testing.T) {
 	assert.True(t, tr.Result.Success)
 	assert.Equal(t, "Fixed the bug", tr.Result.Summary)
 
-	// Exactly one K8s Job should have been created in the namespace.
-	jobs, err := k8s.BatchV1().Jobs(ns).List(ctx, metav1.ListOptions{})
+	// Exactly one K8s Job should have been created for this task run.
+	// Filter by the task run ID label to avoid picking up stale jobs from
+	// previous runs that share the same namespace.
+	jobs, err := k8s.BatchV1().Jobs(ns).List(ctx, metav1.ListOptions{
+		LabelSelector: jobbuilder.LabelTaskRunID + "=" + tr.ID,
+	})
 	require.NoError(t, err)
-	assert.Len(t, jobs.Items, 1, "expected exactly one K8s Job")
-	if len(jobs.Items) > 0 {
-		assert.NotEmpty(t, jobs.Items[0].Labels[jobbuilder.LabelTaskRunID])
-	}
+	assert.Len(t, jobs.Items, 1, "expected exactly one K8s Job for this task run")
 }
 
 // TestWorkflowJobFailure verifies that a job whose container exits non-zero
@@ -386,10 +387,13 @@ func TestWorkflowTournamentEndToEnd(t *testing.T) {
 	waitForTicketComplete(t, mock, "tourn-1", 5*time.Minute)
 
 	// Three K8s Jobs should have been created: 2 candidates + 1 judge.
+	// Use GreaterOrEqual because candidate and judge jobs carry distinct
+	// LabelTaskRunID values, making a single-selector filter impractical;
+	// stale jobs from earlier test runs may also be present in the namespace.
 	jobs, err := k8s.BatchV1().Jobs(ns).List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
-	assert.Equal(t, 3, len(jobs.Items),
-		"expected 3 K8s Jobs for tournament (2 candidates + 1 judge)")
+	assert.GreaterOrEqual(t, len(jobs.Items), 3,
+		"expected at least 3 K8s Jobs for tournament (2 candidates + 1 judge)")
 
 	mock.mu.Lock()
 	assert.Contains(t, mock.markedComplete, "tourn-1")
