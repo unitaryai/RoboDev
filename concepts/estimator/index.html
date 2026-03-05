@@ -10,25 +10,31 @@
       
       
       
+        <link rel="canonical" href="https://unitaryai.github.io/robodev/concepts/estimator/">
       
+      
+        <link rel="prev" href="../diagnosis/">
+      
+      
+        <link rel="next" href="../../architecture/">
       
       
         
       
       
-      <link rel="icon" href="/robodev/assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>RoboDev</title>
+        <title>Predictive Cost Estimation - RoboDev</title>
       
     
     
-      <link rel="stylesheet" href="/robodev/assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="/robodev/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -47,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("/robodev/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -71,6 +77,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#predictive-cost-estimation" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -83,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/robodev/." title="RoboDev" class="md-header__button md-logo" aria-label="RoboDev" data-md-component="logo">
+    <a href="../.." title="RoboDev" class="md-header__button md-logo" aria-label="RoboDev" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -103,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Predictive Cost Estimation
             
           </span>
         </div>
@@ -221,7 +232,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/robodev/." title="RoboDev" class="md-nav__button md-logo" aria-label="RoboDev" data-md-component="logo">
+    <a href="../.." title="RoboDev" class="md-nav__button md-logo" aria-label="RoboDev" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -251,7 +262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -332,7 +343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -360,7 +371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/docker-compose/" class="md-nav__link">
+      <a href="../../getting-started/docker-compose/" class="md-nav__link">
         
   
   
@@ -388,7 +399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/kubernetes/" class="md-nav__link">
+      <a href="../../getting-started/kubernetes/" class="md-nav__link">
         
   
   
@@ -416,7 +427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/github-issues-slack/" class="md-nav__link">
+      <a href="../../getting-started/github-issues-slack/" class="md-nav__link">
         
   
   
@@ -444,7 +455,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/shortcut-slack/" class="md-nav__link">
+      <a href="../../getting-started/shortcut-slack/" class="md-nav__link">
         
   
   
@@ -472,7 +483,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/configuration/" class="md-nav__link">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -500,7 +511,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/troubleshooting/" class="md-nav__link">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
         
   
   
@@ -532,8 +543,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -544,13 +557,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -571,7 +582,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -589,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/what-is-robodev/" class="md-nav__link">
+      <a href="../what-is-robodev/" class="md-nav__link">
         
   
   
@@ -617,7 +628,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/taskrun-lifecycle/" class="md-nav__link">
+      <a href="../taskrun-lifecycle/" class="md-nav__link">
         
   
   
@@ -645,7 +656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/engines/" class="md-nav__link">
+      <a href="../engines/" class="md-nav__link">
         
   
   
@@ -673,7 +684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/guardrails-overview/" class="md-nav__link">
+      <a href="../guardrails-overview/" class="md-nav__link">
         
   
   
@@ -701,7 +712,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/prm/" class="md-nav__link">
+      <a href="../prm/" class="md-nav__link">
         
   
   
@@ -729,7 +740,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/memory/" class="md-nav__link">
+      <a href="../memory/" class="md-nav__link">
         
   
   
@@ -757,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/llm/" class="md-nav__link">
+      <a href="../llm/" class="md-nav__link">
         
   
   
@@ -785,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/diagnosis/" class="md-nav__link">
+      <a href="../diagnosis/" class="md-nav__link">
         
   
   
@@ -810,10 +821,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/robodev/concepts/estimator/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Predictive Cost Estimation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -829,6 +867,109 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How It Works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-complexity-scoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Complexity Scoring
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-k-nn-prediction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. k-NN Prediction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#approval-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approval Gates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cold-start-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cold-Start Defaults
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prometheus-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus Metrics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -902,7 +1043,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -930,7 +1071,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/security/" class="md-nav__link">
+      <a href="../../security/" class="md-nav__link">
         
   
   
@@ -958,7 +1099,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/guardrails/" class="md-nav__link">
+      <a href="../../guardrails/" class="md-nav__link">
         
   
   
@@ -986,7 +1127,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/scaling/" class="md-nav__link">
+      <a href="../../scaling/" class="md-nav__link">
         
   
   
@@ -1075,7 +1216,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/engines/" class="md-nav__link">
+      <a href="../../plugins/engines/" class="md-nav__link">
         
   
   
@@ -1164,7 +1305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/writing-a-plugin/" class="md-nav__link">
+      <a href="../../plugins/writing-a-plugin/" class="md-nav__link">
         
   
   
@@ -1192,7 +1333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/ticketing/" class="md-nav__link">
+      <a href="../../plugins/ticketing/" class="md-nav__link">
         
   
   
@@ -1220,7 +1361,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/notifications/" class="md-nav__link">
+      <a href="../../plugins/notifications/" class="md-nav__link">
         
   
   
@@ -1248,7 +1389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/secrets/" class="md-nav__link">
+      <a href="../../plugins/secrets/" class="md-nav__link">
         
   
   
@@ -1276,7 +1417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/sdks/" class="md-nav__link">
+      <a href="../../plugins/sdks/" class="md-nav__link">
         
   
   
@@ -1365,7 +1506,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
@@ -1393,7 +1534,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/api/webhooks/" class="md-nav__link">
+      <a href="../../api/webhooks/" class="md-nav__link">
         
   
   
@@ -1421,7 +1562,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/api/plugins/" class="md-nav__link">
+      <a href="../../api/plugins/" class="md-nav__link">
         
   
   
@@ -1510,7 +1651,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1538,7 +1679,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/code-of-conduct/" class="md-nav__link">
+      <a href="../../code-of-conduct/" class="md-nav__link">
         
   
   
@@ -1566,7 +1707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/security-policy/" class="md-nav__link">
+      <a href="../../security-policy/" class="md-nav__link">
         
   
   
@@ -1594,7 +1735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/roadmap/" class="md-nav__link">
+      <a href="../../roadmap/" class="md-nav__link">
         
   
   
@@ -1622,7 +1763,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -1667,6 +1808,99 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How It Works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-complexity-scoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Complexity Scoring
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-k-nn-prediction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. k-NN Prediction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#approval-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approval Gates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cold-start-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cold-Start Defaults
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prometheus-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus Metrics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1679,8 +1913,122 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+    <a href="https://github.com/unitaryai/robodev/edit/main/docs/concepts/estimator.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="predictive-cost-estimation">Predictive Cost Estimation<a class="headerlink" href="#predictive-cost-estimation" title="Permanent link">&para;</a></h1>
+<p>Before RoboDev launches a task, the cost estimator predicts how much it will cost and how long it will take. This gives operators visibility into expensive tasks before they run — and optionally blocks tasks that exceed a configured threshold until a human approves them.</p>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>Estimation runs in two stages:</p>
+<h3 id="1-complexity-scoring">1. Complexity Scoring<a class="headerlink" href="#1-complexity-scoring" title="Permanent link">&para;</a></h3>
+<p>The task is scored across four dimensions, each normalised to [0, 1]:</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>What it measures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description_complexity</code></td>
+<td>Length and vocabulary of the ticket description</td>
+</tr>
+<tr>
+<td><code>task_type_complexity</code></td>
+<td>Task category — bug fix, refactor, feature, migration, etc.</td>
+</tr>
+<tr>
+<td><code>repo_size</code></td>
+<td>Number of files in the repository</td>
+</tr>
+<tr>
+<td><code>label_complexity</code></td>
+<td>Labels attached to the ticket</td>
+</tr>
+</tbody>
+</table>
+<p>A weighted average produces an <code>overall</code> complexity score. The weights are configurable.</p>
+<h3 id="2-k-nn-prediction">2. k-NN Prediction<a class="headerlink" href="#2-k-nn-prediction" title="Permanent link">&para;</a></h3>
+<p>The overall score and the selected engine are used to query a SQLite store of historical task outcomes. The k=5 nearest neighbours (by complexity score and engine) are retrieved, and P25/P75 percentile ranges are computed for cost and duration:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Predicted cost:     $2.10 – $4.80   (P25–P75)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Predicted duration: 8 – 22 minutes  (P25–P75)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Confidence:         0.8              (based on sample count)
+</code></pre></div>
+<p>Confidence increases with the number of matching historical outcomes, up to 1.0 at k=5 neighbours. With fewer than 2 neighbours, the predictor falls back to engine-specific cold-start defaults from configuration, with a confidence of 0.1.</p>
+<p>Every task outcome — actual cost, actual duration, complexity score, engine used — is fed back into the store after completion, so predictions improve continuously as the system accumulates history.</p>
+<h2 id="approval-gates">Approval Gates<a class="headerlink" href="#approval-gates" title="Permanent link">&para;</a></h2>
+<p>When <code>max_predicted_cost_per_job</code> is configured, tasks whose predicted cost exceeds the threshold are blocked from launching automatically. The controller records the prediction, emits a Prometheus metric, and does not start the job until a human approves it through the configured approval backend (e.g. Slack).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">estimator</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">max_predicted_cost_per_job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.00</span><span class="w">   </span><span class="c1"># USD — block and require approval above this</span>
+</code></pre></div>
+<p>This is distinct from <code>max_cost_per_task_usd</code> in the guard rails, which is a hard runtime ceiling enforced by the watchdog. The estimator gate fires <em>before</em> the job starts; the guard rail fires <em>during</em> execution.</p>
+<h2 id="cold-start-defaults">Cold-Start Defaults<a class="headerlink" href="#cold-start-defaults" title="Permanent link">&para;</a></h2>
+<p>For engines with no historical data, the predictor uses configurable per-engine defaults scaled by complexity:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">estimator</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">default_cost_per_engine</span><span class="p">:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">claude-code</span><span class="p">:</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">      </span><span class="nt">low</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.00</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">      </span><span class="nt">high</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8.00</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">codex</span><span class="p">:</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">      </span><span class="nt">low</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.50</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="nt">high</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5.00</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">default_duration_per_engine</span><span class="p">:</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">claude-code</span><span class="p">:</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">      </span><span class="nt">low_minutes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">      </span><span class="nt">high_minutes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">45</span>
+</code></pre></div>
+<h2 id="prometheus-metrics">Prometheus Metrics<a class="headerlink" href="#prometheus-metrics" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>robodev_estimator_predictions_total</code></td>
+<td>Total predictions issued</td>
+</tr>
+<tr>
+<td><code>robodev_estimator_predicted_cost</code></td>
+<td>Histogram of midpoint predicted costs</td>
+</tr>
+<tr>
+<td><code>robodev_estimator_auto_rejections_total</code></td>
+<td>Tasks blocked by the approval gate</td>
+</tr>
+</tbody>
+</table>
+<h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../getting-started/configuration/">Configuration Reference</a> — full estimator config options</li>
+<li><a href="../guardrails-overview/">Guard Rails Overview</a> — how the cost ceiling relates to the estimator gate</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -1743,10 +2091,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/robodev/", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "/robodev/assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/robodev/assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

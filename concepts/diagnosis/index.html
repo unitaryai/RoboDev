@@ -10,25 +10,31 @@
       
       
       
+        <link rel="canonical" href="https://unitaryai.github.io/robodev/concepts/diagnosis/">
       
+      
+        <link rel="prev" href="../llm/">
+      
+      
+        <link rel="next" href="../estimator/">
       
       
         
       
       
-      <link rel="icon" href="/robodev/assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>RoboDev</title>
+        <title>Causal Failure Diagnosis - RoboDev</title>
       
     
     
-      <link rel="stylesheet" href="/robodev/assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="/robodev/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -47,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("/robodev/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -71,6 +77,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#causal-failure-diagnosis" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -83,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/robodev/." title="RoboDev" class="md-header__button md-logo" aria-label="RoboDev" data-md-component="logo">
+    <a href="../.." title="RoboDev" class="md-header__button md-logo" aria-label="RoboDev" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -103,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Causal Failure Diagnosis
             
           </span>
         </div>
@@ -221,7 +232,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/robodev/." title="RoboDev" class="md-nav__button md-logo" aria-label="RoboDev" data-md-component="logo">
+    <a href="../.." title="RoboDev" class="md-nav__button md-logo" aria-label="RoboDev" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -251,7 +262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -332,7 +343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -360,7 +371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/docker-compose/" class="md-nav__link">
+      <a href="../../getting-started/docker-compose/" class="md-nav__link">
         
   
   
@@ -388,7 +399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/kubernetes/" class="md-nav__link">
+      <a href="../../getting-started/kubernetes/" class="md-nav__link">
         
   
   
@@ -416,7 +427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/github-issues-slack/" class="md-nav__link">
+      <a href="../../getting-started/github-issues-slack/" class="md-nav__link">
         
   
   
@@ -444,7 +455,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/shortcut-slack/" class="md-nav__link">
+      <a href="../../getting-started/shortcut-slack/" class="md-nav__link">
         
   
   
@@ -472,7 +483,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/configuration/" class="md-nav__link">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -500,7 +511,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/getting-started/troubleshooting/" class="md-nav__link">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
         
   
   
@@ -532,8 +543,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -544,13 +557,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -571,7 +582,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -589,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/what-is-robodev/" class="md-nav__link">
+      <a href="../what-is-robodev/" class="md-nav__link">
         
   
   
@@ -617,7 +628,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/taskrun-lifecycle/" class="md-nav__link">
+      <a href="../taskrun-lifecycle/" class="md-nav__link">
         
   
   
@@ -645,7 +656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/engines/" class="md-nav__link">
+      <a href="../engines/" class="md-nav__link">
         
   
   
@@ -673,7 +684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/guardrails-overview/" class="md-nav__link">
+      <a href="../guardrails-overview/" class="md-nav__link">
         
   
   
@@ -701,7 +712,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/prm/" class="md-nav__link">
+      <a href="../prm/" class="md-nav__link">
         
   
   
@@ -729,7 +740,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/memory/" class="md-nav__link">
+      <a href="../memory/" class="md-nav__link">
         
   
   
@@ -757,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/llm/" class="md-nav__link">
+      <a href="../llm/" class="md-nav__link">
         
   
   
@@ -782,10 +793,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/robodev/concepts/diagnosis/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Causal Failure Diagnosis
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -801,6 +839,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prescriptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prescriptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-switching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine Switching
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relationship-to-the-watchdog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationship to the Watchdog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -813,7 +948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/concepts/estimator/" class="md-nav__link">
+      <a href="../estimator/" class="md-nav__link">
         
   
   
@@ -902,7 +1037,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -930,7 +1065,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/security/" class="md-nav__link">
+      <a href="../../security/" class="md-nav__link">
         
   
   
@@ -958,7 +1093,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/guardrails/" class="md-nav__link">
+      <a href="../../guardrails/" class="md-nav__link">
         
   
   
@@ -986,7 +1121,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/scaling/" class="md-nav__link">
+      <a href="../../scaling/" class="md-nav__link">
         
   
   
@@ -1075,7 +1210,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/engines/" class="md-nav__link">
+      <a href="../../plugins/engines/" class="md-nav__link">
         
   
   
@@ -1164,7 +1299,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/writing-a-plugin/" class="md-nav__link">
+      <a href="../../plugins/writing-a-plugin/" class="md-nav__link">
         
   
   
@@ -1192,7 +1327,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/ticketing/" class="md-nav__link">
+      <a href="../../plugins/ticketing/" class="md-nav__link">
         
   
   
@@ -1220,7 +1355,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/notifications/" class="md-nav__link">
+      <a href="../../plugins/notifications/" class="md-nav__link">
         
   
   
@@ -1248,7 +1383,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/secrets/" class="md-nav__link">
+      <a href="../../plugins/secrets/" class="md-nav__link">
         
   
   
@@ -1276,7 +1411,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/plugins/sdks/" class="md-nav__link">
+      <a href="../../plugins/sdks/" class="md-nav__link">
         
   
   
@@ -1365,7 +1500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
@@ -1393,7 +1528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/api/webhooks/" class="md-nav__link">
+      <a href="../../api/webhooks/" class="md-nav__link">
         
   
   
@@ -1421,7 +1556,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/api/plugins/" class="md-nav__link">
+      <a href="../../api/plugins/" class="md-nav__link">
         
   
   
@@ -1510,7 +1645,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1538,7 +1673,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/code-of-conduct/" class="md-nav__link">
+      <a href="../../code-of-conduct/" class="md-nav__link">
         
   
   
@@ -1566,7 +1701,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/security-policy/" class="md-nav__link">
+      <a href="../../security-policy/" class="md-nav__link">
         
   
   
@@ -1594,7 +1729,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/roadmap/" class="md-nav__link">
+      <a href="../../roadmap/" class="md-nav__link">
         
   
   
@@ -1622,7 +1757,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/robodev/changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -1667,6 +1802,93 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prescriptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prescriptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-switching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine Switching
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relationship-to-the-watchdog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationship to the Watchdog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1679,8 +1901,110 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+    <a href="https://github.com/unitaryai/robodev/edit/main/docs/concepts/diagnosis.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="causal-failure-diagnosis">Causal Failure Diagnosis<a class="headerlink" href="#causal-failure-diagnosis" title="Permanent link">&para;</a></h1>
+<p>When a task fails, RoboDev does not just retry it blindly. The causal diagnosis subsystem classifies <em>why</em> the failure happened and generates targeted corrective instructions that are injected into the retry prompt — so the next attempt starts with a more informed approach.</p>
+<h2 id="failure-modes">Failure Modes<a class="headerlink" href="#failure-modes" title="Permanent link">&para;</a></h2>
+<p>The analyser classifies every failed task into one of eight modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>infra_failure</code></td>
+<td>OOM kill, timeout, network unreachable, disk full</td>
+</tr>
+<tr>
+<td><code>permission_blocked</code></td>
+<td>File system or network permission denied</td>
+</tr>
+<tr>
+<td><code>dependency_missing</code></td>
+<td>Missing module, unresolved import, package not found</td>
+</tr>
+<tr>
+<td><code>test_misunderstanding</code></td>
+<td>Agent modified tests incorrectly or misread test expectations</td>
+</tr>
+<tr>
+<td><code>wrong_approach</code></td>
+<td>Agent edited unrelated files or produced changes unrelated to the task</td>
+</tr>
+<tr>
+<td><code>scope_creep</code></td>
+<td>Agent changed far more files than the task warranted</td>
+</tr>
+<tr>
+<td><code>model_confusion</code></td>
+<td>High oscillation in tool calls — repeated undo/redo patterns</td>
+</tr>
+<tr>
+<td><code>unknown</code></td>
+<td>No recognised pattern matched</td>
+</tr>
+</tbody>
+</table>
+<p>Each diagnosis includes a confidence score (0–1) and the specific evidence strings that triggered the classification.</p>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>The analyser processes three sources of signal from the failed run:</p>
+<ol>
+<li><strong>Event stream</strong> — tool call inputs and outputs from the agent pod NDJSON stream</li>
+<li><strong>Watchdog reason</strong> — any reason string recorded by the progress watchdog at termination</li>
+<li><strong>Task result summary</strong> — the structured result emitted by the engine at exit</li>
+</ol>
+<p>Pattern matching runs in priority order. Infrastructure failures are checked first because retrying an OOM-killed job without changing resources is futile. Permission and dependency failures follow. Watchdog-specific patterns (thrashing, looping) map to <code>model_confusion</code>.</p>
+<p>For <code>infra_failure</code>, the retry is suppressed entirely — the controller records the diagnosis and parks the task rather than burning tokens on a doomed retry.</p>
+<h2 id="prescriptions">Prescriptions<a class="headerlink" href="#prescriptions" title="Permanent link">&para;</a></h2>
+<p>For every other failure mode, the <code>RetryBuilder</code> prepends a corrective instruction to the retry prompt. Examples:</p>
+<ul>
+<li><strong><code>dependency_missing</code></strong> — <em>"A previous attempt failed due to a missing dependency. Before writing any code, verify that all required packages are installed and importable."</em></li>
+<li><strong><code>test_misunderstanding</code></strong> — <em>"A previous attempt modified tests incorrectly. Read the failing test carefully before making any changes. Do not alter test assertions unless the task explicitly requires it."</em></li>
+<li><strong><code>scope_creep</code></strong> — <em>"A previous attempt changed too many files. Focus only on the files directly relevant to the task."</em></li>
+</ul>
+<p>The prescription is appended after the original task prompt, so the agent receives both the full task context and the corrective guidance.</p>
+<h2 id="engine-switching">Engine Switching<a class="headerlink" href="#engine-switching" title="Permanent link">&para;</a></h2>
+<p>When the diagnosis suggests the failure is engine-specific (for example, <code>model_confusion</code> on an engine with known oscillation issues), the <code>RetryBuilder</code> can optionally switch to a different engine for the retry attempt. This is configured per failure mode in the diagnosis config.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">diagnosis</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">switch_engine_on</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_confusion</span><span class="w">   </span><span class="c1"># retry with fallback engine when confused</span>
+</code></pre></div>
+<h2 id="relationship-to-the-watchdog">Relationship to the Watchdog<a class="headerlink" href="#relationship-to-the-watchdog" title="Permanent link">&para;</a></h2>
+<p>The watchdog detects problems <em>during</em> a run and intervenes early. Causal diagnosis runs <em>after</em> a run has failed and informs the retry. They are complementary: the watchdog tries to salvage a run in progress; diagnosis tries to make the next attempt succeed.</p>
+<h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../guardrails-overview/">Guard Rails Overview</a> — how diagnosis fits into the broader safety architecture</li>
+<li><a href="../../getting-started/configuration/">Configuration Reference</a> — diagnosis config options</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -1743,10 +2067,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/robodev/", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "/robodev/assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/robodev/assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
