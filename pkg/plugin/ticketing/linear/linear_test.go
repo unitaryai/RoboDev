@@ -60,7 +60,7 @@ func graphqlHandler(t *testing.T, wantAuthHeader string, validateFn func(t *test
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 }
 
@@ -162,7 +162,7 @@ func TestLinearBackend_PollReadyTickets_GraphQLError(t *testing.T) {
 			Errors: []graphqlError{{Message: "invalid team ID"}},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 
@@ -277,7 +277,7 @@ func TestLinearBackend_MarkComplete(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var gqlReq graphqlRequest
-		json.NewDecoder(r.Body).Decode(&gqlReq)
+		_ = json.NewDecoder(r.Body).Decode(&gqlReq)
 		calls = append(calls, gqlReq)
 
 		resp := graphqlResponse{}
@@ -288,7 +288,7 @@ func TestLinearBackend_MarkComplete(t *testing.T) {
 		resp.Data = data
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 
@@ -322,7 +322,7 @@ func TestLinearBackend_MarkFailed(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var gqlReq graphqlRequest
-		json.NewDecoder(r.Body).Decode(&gqlReq)
+		_ = json.NewDecoder(r.Body).Decode(&gqlReq)
 		calls = append(calls, gqlReq)
 
 		resp := graphqlResponse{}
@@ -333,7 +333,7 @@ func TestLinearBackend_MarkFailed(t *testing.T) {
 		resp.Data = data
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 

@@ -48,12 +48,12 @@ func TestCodeRabbitBackend_ReviewDiff_Success(t *testing.T) {
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 		var req crReviewRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		assert.Equal(t, "task-456", req.TaskRunID)
 		assert.Equal(t, "diff content here", req.Diff)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(crReviewResponse{
+		_ = json.NewEncoder(w).Encode(crReviewResponse{
 			Passed:  true,
 			Summary: "All checks passed",
 			Comments: []crComment{
@@ -101,7 +101,7 @@ func TestCodeRabbitBackend_ReviewDiff_Success(t *testing.T) {
 func TestCodeRabbitBackend_ReviewDiff_Failed(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(crReviewResponse{
+		_ = json.NewEncoder(w).Encode(crReviewResponse{
 			Passed:  false,
 			Summary: "Review failed: critical issues found",
 			Comments: []crComment{
@@ -129,7 +129,7 @@ func TestCodeRabbitBackend_ReviewDiff_Failed(t *testing.T) {
 func TestCodeRabbitBackend_ReviewDiff_APIError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal server error"))
+		_, _ = w.Write([]byte("internal server error"))
 	}))
 	defer srv.Close()
 

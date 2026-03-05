@@ -57,7 +57,7 @@ func TestGitHubBackend_PollReadyTickets(t *testing.T) {
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(issues)
+		_ = json.NewEncoder(w).Encode(issues)
 	}))
 	defer srv.Close()
 
@@ -83,7 +83,7 @@ func TestGitHubBackend_PollReadyTickets(t *testing.T) {
 func TestGitHubBackend_PollReadyTickets_EmptyResponse(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]ghIssue{})
+		_ = json.NewEncoder(w).Encode([]ghIssue{})
 	}))
 	defer srv.Close()
 
@@ -114,7 +114,7 @@ func TestGitHubBackend_MarkInProgress(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/labels"):
 			var payload map[string][]string
-			json.NewDecoder(r.Body).Decode(&payload)
+			_ = json.NewDecoder(r.Body).Decode(&payload)
 			assert.Equal(t, []string{"in-progress"}, payload["labels"])
 			w.WriteHeader(http.StatusOK)
 		case r.Method == http.MethodDelete && strings.Contains(r.URL.Path, "/labels/robodev"):
@@ -141,12 +141,12 @@ func TestGitHubBackend_MarkComplete(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
 			var payload map[string]string
-			json.NewDecoder(r.Body).Decode(&payload)
+			_ = json.NewDecoder(r.Body).Decode(&payload)
 			commentBody = payload["body"]
 			w.WriteHeader(http.StatusCreated)
 		case r.Method == http.MethodPatch:
 			var payload map[string]string
-			json.NewDecoder(r.Body).Decode(&payload)
+			_ = json.NewDecoder(r.Body).Decode(&payload)
 			patchState = payload["state"]
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -177,10 +177,10 @@ func TestGitHubBackend_MarkFailed(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/labels"):
-			json.NewDecoder(r.Body).Decode(&labelPayload)
+			_ = json.NewDecoder(r.Body).Decode(&labelPayload)
 			w.WriteHeader(http.StatusOK)
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
-			json.NewDecoder(r.Body).Decode(&commentPayload)
+			_ = json.NewDecoder(r.Body).Decode(&commentPayload)
 			w.WriteHeader(http.StatusCreated)
 		default:
 			w.WriteHeader(http.StatusOK)
@@ -202,7 +202,7 @@ func TestGitHubBackend_AddComment(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/repos/owner/repo/issues/5/comments", r.URL.Path)
-		json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
 		w.WriteHeader(http.StatusCreated)
 	}))
 	defer srv.Close()
@@ -371,7 +371,7 @@ func TestGitHubBackend_PollReadyTickets_FilterCombinations(t *testing.T) {
 				}
 
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(issues)
+				_ = json.NewEncoder(w).Encode(issues)
 			}))
 			defer srv.Close()
 

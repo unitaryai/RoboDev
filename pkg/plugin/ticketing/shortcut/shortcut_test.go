@@ -44,9 +44,9 @@ func workflowsHandler(t *testing.T, workflows []scWorkflow) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/workflows":
-			json.NewEncoder(w).Encode(workflows)
+			_ = json.NewEncoder(w).Encode(workflows)
 		case "/members":
-			json.NewEncoder(w).Encode([]scMember{})
+			_ = json.NewEncoder(w).Encode([]scMember{})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -127,7 +127,7 @@ func TestShortcutBackend_Init_ExplicitIDSkipsNameResolution(t *testing.T) {
 			workflowsCalled = true
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]scWorkflow{})
+		_ = json.NewEncoder(w).Encode([]scWorkflow{})
 	}))
 	defer srv.Close()
 
@@ -169,7 +169,7 @@ func TestShortcutBackend_Init_BothStateNamesFetchWorkflowsOnce(t *testing.T) {
 			workflowCallCount++
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(testWorkflows)
+		_ = json.NewEncoder(w).Encode(testWorkflows)
 	}))
 	defer srv.Close()
 
@@ -197,9 +197,9 @@ func TestShortcutBackend_Init_ResolvesMemberByMentionName(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/members":
-			json.NewEncoder(w).Encode(members)
+			_ = json.NewEncoder(w).Encode(members)
 		default:
-			json.NewEncoder(w).Encode([]scWorkflow{})
+			_ = json.NewEncoder(w).Encode([]scWorkflow{})
 		}
 	}))
 	defer srv.Close()
@@ -226,9 +226,9 @@ func TestShortcutBackend_Init_MemberNotFound(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/members":
-			json.NewEncoder(w).Encode([]scMember{{ID: "other", Profile: scMemberProfile{MentionName: "alice"}}})
+			_ = json.NewEncoder(w).Encode([]scMember{{ID: "other", Profile: scMemberProfile{MentionName: "alice"}}})
 		default:
-			json.NewEncoder(w).Encode([]scWorkflow{})
+			_ = json.NewEncoder(w).Encode([]scWorkflow{})
 		}
 	}))
 	defer srv.Close()
@@ -296,7 +296,7 @@ func TestShortcutBackend_PollReadyTickets_NoOwnerFilter(t *testing.T) {
 		assert.NotContains(t, q, "owner:")
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(searchResponse{Data: stories})
+		_ = json.NewEncoder(w).Encode(searchResponse{Data: stories})
 	}))
 	defer srv.Close()
 
@@ -318,7 +318,7 @@ func TestShortcutBackend_PollReadyTickets_WithOwnerFilter(t *testing.T) {
 		q := r.URL.Query().Get("query")
 		assert.Contains(t, q, "owner:robodev")
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(searchResponse{Data: []scStory{}})
+		_ = json.NewEncoder(w).Encode(searchResponse{Data: []scStory{}})
 	}))
 	defer srv.Close()
 
@@ -342,7 +342,7 @@ func TestShortcutBackend_PollReadyTickets_NoStateIDReturnsError(t *testing.T) {
 func TestShortcutBackend_PollReadyTickets_EmptyResponse(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(searchResponse{Data: []scStory{}})
+		_ = json.NewEncoder(w).Encode(searchResponse{Data: []scStory{}})
 	}))
 	defer srv.Close()
 
@@ -419,7 +419,7 @@ func TestShortcutBackend_PollReadyTickets_ExcludeLabels(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(searchResponse{Data: stories})
+				_ = json.NewEncoder(w).Encode(searchResponse{Data: stories})
 			}))
 			defer srv.Close()
 
@@ -458,7 +458,7 @@ func TestShortcutBackend_PollReadyTickets_RepoURLFromExternalLinks(t *testing.T)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(searchResponse{Data: stories})
+		_ = json.NewEncoder(w).Encode(searchResponse{Data: stories})
 	}))
 	defer srv.Close()
 
@@ -487,12 +487,12 @@ func TestShortcutBackend_MarkInProgress_LabelFallback(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
 			var p map[string]string
-			json.NewDecoder(r.Body).Decode(&p)
+			_ = json.NewDecoder(r.Body).Decode(&p)
 			commentText = p["text"]
 			w.WriteHeader(http.StatusCreated)
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/labels"):
 			var p map[string]string
-			json.NewDecoder(r.Body).Decode(&p)
+			_ = json.NewDecoder(r.Body).Decode(&p)
 			assert.Equal(t, "in-progress", p["name"])
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -521,11 +521,11 @@ func TestShortcutBackend_MarkInProgress_StateTransition(t *testing.T) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/stories/42":
 			// Story is currently in "Ready for Development" (state 200).
-			json.NewEncoder(w).Encode(scStory{ID: 42, WorkflowStateID: 200})
+			_ = json.NewEncoder(w).Encode(scStory{ID: 42, WorkflowStateID: 200})
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
 			w.WriteHeader(http.StatusCreated)
 		case r.Method == http.MethodPut && r.URL.Path == "/stories/42":
-			json.NewDecoder(r.Body).Decode(&statePayload)
+			_ = json.NewDecoder(r.Body).Decode(&statePayload)
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusOK)
@@ -558,7 +558,7 @@ func TestShortcutBackend_MarkInProgress_CommentFailureNonFatal(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/stories/42":
-			json.NewEncoder(w).Encode(scStory{ID: 42, WorkflowStateID: 200})
+			_ = json.NewEncoder(w).Encode(scStory{ID: 42, WorkflowStateID: 200})
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
 			w.WriteHeader(http.StatusInternalServerError) // comment fails
 		case r.Method == http.MethodPut:
@@ -591,14 +591,14 @@ func TestShortcutBackend_MarkComplete(t *testing.T) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/stories/42":
 			// Story is in "In Development" (state 300).
-			json.NewEncoder(w).Encode(scStory{ID: 42, WorkflowStateID: 300})
+			_ = json.NewEncoder(w).Encode(scStory{ID: 42, WorkflowStateID: 300})
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
 			var payload map[string]string
-			json.NewDecoder(r.Body).Decode(&payload)
+			_ = json.NewDecoder(r.Body).Decode(&payload)
 			commentText = payload["text"]
 			w.WriteHeader(http.StatusCreated)
 		case r.Method == http.MethodPut && r.URL.Path == "/stories/42":
-			json.NewDecoder(r.Body).Decode(&statePayload)
+			_ = json.NewDecoder(r.Body).Decode(&statePayload)
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusOK)
@@ -633,10 +633,10 @@ func TestShortcutBackend_MarkFailed(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/labels"):
-			json.NewDecoder(r.Body).Decode(&labelPayload)
+			_ = json.NewDecoder(r.Body).Decode(&labelPayload)
 			w.WriteHeader(http.StatusOK)
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
-			json.NewDecoder(r.Body).Decode(&commentPayload)
+			_ = json.NewDecoder(r.Body).Decode(&commentPayload)
 			w.WriteHeader(http.StatusCreated)
 		default:
 			w.WriteHeader(http.StatusOK)
@@ -658,7 +658,7 @@ func TestShortcutBackend_AddComment(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/stories/5/comments", r.URL.Path)
-		json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
 		w.WriteHeader(http.StatusCreated)
 	}))
 	defer srv.Close()
@@ -746,11 +746,11 @@ func TestShortcutBackend_PollReadyTickets_MultipleWorkflows(t *testing.T) {
 		q := r.URL.Query().Get("query")
 		switch {
 		case strings.Contains(q, "Ready for Dev A"):
-			json.NewEncoder(w).Encode(searchResponse{Data: storiesA})
+			_ = json.NewEncoder(w).Encode(searchResponse{Data: storiesA})
 		case strings.Contains(q, "Ready for Dev B"):
-			json.NewEncoder(w).Encode(searchResponse{Data: storiesB})
+			_ = json.NewEncoder(w).Encode(searchResponse{Data: storiesB})
 		default:
-			json.NewEncoder(w).Encode(searchResponse{Data: []scStory{}})
+			_ = json.NewEncoder(w).Encode(searchResponse{Data: []scStory{}})
 		}
 	}))
 	defer srv.Close()
@@ -786,7 +786,7 @@ func TestShortcutBackend_PollReadyTickets_DeduplicatesOverlap(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// Both queries return the same story.
-		json.NewEncoder(w).Encode(searchResponse{Data: []scStory{sharedStory}})
+		_ = json.NewEncoder(w).Encode(searchResponse{Data: []scStory{sharedStory}})
 	}))
 	defer srv.Close()
 
@@ -820,11 +820,11 @@ func TestShortcutBackend_MarkInProgress_PicksCorrectMapping(t *testing.T) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/stories/55":
 			// Story is currently in "Ready for Dev B" (state 202).
-			json.NewEncoder(w).Encode(scStory{ID: 55, WorkflowStateID: 202})
+			_ = json.NewEncoder(w).Encode(scStory{ID: 55, WorkflowStateID: 202})
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/comments"):
 			w.WriteHeader(http.StatusCreated)
 		case r.Method == http.MethodPut && r.URL.Path == "/stories/55":
-			json.NewDecoder(r.Body).Decode(&statePayload)
+			_ = json.NewDecoder(r.Body).Decode(&statePayload)
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusOK)

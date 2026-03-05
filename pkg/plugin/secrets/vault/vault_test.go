@@ -40,7 +40,7 @@ func newTestVaultServer(t *testing.T, kvData map[string]map[string]interface{}) 
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 
@@ -68,7 +68,7 @@ func newTestVaultServer(t *testing.T, kvData map[string]map[string]interface{}) 
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 

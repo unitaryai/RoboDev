@@ -47,7 +47,7 @@ func TestAnthropicClientComplete(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -118,7 +118,7 @@ func TestAnthropicClientOptions(t *testing.T) {
 func TestAnthropicClientDefaultMaxTokens(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req anthropicRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		assert.Equal(t, 1024, req.MaxTokens)
 
 		resp := anthropicResponse{
@@ -129,7 +129,7 @@ func TestAnthropicClientDefaultMaxTokens(t *testing.T) {
 				{Type: "text", Text: "ok"},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

@@ -138,12 +138,12 @@ func TestGitHubSCMBackend_CreateBranch(t *testing.T) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/repos/acme/widgets/git/ref/heads/main":
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(ghRef{
+			_ = json.NewEncoder(w).Encode(ghRef{
 				Ref:    "refs/heads/main",
 				Object: ghObject{SHA: "abc123"},
 			})
 		case r.Method == http.MethodPost && r.URL.Path == "/repos/acme/widgets/git/refs":
-			json.NewDecoder(r.Body).Decode(&createdRef)
+			_ = json.NewDecoder(r.Body).Decode(&createdRef)
 			w.WriteHeader(http.StatusCreated)
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -166,7 +166,7 @@ func TestGitHubSCMBackend_CreateBranch_DefaultBase(t *testing.T) {
 		if r.Method == http.MethodGet {
 			fetchedPath = r.URL.Path
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(ghRef{
+			_ = json.NewEncoder(w).Encode(ghRef{
 				Ref:    "refs/heads/main",
 				Object: ghObject{SHA: "def456"},
 			})
@@ -188,13 +188,13 @@ func TestGitHubSCMBackend_CreatePullRequest(t *testing.T) {
 		assert.Equal(t, "/repos/acme/widgets/pulls", r.URL.Path)
 
 		var payload map[string]string
-		json.NewDecoder(r.Body).Decode(&payload)
+		_ = json.NewDecoder(r.Body).Decode(&payload)
 		assert.Equal(t, "Fix login bug", payload["title"])
 		assert.Equal(t, "feature/fix", payload["head"])
 		assert.Equal(t, "main", payload["base"])
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(ghPR{
+		_ = json.NewEncoder(w).Encode(ghPR{
 			Number:  10,
 			Title:   "Fix login bug",
 			Body:    "Fixes the crash",
@@ -231,7 +231,7 @@ func TestGitHubSCMBackend_GetPullRequestStatus(t *testing.T) {
 		assert.Equal(t, "/repos/acme/widgets/pulls/42", r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(ghPR{
+		_ = json.NewEncoder(w).Encode(ghPR{
 			Number:  42,
 			Title:   "Feature PR",
 			HTMLURL: "https://github.com/acme/widgets/pull/42",
@@ -269,7 +269,7 @@ func TestGitHubSCMBackend_AuthHeader(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader = r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(ghPR{Number: 1, State: "open"})
+		_ = json.NewEncoder(w).Encode(ghPR{Number: 1, State: "open"})
 	}))
 	defer srv.Close()
 

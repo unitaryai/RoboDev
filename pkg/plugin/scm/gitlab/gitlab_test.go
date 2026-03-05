@@ -145,11 +145,11 @@ func TestGitLabSCMBackend_CreateBranch(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedPath = r.URL.EscapedPath()
 		require.Equal(t, http.MethodPost, r.Method)
-		json.NewDecoder(r.Body).Decode(&receivedPayload)
+		_ = json.NewDecoder(r.Body).Decode(&receivedPayload)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(glBranch{
+		_ = json.NewEncoder(w).Encode(glBranch{
 			Name:   "feature/fix-bug",
 			Commit: glCommit{ID: "abc123"},
 		})
@@ -169,10 +169,10 @@ func TestGitLabSCMBackend_CreateBranch_DefaultBase(t *testing.T) {
 	var receivedPayload map[string]string
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&receivedPayload)
+		_ = json.NewDecoder(r.Body).Decode(&receivedPayload)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(glBranch{Name: "my-branch"})
+		_ = json.NewEncoder(w).Encode(glBranch{Name: "my-branch"})
 	}))
 	defer srv.Close()
 
@@ -188,13 +188,13 @@ func TestGitLabSCMBackend_CreatePullRequest(t *testing.T) {
 		assert.Equal(t, "/projects/acme%2Fwidgets/merge_requests", r.URL.EscapedPath())
 
 		var payload map[string]string
-		json.NewDecoder(r.Body).Decode(&payload)
+		_ = json.NewDecoder(r.Body).Decode(&payload)
 		assert.Equal(t, "Fix login bug", payload["title"])
 		assert.Equal(t, "feature/fix", payload["source_branch"])
 		assert.Equal(t, "main", payload["target_branch"])
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(glMR{
+		_ = json.NewEncoder(w).Encode(glMR{
 			IID:          10,
 			Title:        "Fix login bug",
 			Description:  "Fixes the crash",
@@ -231,7 +231,7 @@ func TestGitLabSCMBackend_GetPullRequestStatus(t *testing.T) {
 		assert.Equal(t, "/projects/acme%2Fwidgets/merge_requests/42", r.URL.EscapedPath())
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(glMR{
+		_ = json.NewEncoder(w).Encode(glMR{
 			IID:          42,
 			Title:        "Feature MR",
 			WebURL:       "https://gitlab.com/acme/widgets/-/merge_requests/42",
@@ -268,7 +268,7 @@ func TestGitLabSCMBackend_AuthHeader(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader = r.Header.Get("PRIVATE-TOKEN")
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(glMR{IID: 1, State: "opened"})
+		_ = json.NewEncoder(w).Encode(glMR{IID: 1, State: "opened"})
 	}))
 	defer srv.Close()
 
@@ -284,7 +284,7 @@ func TestGitLabSCMBackend_SubgroupProject(t *testing.T) {
 		receivedPath = r.URL.EscapedPath()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(glBranch{Name: "test-branch"})
+		_ = json.NewEncoder(w).Encode(glBranch{Name: "test-branch"})
 	}))
 	defer srv.Close()
 
