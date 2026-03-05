@@ -1987,6 +1987,14 @@
 <td>BYOM flexibility</td>
 <td>Bedrock, MCP integration</td>
 </tr>
+<tr>
+<td><strong>Pre-built image</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌ Community template</td>
+</tr>
 </tbody>
 </table>
 <h2 id="what-hook-based-vs-prompt-based-guard-rails-means">What "Hook-Based" vs "Prompt-Based" Guard Rails Means<a class="headerlink" href="#what-hook-based-vs-prompt-based-guard-rails-means" title="Permanent link">&para;</a></h2>
@@ -2001,9 +2009,13 @@
 <p>You can configure a fallback chain so that if one engine fails, the next is tried:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">engines</span><span class="p">:</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">claude-code</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">fallback_engines</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">cline</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">aider</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">fallback_engines</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">codex</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">aider</span><span class="p p-Indicator">]</span>
 </code></pre></div>
-<p>The controller tries <code>claude-code</code> first. If it fails, it tries <code>cline</code>. If that also fails, it tries <code>aider</code>. This is useful for resilience against API outages or rate limits.</p>
+<p>The controller tries <code>claude-code</code> first. If it fails, it tries <code>codex</code>. If that also fails, it tries <code>aider</code>. This is useful for resilience against API outages or rate limits.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Do not use <code>cline</code> in a fallback chain. No pre-built Cline image is published — see <a href="../../plugins/engines/#cline">Engine Reference</a> for details.</p>
+</div>
 <h2 id="per-task-engine-override">Per-Task Engine Override<a class="headerlink" href="#per-task-engine-override" title="Permanent link">&para;</a></h2>
 <p>You can override the engine for a specific task by adding a label to the issue:</p>
 <ul>
