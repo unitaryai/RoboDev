@@ -145,7 +145,7 @@ guardrails:
 ## Step 7 — Deploy with Helm
 
 ```bash
-helm repo add robodev https://unitaryai.github.io/robodev/charts
+helm repo add robodev https://unitaryai.github.io/robodev
 helm repo update
 
 kubectl create namespace robodev
