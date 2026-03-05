@@ -99,7 +99,82 @@ This will be transparent — Prometheus metrics will show which engine is being 
 
 ## Competitive Execution / Tournaments
 
-For high-value tasks, RoboDev will be able to launch multiple engines in parallel (a "tournament"), have a judge compare the results, and select the best solution. This uses genuinely different engines (Claude Code vs Aider vs Cline) running in isolated git worktrees.
+For high-value tasks, RoboDev can launch multiple engines in parallel — a **tournament** — have a judge LLM compare the results, and select the best solution. Each candidate runs in an isolated git worktree so they cannot interfere with each other.
+
+### When to Use Tournaments
+
+Tournaments are best suited for:
+
+- High-stakes changes (large refactors, API redesigns, security fixes) where you want the best result, not just a passing one
+- Tasks where different engines have meaningfully different strengths (e.g. Claude Code vs Aider on a Python-heavy repo)
+- Situations where code quality or correctness matters more than cost
+
+!!! warning "Tournaments multiply cost"
+    A 2-candidate tournament with a judge run costs roughly 3× a single task. Use the cost estimator's approval gate (`max_predicted_cost_per_job`) to avoid surprises.
+
+### Configuration
+
+Enable competitive execution in your Helm values (or `robodev-config.yaml`):
+
+```yaml
+competitive_execution:
+  enabled: true
+  default_candidates: 2          # number of engines to run in parallel
+  judge_engine: claude-code      # engine used to evaluate and pick the winner
+  early_termination_threshold: 0.6  # PRM score above which a candidate wins immediately
+  max_concurrent_tournaments: 3  # cap on parallel tournaments cluster-wide
+```
+
+The `default_candidates` value determines how many engines are launched. RoboDev selects engines from the configured fallback chain in order — so with `default: claude-code` and `fallback_engines: [codex, aider]`, a 2-candidate tournament runs Claude Code and Codex.
+
+To specify engines explicitly for a tournament, use `candidate_engines` per task label (see [Per-Task Engine Override](#per-task-engine-override)).
+
+### Tournament Lifecycle
+
+```mermaid
+graph LR
+    A["Task arrives"] --> B["Competing\n(all candidates running)"]
+    B -->|"early termination\n(PRM score ≥ threshold)"| E["Winner selected"]
+    B -->|"all candidates finish"| C["Judging\n(judge engine evaluates diffs)"]
+    C --> E
+    B -->|"infra failure"| D["Candidate eliminated"]
+    D -->|"remaining candidates finish"| C
+```
+
+1. **Competing** — all candidate engines run simultaneously in isolated worktrees. The controller watches each candidate's PRM scores as they stream in.
+2. **Early termination** — if any candidate's PRM score exceeds `early_termination_threshold` (default 0.6), remaining candidates are cancelled immediately and that candidate wins. This avoids paying for redundant runs when one engine is clearly superior.
+3. **Judging** — once all candidates have finished (or been eliminated), the judge engine receives a structured prompt with each candidate's diff, summary, cost, duration, and PRM scores. It responds with a `winner_index` and reasoning.
+4. **Winner selected** — the winning candidate's changes are used to open the pull request. Losing candidates' worktrees are discarded.
+
+### Judging Rubric
+
+The judge evaluates candidates on five dimensions, in priority order:
+
+| Criterion | Weight |
+|---|---|
+| Correctness — does the solution address the task? | Highest |
+| Code quality — clean, structured, maintainable | High |
+| Completeness — edge cases, tests included | Medium |
+| Efficiency — cost, tokens, duration | Lower |
+| Safety — no vulnerabilities, follows best practices | Always checked |
+
+Correctness outweighs cost efficiency: the judge will prefer a correct solution that costs more over a cheaper incomplete one.
+
+### Per-Task Tournament Trigger
+
+You can trigger a tournament for a specific issue by adding the `tournament` label. The configured `default_candidates` and `candidate_engines` are used.
+
+### Prometheus Metrics
+
+| Metric | Description |
+|---|---|
+| `robodev_tournament_total` | Total tournaments started |
+| `robodev_tournament_candidates_total` | Candidates completed, labelled by engine |
+| `robodev_tournament_winner_engine_total` | Tournament wins by engine |
+| `robodev_tournament_cost_total` | Histogram of total tournament cost (all candidates + judge) in USD |
+| `robodev_tournament_duration_seconds` | Histogram of tournament duration from start to winner selection |
+
+The winner engine metric is particularly useful for understanding which engine tends to produce the best results on your codebase over time.
 
 ## Next Steps
 
