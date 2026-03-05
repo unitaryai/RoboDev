@@ -1,0 +1,3917 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Kubernetes-native AI coding agent harness">
+      
+      
+      
+        <link rel="canonical" href="https://unitaryai.github.io/robodev/changelog/">
+      
+      
+        <link rel="prev" href="../roadmap/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+    
+    
+      
+        <title>Changelog - RoboDev</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#changelog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="RoboDev" class="md-header__button md-logo" aria-label="RoboDev" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RoboDev
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/unitaryai/robodev" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/robodev
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="RoboDev" class="md-nav__button md-logo" aria-label="RoboDev" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RoboDev
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/unitaryai/robodev" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/robodev
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/github-issues-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: GitHub Issues + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/shortcut-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: Shortcut + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/what-is-robodev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What is RoboDev?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/taskrun-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How a TaskRun Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines Explained
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/guardrails-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/prm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-Time Agent Coaching (PRM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/memory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Episodic Memory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Abstraction Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails (Detailed)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine Comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/writing-a-plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a Plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/ticketing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ticketing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/notifications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notifications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/sdks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SDKs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/webhooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webhook API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin gRPC API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code-of-conduct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [Unreleased]
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[Unreleased]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prmr-comment-response-item-20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PR/MR Comment Response (Item 20)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e2e-workflow-pipeline-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E2E Workflow Pipeline Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sqlite-persistence-for-routing-estimator-and-watchdog-stores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite Persistence for Routing, Estimator, and Watchdog Stores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Hardening
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-v2-optional-llm-backed-scoring-extraction-and-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM V2 — Optional LLM-backed Scoring, Extraction, and Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-tests-testsintegration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration Tests (tests/integration/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prm-hint-file-writer-internalcontrollercontrollergo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PRM Hint File Writer (internal/controller/controller.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tournament-coordinator-wiring-internalcontrollercontrollergo-cmdrobodevmaingo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tournament Coordinator Wiring (internal/controller/controller.go, cmd/robodev/main.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#item-23-skills-subagents-and-per-task-mcp-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Item 23 — Skills, Subagents, and Per-Task MCP Plugins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-wiring-diagnosis-calibration-routing-estimator-scm-router-transcript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 Wiring — Diagnosis, Calibration, Routing, Estimator, SCM Router, Transcript
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-stream-logging-processor-internalagentstreamlogginggo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Stream Logging Processor (internal/agentstream/logging.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-workflow-shortcut-support-pkgpluginticketingshortcutshortcutgo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Workflow Shortcut Support (pkg/plugin/ticketing/shortcut/shortcut.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configurable-code-review-gate-internalconfigconfiggo-internalcontrollercontrollergo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable Code Review Gate (internal/config/config.go, internal/controller/controller.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roadmap-docsroadmapmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roadmap (docs/roadmap.md)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#all-plugin-backends-wired-into-controller-cmdrobodevmaingo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All Plugin Backends Wired into Controller (cmd/robodev/main.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shortcut-backend-wired-into-controller-cmdrobodevmaingo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shortcut Backend Wired into Controller (cmd/robodev/main.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dspy-inspired-llm-abstraction-internalllm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DSPy-Inspired LLM Abstraction (internal/llm/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prm-and-memory-controller-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PRM and Memory Controller Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bleeding-edge-agentic-engineering-features-scaffolding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bleeding-Edge Agentic Engineering Features (Scaffolding)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bleeding-Edge Agentic Engineering Features (Scaffolding)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controller-level-process-reward-model-feature-2-real-time-agent-coaching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controller-Level Process Reward Model (Feature 2) — Real-Time Agent Coaching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-task-episodic-memory-with-temporal-knowledge-graph-feature-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Task Episodic Memory with Temporal Knowledge Graph (Feature 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#self-healing-retry-with-causal-diagnosis-feature-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-Healing Retry with Causal Diagnosis (Feature 4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adaptive-watchdog-calibration-feature-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adaptive Watchdog Calibration (Feature 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine-fingerprinting-and-intelligent-task-routing-feature-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine Fingerprinting and Intelligent Task Routing (Feature 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predictive-cost-and-duration-estimation-feature-7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predictive Cost and Duration Estimation (Feature 7)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#competitive-execution-with-tournament-selection-feature-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Competitive Execution with Tournament Selection (Feature 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategic-roadmap-phase-a-e-items-1-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategic Roadmap Phase A-E (Items 1-8)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Strategic Roadmap Phase A-E (Items 1-8)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enhanced-claude-code-engine-item-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhanced Claude Code Engine (Item 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-time-agent-streaming-item-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-Time Agent Streaming (Item 2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine-fallback-chains-item-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine Fallback Chains (Item 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-sandbox-integration-item-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Sandbox Integration (Item 4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-agent-coordination-phase-1-item-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Agent Coordination Phase 1 (Item 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tdd-workflow-mode-item-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TDD Workflow Mode (Item 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approval-workflows-and-audit-trail-item-7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approval Workflows and Audit Trail (Item 7)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-development-mode-docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development Mode (Docker Compose)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#governance-approval-workflows-audit-trail-and-taskrun-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance: Approval Workflows, Audit Trail, and TaskRun Store
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-test-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration Test Suite
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook-receiver-event-driven-ingestion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webhook Receiver &amp; Event-Driven Ingestion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-scoped-secret-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task-Scoped Secret Resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hashicorp-vault-secrets-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HashiCorp Vault Secrets Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opencode-execution-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OpenCode Execution Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cline-execution-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cline Execution Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shortcut-ticketing-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shortcut Ticketing Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linear-ticketing-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linear Ticketing Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#telegram-notification-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telegram Notification Channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discord-notification-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discord Notification Channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#networkpolicy-security-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NetworkPolicy &amp; Security Hardening
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-backend-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Backend Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#live-end-to-end-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Live End-to-End Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-development-e2e-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development &amp; E2E Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-core-framework-abstractions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Core Framework &amp; Abstractions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-claude-code-engine-github-slack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Claude Code Engine + GitHub + Slack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2d-dockerfiles-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2D: Dockerfiles &amp; Helm Chart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-codex-aider-gitlab-coderabbit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Codex + Aider + GitLab + CodeRabbit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-agent-teams-scaling-multi-tenancy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Agent Teams, Scaling &amp; Multi-Tenancy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-community-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Community &amp; Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation-site-mkdocs-material" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation Site (MkDocs Material)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [Unreleased]
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[Unreleased]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prmr-comment-response-item-20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PR/MR Comment Response (Item 20)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e2e-workflow-pipeline-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E2E Workflow Pipeline Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sqlite-persistence-for-routing-estimator-and-watchdog-stores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite Persistence for Routing, Estimator, and Watchdog Stores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Hardening
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-v2-optional-llm-backed-scoring-extraction-and-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM V2 — Optional LLM-backed Scoring, Extraction, and Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-tests-testsintegration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration Tests (tests/integration/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prm-hint-file-writer-internalcontrollercontrollergo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PRM Hint File Writer (internal/controller/controller.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tournament-coordinator-wiring-internalcontrollercontrollergo-cmdrobodevmaingo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tournament Coordinator Wiring (internal/controller/controller.go, cmd/robodev/main.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#item-23-skills-subagents-and-per-task-mcp-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Item 23 — Skills, Subagents, and Per-Task MCP Plugins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-wiring-diagnosis-calibration-routing-estimator-scm-router-transcript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 Wiring — Diagnosis, Calibration, Routing, Estimator, SCM Router, Transcript
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-stream-logging-processor-internalagentstreamlogginggo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Stream Logging Processor (internal/agentstream/logging.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-workflow-shortcut-support-pkgpluginticketingshortcutshortcutgo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Workflow Shortcut Support (pkg/plugin/ticketing/shortcut/shortcut.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configurable-code-review-gate-internalconfigconfiggo-internalcontrollercontrollergo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable Code Review Gate (internal/config/config.go, internal/controller/controller.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roadmap-docsroadmapmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roadmap (docs/roadmap.md)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#all-plugin-backends-wired-into-controller-cmdrobodevmaingo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All Plugin Backends Wired into Controller (cmd/robodev/main.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shortcut-backend-wired-into-controller-cmdrobodevmaingo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shortcut Backend Wired into Controller (cmd/robodev/main.go)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dspy-inspired-llm-abstraction-internalllm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DSPy-Inspired LLM Abstraction (internal/llm/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prm-and-memory-controller-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PRM and Memory Controller Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bleeding-edge-agentic-engineering-features-scaffolding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bleeding-Edge Agentic Engineering Features (Scaffolding)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bleeding-Edge Agentic Engineering Features (Scaffolding)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controller-level-process-reward-model-feature-2-real-time-agent-coaching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controller-Level Process Reward Model (Feature 2) — Real-Time Agent Coaching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-task-episodic-memory-with-temporal-knowledge-graph-feature-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Task Episodic Memory with Temporal Knowledge Graph (Feature 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#self-healing-retry-with-causal-diagnosis-feature-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-Healing Retry with Causal Diagnosis (Feature 4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adaptive-watchdog-calibration-feature-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adaptive Watchdog Calibration (Feature 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine-fingerprinting-and-intelligent-task-routing-feature-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine Fingerprinting and Intelligent Task Routing (Feature 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predictive-cost-and-duration-estimation-feature-7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predictive Cost and Duration Estimation (Feature 7)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#competitive-execution-with-tournament-selection-feature-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Competitive Execution with Tournament Selection (Feature 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategic-roadmap-phase-a-e-items-1-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategic Roadmap Phase A-E (Items 1-8)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Strategic Roadmap Phase A-E (Items 1-8)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enhanced-claude-code-engine-item-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhanced Claude Code Engine (Item 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-time-agent-streaming-item-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-Time Agent Streaming (Item 2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine-fallback-chains-item-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine Fallback Chains (Item 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-sandbox-integration-item-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Sandbox Integration (Item 4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-agent-coordination-phase-1-item-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Agent Coordination Phase 1 (Item 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tdd-workflow-mode-item-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TDD Workflow Mode (Item 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approval-workflows-and-audit-trail-item-7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approval Workflows and Audit Trail (Item 7)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-development-mode-docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development Mode (Docker Compose)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#governance-approval-workflows-audit-trail-and-taskrun-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance: Approval Workflows, Audit Trail, and TaskRun Store
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-test-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration Test Suite
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook-receiver-event-driven-ingestion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webhook Receiver &amp; Event-Driven Ingestion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-scoped-secret-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task-Scoped Secret Resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hashicorp-vault-secrets-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HashiCorp Vault Secrets Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opencode-execution-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OpenCode Execution Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cline-execution-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cline Execution Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shortcut-ticketing-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shortcut Ticketing Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linear-ticketing-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linear Ticketing Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#telegram-notification-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telegram Notification Channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discord-notification-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discord Notification Channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#networkpolicy-security-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NetworkPolicy &amp; Security Hardening
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-backend-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Backend Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#live-end-to-end-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Live End-to-End Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-development-e2e-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development &amp; E2E Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-core-framework-abstractions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Core Framework &amp; Abstractions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-claude-code-engine-github-slack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Claude Code Engine + GitHub + Slack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2d-dockerfiles-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2D: Dockerfiles &amp; Helm Chart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-codex-aider-gitlab-coderabbit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Codex + Aider + GitLab + CodeRabbit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-agent-teams-scaling-multi-tenancy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Agent Teams, Scaling &amp; Multi-Tenancy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-community-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Community &amp; Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation-site-mkdocs-material" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation Site (MkDocs Material)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/unitaryai/robodev/edit/main/docs/changelog.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<p>All notable changes to this project will be documented in this file.</p>
+<p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
+and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h4 id="prmr-comment-response-item-20">PR/MR Comment Response (Item 20)<a class="headerlink" href="#prmr-comment-response-item-20" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>pkg/plugin/scm</code></strong> — <code>ReviewComment</code> type; <code>ListReviewComments</code>,
+  <code>ReplyToComment</code>, and <code>ResolveThread</code> added to the <code>Backend</code> interface.</li>
+<li><strong><code>pkg/plugin/scm/github</code></strong> — GitHub REST implementation: <code>ListReviewComments</code>
+  merges review-comment and issue-comment endpoints sorted by creation time;
+  <code>ReplyToComment</code> tries the review reply endpoint and falls back to issue comment;
+  <code>ResolveThread</code> is a documented no-op (GitHub REST does not support thread resolution).</li>
+<li><strong><code>pkg/plugin/scm/gitlab</code></strong> — GitLab REST implementation: <code>ListReviewComments</code>
+  fetches notes with <code>system: false</code> filter; <code>ReplyToComment</code> resolves discussion ID
+  then posts a discussion note; <code>ResolveThread</code> calls <code>PUT …/discussions/{id}</code> with
+  <code>resolved: true</code>.</li>
+<li><strong><code>internal/reviewpoller</code></strong> — new package implementing the review response polling
+  subsystem:</li>
+<li><code>types.go</code> — <code>Classification</code> enum, <code>ClassifiedComment</code>, <code>TrackedPR</code>, <code>FollowUpRequest</code>.</li>
+<li><code>classifier.go</code> — <code>RuleBasedClassifier</code> (bot-author ignore list, keyword tiers for
+    informational/warning/error) and <code>LLMClassifier</code> (ChainOfThought with rule-based
+    fallback; disabled by default).</li>
+<li><code>poller.go</code> — <code>Poller</code> with <code>Register</code>, <code>DrainFollowUps</code>, and <code>Start</code> (background
+    ticker); routes SCM calls via <code>scmBackend</code> or <code>scmRouter</code>; enforces <code>MaxFollowUpJobs</code>
+    per PR; optionally replies to comments acknowledging receipt.</li>
+<li><strong><code>internal/config</code></strong> — <code>ReviewResponseConfig</code> struct with <code>enabled</code>,
+  <code>poll_interval_minutes</code>, <code>min_severity</code>, <code>max_follow_up_jobs</code>, <code>reply_to_comments</code>,
+  <code>resolve_threads</code>, <code>llm_classifier</code>; validation rejects invalid <code>min_severity</code> values.</li>
+<li><strong><code>internal/taskrun</code></strong> — <code>ParentTicketID</code>, <code>ReviewCommentID</code>, <code>ReviewThreadID</code>,
+  <code>ReviewPRURL</code> fields on <code>TaskRun</code> for follow-up lifecycle tracking.</li>
+<li><strong><code>internal/controller</code></strong> — <code>reviewPoller</code> field, <code>WithReviewPoller</code> option,
+  <code>handleFollowUpComplete</code> (posts ticket comment, replies to review comment, resolves
+  thread), <code>processFollowUpTask</code> (builds and launches a K8s follow-up Job), and
+  <code>scmFor</code> helper; drain in <code>reconcileOnce</code>; register in <code>handleJobComplete</code>.</li>
+<li><strong><code>cmd/robodev/main.go</code></strong> — review response subsystem wiring under <code>review_response.enabled</code>.</li>
+<li><strong><code>tests/integration/review_response_test.go</code></strong> — 9 integration tests covering
+  bot-ignore, requires-action, informational, follow-up emission, processed-ID
+  idempotency, max-follow-up limit, merged-PR untracking, reply-on-action, and
+  config validation.</li>
+</ul>
+<h4 id="e2e-workflow-pipeline-tests">E2E Workflow Pipeline Tests<a class="headerlink" href="#e2e-workflow-pipeline-tests" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>hack/fake-agent/</code></strong> — standalone Go module with a pure-stdlib fake agent binary.
+  Reads <code>ROBODEV_SCENARIO</code> and emits a pre-scripted NDJSON event stream, then exits with the
+  appropriate code. Scenarios: <code>success</code>, <code>loop</code>, <code>thrash</code>, <code>fail</code>, <code>tournament_a</code>,
+  <code>tournament_b</code>, <code>judge</code>. Built into a scratch container image (UID 10000, read-only
+  root FS) via <code>hack/fake-agent/Dockerfile</code>.</li>
+<li><strong><code>tests/e2e/workflow_helpers_test.go</code></strong> — shared helpers for workflow E2E tests:
+  <code>workflowFakeEngine</code>, <code>workflowSecondEngine</code>, <code>mockWorkflowTicketing</code>,
+  <code>testLogWriter</code>, and utility functions (<code>ensureNamespace</code>, <code>waitForTicketComplete</code>,
+  <code>waitForTicketFailed</code>, <code>runReconcilerInBackground</code>, etc.).</li>
+<li><strong><code>tests/e2e/workflow_test.go</code></strong> — seven end-to-end workflow tests that exercise the
+  full pipeline against a real kind cluster (real K8s Jobs, real pod log streaming):</li>
+<li><code>TestWorkflowHappyPath</code> — ticket → Job → NDJSON stream → <code>StateSucceeded</code></li>
+<li><code>TestWorkflowJobFailure</code> — non-zero exit → retry exhaustion → <code>StateFailed</code></li>
+<li><code>TestWorkflowEngineChainFallback</code> — primary fails → fallback engine succeeds</li>
+<li><code>TestWorkflowPRMHintDelivery</code> — looping agent triggers PRM nudge intervention</li>
+<li><code>TestWorkflowWatchdogTermination</code> — cost-thrashing agent terminated by watchdog</li>
+<li><code>TestWorkflowSequentialTasksMemory</code> — episodic memory injected into second task</li>
+<li><code>TestWorkflowTournamentEndToEnd</code> — 2 candidates + 1 judge → winner selected</li>
+<li><strong>Makefile</strong> — new targets <code>fake-agent-image</code>, <code>fake-agent-load</code>, and
+  <code>e2e-workflow-test</code> (<code>FAKE_AGENT_IMAGE</code> variable; runs <code>TestWorkflow*</code> suite).</li>
+</ul>
+<h4 id="sqlite-persistence-for-routing-estimator-and-watchdog-stores">SQLite Persistence for Routing, Estimator, and Watchdog Stores<a class="headerlink" href="#sqlite-persistence-for-routing-estimator-and-watchdog-stores" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>internal/routing/sqlite.go</code></strong> — <code>SQLiteFingerprintStore</code> implementing <code>FingerprintStore</code>;
+  schema: <code>fingerprints(engine_name PK, data_json, updated_at)</code>; uses a shadow JSON struct to
+  avoid serialising the embedded <code>sync.RWMutex</code> in <code>EngineFingerprint</code>.</li>
+<li><strong><code>internal/estimator/sqlite.go</code></strong> — <code>SQLiteEstimatorStore</code> implementing <code>EstimatorStore</code>;
+  schema: <code>prediction_outcomes</code> with index on <code>engine</code>; kNN similarity search runs in Go using
+  Euclidean distance over the complexity feature vector.</li>
+<li><strong><code>internal/watchdog/sqlite.go</code></strong> — <code>SQLiteProfileStore</code> implementing <code>ProfileStore</code>;
+  schema: <code>calibrated_profiles</code> with composite primary key <code>(repo_pattern, engine, task_type)</code>.</li>
+<li>All three stores use WAL mode, <code>INSERT OR REPLACE</code> upserts, and <code>modernc.org/sqlite</code> (no CGO).</li>
+<li>Config: <code>StoragePath</code> added to <code>RoutingConfig</code> and <code>EstimatorConfig</code>; <code>CalibrationStorePath</code>
+  added to <code>AdaptiveCalibrationConfig</code>. When empty the existing in-memory store is used.</li>
+<li><code>cmd/robodev/main.go</code> conditionally constructs SQLite stores when the path is non-empty.</li>
+<li>Unit tests (<code>sqlite_test.go</code> in each package) cover save/get round-trips, upsert semantics,
+  full-scan <code>List</code>, and persistence across close/reopen using <code>t.TempDir()</code>.</li>
+</ul>
+<h4 id="security-hardening">Security Hardening<a class="headerlink" href="#security-hardening" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Memory graph tenant isolation</strong> (<code>internal/memory/store.go</code>):</li>
+<li><code>ListNodes</code> now accepts a <code>tenantID string</code> parameter; an empty string returns all nodes
+    (administrative / startup use only).</li>
+<li><code>DeleteNode</code> now accepts a <code>tenantID string</code> parameter and rejects cross-tenant deletes
+    with an explicit error.</li>
+<li><code>SaveEdge</code> validates that both endpoint nodes share the same <code>tenant_id</code>; cross-tenant
+    edges are rejected before any write.</li>
+<li><code>nodeTenantID</code> helper returns <code>("", nil)</code> for nodes absent from the store so that edges
+    to unregistered (external) nodes are still accepted.</li>
+<li><code>internal/memory/graph.go</code> updated: <code>LoadFromStore</code> passes <code>""</code> to load all tenants;
+    <code>PruneStale</code> passes each node's own tenant ID when calling <code>DeleteNode</code>.</li>
+<li>Adversarial tests added for cross-tenant <code>ListNodes</code>, <code>DeleteNode</code>, and <code>SaveEdge</code>.</li>
+<li><strong>Diagnosis prompt injection</strong> (<code>internal/diagnosis/</code>):</li>
+<li>New <code>sanitise.go</code> exports <code>sanitiseForPrompt(s string, maxLen int) string</code> — strips ASCII
+    control characters (&lt; 0x20 except <code>\n</code> and <code>\t</code>) and truncates to <code>maxLen</code>.</li>
+<li><code>analyser.go</code> calls <code>sanitiseForPrompt</code> on <code>WatchdogReason</code> and <code>Result.Summary</code> before
+    building the classifier text.</li>
+<li><code>retry_builder.go</code> wraps the corrective prescription in XML-style delimiters
+    (<code>&lt;previous-attempt-output&gt;</code>) with an explicit instruction not to follow injected content.</li>
+<li><strong>Tournament judge prompt injection</strong> (<code>internal/tournament/judge.go</code>):</li>
+<li>Each candidate diff is wrapped with <code>&lt;!-- CANDIDATE-DIFF-BEGIN --&gt;</code> /
+    <code>&lt;!-- CANDIDATE-DIFF-END --&gt;</code> comment markers.</li>
+<li>Instructions section clarified: treat diff content as data only; correctness outweighs
+    cost efficiency.</li>
+<li><strong>Config validation</strong> (<code>internal/config/validate.go</code>, <code>internal/config/config.go</code>):</li>
+<li>New <code>validate.go</code> with <code>validateNonNegativeFloat</code>, <code>validatePositiveInt</code>,
+    <code>validateFraction</code>, and <code>validateStorePath</code> helpers.</li>
+<li><code>Config.Validate()</code> checks <code>GuardRails</code> bounds, <code>Routing.EpsilonGreedy</code> in [0, 1],
+    <code>Memory.PruneThreshold</code> in [0, 1], <code>CompetitiveExecution.DefaultCandidates</code> ≥ 2 when
+    non-zero, <code>PRM.HintFilePath</code>, and all new <code>StoragePath</code> fields for path-traversal safety.</li>
+<li><code>Load()</code> calls <code>cfg.Validate()</code> before returning; invalid configuration is rejected at
+    startup.</li>
+</ul>
+<h4 id="llm-v2-optional-llm-backed-scoring-extraction-and-classification">LLM V2 — Optional LLM-backed Scoring, Extraction, and Classification<a class="headerlink" href="#llm-v2-optional-llm-backed-scoring-extraction-and-classification" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Rate-limited LLM client</strong> (<code>internal/llm/ratelimited.go</code>):</li>
+<li><code>RateLimitedClient</code> wraps any <code>Client</code> and enforces a minimum gap between requests
+    (<code>1s / rps</code>). Thread-safe via <code>sync.Mutex</code>.</li>
+<li><code>NewRateLimitedClient(inner Client, rps float64) *RateLimitedClient</code>.</li>
+<li><strong>PRM LLM scorer</strong> (<code>internal/prm/scorer_llm.go</code>):</li>
+<li><code>LLMScorer</code> uses a <code>ChainOfThought</code> module (inputs: <code>tool_calls</code>, <code>task_description</code>;
+    outputs: <code>score</code> int 1–10, <code>reasoning</code>) and falls back to the rule-based <code>Scorer</code> on
+    error or out-of-range score.</li>
+<li><code>NewLLMScorer(client llm.Client, fallback *Scorer) *LLMScorer</code>.</li>
+<li>Config: <code>UseLLMScoring bool</code> added to <code>PRMConfig</code>; wired in <code>main.go</code>.</li>
+<li><strong>Memory LLM extractor</strong> (<code>internal/memory/extractor_llm.go</code>):</li>
+<li><code>LLMExtractor</code> calls an LLM module (inputs: <code>task_description</code>, <code>outcome</code>, <code>summary</code>,
+    <code>engine</code>, <code>repo_url</code>; outputs: <code>facts</code>, <code>patterns</code> JSON arrays) and merges results with
+    the V1 rule-based extractor. Falls back to V1 on error.</li>
+<li><code>NewLLMExtractor(client llm.Client, v1 *Extractor, logger *slog.Logger) *LLMExtractor</code>.</li>
+<li>Config: <code>UseLLMExtraction bool</code> added to <code>MemoryConfig</code>; wired in <code>main.go</code>.</li>
+<li><strong>Diagnosis LLM analyser</strong> (<code>internal/diagnosis/analyser_llm.go</code>):</li>
+<li><code>LLMAnalyser</code> classifies failure modes via LLM (inputs: <code>watchdog_reason</code>,
+    <code>result_summary</code>, <code>tool_call_count</code>, <code>files_changed</code>; outputs: <code>failure_mode</code>,
+    <code>confidence</code>, <code>evidence</code>). Unknown mode strings trigger fallback to the rule-based
+    <code>Analyser</code>.</li>
+<li><code>NewLLMAnalyser(client llm.Client, fallback *Analyser, logger *slog.Logger) *LLMAnalyser</code>.</li>
+<li>Config: <code>UseLLMClassification bool</code> added to <code>DiagnosisConfig</code>; wired in <code>main.go</code>.</li>
+</ul>
+<h4 id="integration-tests-testsintegration">Integration Tests (<code>tests/integration/</code>)<a class="headerlink" href="#integration-tests-testsintegration" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>subsystems_test.go</code></strong> (<code>//go:build integration</code>) — 8 scenario tests:</li>
+<li><code>TestPRMInterventions</code> — 10 identical tool calls → <code>ActionNudge</code> returned.</li>
+<li><code>TestMemoryAccumulation</code> — extract from 10 fake task runs → <code>QueryForTask</code> returns non-empty context.</li>
+<li><code>TestWatchdogCalibrationConverges</code> — 15 observations → <code>RefreshProfile</code> → calibrated
+     thresholds differ from defaults.</li>
+<li><code>TestDiagnosisOnLoopingCalls</code> — looping tool calls → <code>ModelConfusion</code> diagnosis; retry
+     prompt contains injection-defence delimiters.</li>
+<li><code>TestRoutingConvergence</code> — 20 outcomes (claude-code 90%, aider 25%) → <code>SelectEngines</code>
+     picks claude-code as primary ≥ 8/10 times.</li>
+<li><code>TestCostEstimatorAccuracy</code> — 10 outcomes → <code>Predict</code> returns cost within 3× of mean.</li>
+<li><code>TestTournamentFlow</code> — <code>StartTournament</code> → 2× <code>OnCandidateComplete</code> → <code>BeginJudging</code> →
+     <code>SelectWinner</code> → asserts <code>StateSelected</code>.</li>
+<li><code>TestTournamentJudgeInjectionDefense</code> — prompt contains <code>CANDIDATE-DIFF-BEGIN</code> markers and
+     injection instruction.</li>
+<li><strong><code>all_features_test.go</code></strong> (<code>//go:build integration</code>) — <code>TestAllFeaturesEnabled</code> smoke test:
+  wires PRM + memory + watchdog + routing + estimator + diagnosis + transcript + tournament
+  into a <code>Reconciler</code>, processes two tickets, and asserts no panics with all task runs
+  reaching a terminal state.</li>
+</ul>
+<h4 id="prm-hint-file-writer-internalcontrollercontrollergo">PRM Hint File Writer (<code>internal/controller/controller.go</code>)<a class="headerlink" href="#prm-hint-file-writer-internalcontrollercontrollergo" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>writeHintFile(ctx, taskRunID, content string) error</code> — delivers PRM hint content directly
+  to the running agent pod via the Kubernetes exec API (<code>remotecommand.NewSPDYExecutor</code>).
+  Uses <code>tee</code> rather than a shell script to avoid injection. Caches pod names from the stream
+  reader to avoid repeated pod lookups.</li>
+<li><code>cleanupHintFile(ctx, taskRunID string)</code> — best-effort <code>rm -f</code> of the hint file on task
+  completion (5 s timeout, errors are logged but not propagated).</li>
+<li><code>cleanupPodName(taskRunID string)</code> — removes the cached pod name entry after task completion.</li>
+<li><code>validateHintPath(path string) error</code> — rejects paths containing <code>..</code> components to prevent
+  path traversal; called before every exec operation.</li>
+<li><code>recordPRMHint</code> updated to deliver hints asynchronously (10 s timeout goroutine) instead of
+  only logging.</li>
+<li><code>buildK8sClient()</code> in <code>main.go</code> now returns <code>*rest.Config</code> alongside the client;
+  <code>WithRestConfig(cfg)</code> option passes it to the controller.</li>
+</ul>
+<h4 id="tournament-coordinator-wiring-internalcontrollercontrollergo-cmdrobodevmaingo">Tournament Coordinator Wiring (<code>internal/controller/controller.go</code>, <code>cmd/robodev/main.go</code>)<a class="headerlink" href="#tournament-coordinator-wiring-internalcontrollercontrollergo-cmdrobodevmaingo" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>ProcessTicket</code> now detects tournament-eligible tasks: when <code>tournamentCoordinator</code> is set,
+  <code>competitive_execution.enabled=true</code>, <code>default_candidates &gt;= 2</code>, and <code>len(engines) &gt;= 2</code>,
+  it calls <code>launchTournament</code> instead of launching a single job.</li>
+<li><code>launchTournament(ctx, ticket)</code> — creates N parallel candidate <code>TaskRun</code>s + K8s Jobs,
+  registers the tournament with <code>tournament.Coordinator.StartTournament</code>, records role/ID
+  maps, and starts stream readers for claude-code candidates. The first candidate is stored
+  under the standard idempotency key (<code>ticketID-1</code>) to prevent double-processing.</li>
+<li><code>handleCandidateComplete(ctx, tr, tournamentID)</code> — transitions the candidate to Succeeded,
+  calls <code>OnCandidateComplete</code>, and triggers <code>launchJudge</code> when the early-termination threshold
+  is met. Lagging candidates' stream readers are cancelled before judging begins.</li>
+<li><code>launchJudge(ctx, tournamentID)</code> — pre-generates the judge task run ID, calls <code>BeginJudging</code>
+  atomically (preventing duplicate judges under concurrent candidate completions), builds a
+  judge prompt via <code>tournament.JudgePromptBuilder</code>, and launches the judge K8s Job.</li>
+<li><code>handleJudgeComplete(ctx, tr, tournamentID)</code> — parses a <code>JudgeDecision</code> JSON object from the
+  judge's result summary (extracting the first <code>{...}</code> block to tolerate surrounding prose),
+  calls <code>SelectWinner</code>, marks the ticket complete with the winner's result, and sends
+  notifications. Defaults to candidate 0 when parsing fails.</li>
+<li><code>handleJobComplete</code> and <code>handleJobFailed</code> both dispatch via <code>taskRunRole</code> map to the above
+  handlers before normal flow; both call <code>cleanupHintFile</code> and <code>cleanupPodName</code> on completion.</li>
+<li><code>WithTournamentCoordinator(c)</code> option wired in <code>main.go</code> when
+  <code>config.CompetitiveExecution.Enabled</code> is true.</li>
+<li><code>go.sum</code> updated for <code>github.com/gorilla/websocket</code>, <code>github.com/moby/spdystream</code>, and
+  <code>github.com/mxk/go-flowrate</code> (transitive deps of <code>k8s.io/client-go/tools/remotecommand</code>).</li>
+</ul>
+<h4 id="item-23-skills-subagents-and-per-task-mcp-plugins">Item 23 — Skills, Subagents, and Per-Task MCP Plugins<a class="headerlink" href="#item-23-skills-subagents-and-per-task-mcp-plugins" title="Permanent link">&para;</a></h4>
+<p><strong>Custom skills for Claude Code</strong> (<code>pkg/engine/claudecode/skills.go</code>, <code>pkg/engine/claudecode/engine.go</code>)
+- New <code>Skill</code> struct with <code>Name</code>, <code>Inline</code>, and <code>Path</code> fields
+- <code>SkillEnvVars(skills []Skill) map[string]string</code> converts skills to container environment
+  variables: inline skills are base64-encoded into <code>CLAUDE_SKILL_INLINE_&lt;NAME&gt;</code>; path-based
+  skills use <code>CLAUDE_SKILL_PATH_&lt;NAME&gt;</code>
+- <code>WithSkills(skills []Skill)</code> functional option on <code>ClaudeCodeEngine</code>; skill env vars are
+  injected into <code>ExecutionSpec.Env</code> during <code>BuildExecutionSpec</code></p>
+<p><strong>Configuration</strong> (<code>internal/config/config.go</code>)
+- New <code>SkillConfig</code> struct with <code>Name</code>, <code>Path</code>, <code>Inline</code> fields added to
+  <code>ClaudeCodeEngineConfig</code> as <code>Skills []SkillConfig</code>
+- <code>MCPServers []string</code> added to <code>TaskProfileConfig</code> for future per-profile MCP server overrides</p>
+<p><strong>Container startup</strong> (<code>docker/engine-claude-code/setup-claude.sh</code>)
+- <code>setup-claude.sh</code> now reads <code>CLAUDE_SKILL_INLINE_*</code> and <code>CLAUDE_SKILL_PATH_*</code> env vars and
+  writes the corresponding Markdown files to <code>~/.claude/skills/&lt;name&gt;.md</code> before starting
+  the agent, making them available as <code>/skill-name</code> invocations</p>
+<p><strong>Main wiring</strong> (<code>cmd/robodev/main.go</code>)
+- <code>cfg.Engines.ClaudeCode.Skills</code> translated to <code>claudecode.Skill{}</code> slice and passed to
+  <code>claudecode.New(claudecode.WithSkills(...))</code> at startup</p>
+<p><strong>Tests</strong> (<code>pkg/engine/claudecode/skills_test.go</code>, <code>engine_test.go</code>)
+- 8 unit tests covering inline encoding, path skills, mixed skills, empty skill handling,
+  base64 round-trip, env var key generation, and execution spec integration</p>
+<h4 id="phase-2-wiring-diagnosis-calibration-routing-estimator-scm-router-transcript">Phase 2 Wiring — Diagnosis, Calibration, Routing, Estimator, SCM Router, Transcript<a class="headerlink" href="#phase-2-wiring-diagnosis-calibration-routing-estimator-scm-router-transcript" title="Permanent link">&para;</a></h4>
+<p><strong>Diagnosis subsystem</strong> (<code>internal/diagnosis/</code>, <code>internal/controller/controller.go</code>)
+- <code>WithDiagnosis(analyser, retryBuilder)</code> option wires the causal failure analyser into the controller
+- <code>handleJobFailed</code> now runs <code>Analyser.Analyse</code> before deciding whether to retry; <code>ShouldRetry</code> skips retry when the same failure mode recurs or when <code>InfraFailure</code> is diagnosed; <code>RetryBuilder.Build</code> enriches the retry prompt with corrective instructions and optionally switches engine based on diagnosis
+- <code>DiagnosisRecord</code> appended to <code>tr.DiagnosisHistory</code> on every diagnosis cycle
+- Fixed: <code>launchRetryJob</code> method added — same-engine retries were previously left in <code>StateRetrying</code> indefinitely with no new job being created</p>
+<p><strong>Watchdog + adaptive calibration</strong> (<code>internal/watchdog/</code>, <code>internal/controller/controller.go</code>)
+- <code>WithWatchdog(wd)</code> and <code>WithWatchdogCalibration(cal, pr)</code> options wire the watchdog and calibration pipeline
+- Watchdog background loop started inside <code>Reconciler.Run</code> via <code>wd.Start</code>
+- <code>ConsumeStreamEvent</code> wired into the stream reader for real-time telemetry updates
+- Per-task-run heartbeat tracking (<code>heartbeats</code>, <code>heartbeatSeqs</code> maps) feeds <code>watchdog.Check</code>
+- <code>recordTaskOutcome</code> calls <code>calibrator.Record</code> + <code>profileResolver.RefreshProfile</code> after every terminal task run
+- <code>main.go</code> initialises <code>Calibrator</code>, <code>MemoryProfileStore</code>, <code>ProfileResolver</code> and uses <code>NewWithCalibration</code> constructor</p>
+<p><strong>Intelligent routing</strong> (<code>internal/routing/</code>, <code>internal/controller/controller.go</code>)
+- <code>WithIntelligentSelector(sel)</code> option; <code>recordTaskOutcome</code> calls <code>RecordOutcome</code> on completion
+- <code>main.go</code> initialises <code>MemoryFingerprintStore</code> + <code>IntelligentSelector</code> when <code>routing.enabled: true</code></p>
+<p><strong>Cost/duration estimator</strong> (<code>internal/estimator/</code>, <code>internal/controller/controller.go</code>)
+- <code>WithEstimator(predictor, scorer)</code> option; <code>ProcessTicket</code> calls <code>ComplexityScorer.Score</code> + <code>Predictor.Predict</code> before job creation; auto-rejects when predicted cost exceeds the configured threshold
+- <code>recordTaskOutcome</code> calls <code>estimatorPredictor.RecordOutcome</code> on every terminal task run
+- <code>main.go</code> initialises with in-memory store when <code>estimator.enabled: true</code></p>
+<p><strong>Multi-SCM routing — item 22</strong> (<code>internal/scmrouter/</code>)
+- New <code>internal/scmrouter</code> package: <code>Router.For(repoURL)</code> selects the correct backend by matching the repo URL host against configured glob patterns; falls back to the first backend when no pattern matches
+- <code>WithSCMRouter(router)</code> option on <code>Reconciler</code>
+- <code>main.go</code>: checks <code>cfg.SCM.Backends</code> array first; falls back to legacy single-backend <code>cfg.SCM.Backend</code> for backwards compatibility
+- <code>SCMBackendEntry</code> struct and <code>Backends []SCMBackendEntry</code> added to <code>SCMConfig</code> in <code>internal/config/config.go</code></p>
+<p><strong>Transcript storage — item 21</strong> (<code>pkg/plugin/transcript/</code>)
+- New <code>pkg/plugin/transcript</code> package: <code>TranscriptSink</code> interface with <code>Append</code> and <code>Flush</code>
+- New <code>pkg/plugin/transcript/local</code>: <code>LocalSink</code> writes NDJSON audit files (one <code>.jsonl</code> per task run) to a configured directory
+- <code>WithTranscriptSink(sink)</code> option on <code>Reconciler</code>; stream reader wires <code>Append</code> as an event processor; transcript flushed when stream forwarder exits
+- <code>AuditConfig</code> + <code>TranscriptConfig</code> added to <code>internal/config/config.go</code>; local backend activated when <code>audit.transcript.backend: local</code> and <code>path</code> are set</p>
+<h4 id="agent-stream-logging-processor-internalagentstreamlogginggo">Agent Stream Logging Processor (<code>internal/agentstream/logging.go</code>)<a class="headerlink" href="#agent-stream-logging-processor-internalagentstreamlogginggo" title="Permanent link">&para;</a></h4>
+<ul>
+<li>New <code>NewLoggingEventProcessor(logger *slog.Logger) StreamEventProcessor</code> — logs each NDJSON stream event as a human-readable structured <code>slog</code> line in the controller's own logs, giving operators a clean view of agent activity without touching (or losing) the raw pod logs</li>
+<li>Log format per event type: <code>tool_use</code> → INFO <code>"agent tool call"</code> with <code>tool</code> and <code>input</code> (first 80 chars of args); <code>content</code> → DEBUG <code>"agent content"</code> with <code>role</code> only (content text deliberately elided to avoid logging LLM output); <code>result</code> → INFO <code>"agent result"</code> with <code>success</code>, <code>summary</code>, <code>mr_url</code>; <code>cost</code> → INFO <code>"agent cost"</code> with token counts and USD; system/unknown → DEBUG <code>"agent system event"</code></li>
+<li>Comprehensive table-driven tests covering all event types, nil-Parsed guards, content elision at both INFO and DEBUG levels, and the 80-character args truncation boundary</li>
+</ul>
+<h4 id="multi-workflow-shortcut-support-pkgpluginticketingshortcutshortcutgo">Multi-Workflow Shortcut Support (<code>pkg/plugin/ticketing/shortcut/shortcut.go</code>)<a class="headerlink" href="#multi-workflow-shortcut-support-pkgpluginticketingshortcutshortcutgo" title="Permanent link">&para;</a></h4>
+<ul>
+<li>New exported <code>WorkflowMapping</code> struct pairing a trigger state name with an in-progress state name</li>
+<li>New <code>WithWorkflowMappings(mappings []WorkflowMapping) Option</code> — configures multiple trigger states; <code>PollReadyTickets</code> issues one API call per trigger state and merges/deduplicates results by story ID</li>
+<li><code>Init</code> resolves <code>triggerStateID</code> for every mapping; backward-compatible: single <code>WithWorkflowStateName</code>/<code>WithInProgressStateName</code> pair is automatically synthesised into a single mapping</li>
+<li><code>MarkInProgress</code> now selects the correct in-progress state by matching the story's current <code>workflow_state_id</code> against the mapping whose trigger state it was found in; falls back to the first mapping with a warning if no match is found</li>
+<li><code>WorkflowStateID()</code> returns the first mapping's resolved trigger state ID (for webhook filtering)</li>
+<li>New <code>WorkflowMappings() []WorkflowMapping</code> accessor</li>
+<li>New <code>pollQuery</code> helper to avoid duplicating query-build/parse logic across multiple trigger states</li>
+<li><code>cmd/robodev/main.go</code> <code>initShortcutBackend</code> reads the <code>workflows</code> array from the Shortcut config map and calls <code>WithWorkflowMappings</code>; the legacy <code>workflow_state_name</code> / <code>in_progress_state_name</code> keys continue to work unchanged</li>
+<li>New tests: multi-mapping Init, multi-workflow poll merge, overlap deduplication, mapping selection in <code>MarkInProgress</code></li>
+</ul>
+<h4 id="configurable-code-review-gate-internalconfigconfiggo-internalcontrollercontrollergo">Configurable Code Review Gate (<code>internal/config/config.go</code>, <code>internal/controller/controller.go</code>)<a class="headerlink" href="#configurable-code-review-gate-internalconfigconfiggo-internalcontrollercontrollergo" title="Permanent link">&para;</a></h4>
+<ul>
+<li>New <code>CodeReviewConfig</code> struct with <code>enabled</code>, <code>backend</code>, <code>wait_for_comments</code>, <code>timeout_minutes</code>, <code>token_secret</code> fields; added as <code>code_review:</code> top-level key in <code>Config</code></li>
+<li>Controller <code>handleJobComplete</code> now respects <code>config.CodeReview.Enabled</code>: when <code>false</code> (the default) no review wait occurs; when <code>true</code> and a <code>reviewBackend</code> is wired, calls <code>ReviewDiff</code> with a configurable timeout (default 15 minutes) and logs the outcome before proceeding</li>
+<li>New <code>ShortcutWorkflow</code> struct (<code>trigger_state</code>, <code>in_progress_state</code>) exported from <code>internal/config/</code> for typed config parsing</li>
+</ul>
+<h4 id="roadmap-docsroadmapmd">Roadmap (<code>docs/roadmap.md</code>)<a class="headerlink" href="#roadmap-docsroadmapmd" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Added Phase K (near-term) items 21–23: Transcript Storage &amp; Audit Log, Multi-SCM Backend Routing, Skills/Subagents/Per-Task MCP Plugins</li>
+<li>Added Phase L (longer-term) items 24–25: Non-Standard Task Types (requires design doc), Supervisor Agent (requires design doc)</li>
+<li>Updated summary table</li>
+</ul>
+<h4 id="all-plugin-backends-wired-into-controller-cmdrobodevmaingo">All Plugin Backends Wired into Controller (<code>cmd/robodev/main.go</code>)<a class="headerlink" href="#all-plugin-backends-wired-into-controller-cmdrobodevmaingo" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Linear ticketing</strong>: <code>initLinearBackend</code> reads token secret, team_id, state_filter, labels, and exclude_labels from config</li>
+<li><strong>Discord notifications</strong>: <code>initDiscordChannel</code> reads webhook_url from config</li>
+<li><strong>Telegram notifications</strong>: <code>initTelegramChannel</code> reads token secret, chat_id, and optional thread_id from config</li>
+<li><strong>Slack approval</strong>: <code>initApprovalBackend</code> reads channel_id and token secret; controller gains <code>WithApprovalBackend(approval.Backend)</code> option</li>
+<li><strong>GitHub/GitLab SCM</strong>: <code>initSCMBackend</code> reads token secret and optional base_url; controller gains <code>WithSCMBackend(scm.Backend)</code> option</li>
+<li><strong>CodeRabbit review</strong>: <code>initReviewBackend</code> reads api_key_secret; controller gains <code>WithReviewBackend(review.Backend)</code> option</li>
+<li><strong>K8s/Vault secrets resolver</strong>: <code>initSecretsResolver</code> iterates <code>cfg.SecretResolver.Backends</code> and registers each backend by scheme; controller gains <code>WithSecretsResolver(*secretresolver.Resolver)</code> option</li>
+<li><strong>Aider/Codex engines</strong>: wired in when <code>cfg.Engines.Aider</code> / <code>cfg.Engines.Codex</code> are non-nil</li>
+<li><strong><code>config.ApprovalConfig</code></strong> struct added to top-level <code>Config</code> (mirrors ReviewConfig / SCMConfig pattern)</li>
+<li>Notifications loop refactored from if/else chain to switch so Discord and Telegram have equal first-class handling</li>
+<li><strong>Startup wiring test</strong> added (<code>cmd/robodev/init_test.go</code>, 20 tests) — calls every init function directly with a fake Kubernetes client to verify that all supported backend strings reach their init function rather than falling through to the unsupported-backend error branch</li>
+</ul>
+<h4 id="shortcut-backend-wired-into-controller-cmdrobodevmaingo">Shortcut Backend Wired into Controller (<code>cmd/robodev/main.go</code>)<a class="headerlink" href="#shortcut-backend-wired-into-controller-cmdrobodevmaingo" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>initShortcutBackend</code> helper function reads <code>token_secret</code>, <code>workflow_state_name</code>, <code>in_progress_state_name</code>, <code>owner_mention_name</code>, and <code>exclude_labels</code> from config, fetches the API token from a Kubernetes Secret, and calls <code>Init()</code> to resolve human-readable names to Shortcut API identifiers at startup</li>
+<li><code>"shortcut"</code> case added to the ticketing backend selection block — previously only <code>"github"</code> was wired in</li>
+<li>Webhook server automatically configured with <code>WithShortcutTargetStateID</code> when the Shortcut backend is active, so only story transitions to the trigger state generate webhook events</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add environment variable stripping to Codex, Cline, and OpenCode engine entrypoints (previously only Claude Code had it)</li>
+<li>Fix mermaid diagram in <code>docs/concepts/prm.md</code> that failed to render on GitHub (replaced <code>≥</code>/<code>&lt;</code> with safe alternatives)</li>
+<li>Fix sandbox status contradiction in <code>docs/roadmap.md</code> (summary said not started, but Phase C items were all complete)</li>
+<li>Update Docker Compose quickstart and Documentation Site status in <code>docs/roadmap.md</code> to reflect shipped work</li>
+<li>Sync all 13 items in <code>docs/improvements-plan.md</code> with actual implementation status (12 items were marked "Planned" despite being implemented)</li>
+</ul>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h4 id="dspy-inspired-llm-abstraction-internalllm">DSPy-Inspired LLM Abstraction (<code>internal/llm/</code>)<a class="headerlink" href="#dspy-inspired-llm-abstraction-internalllm" title="Permanent link">&para;</a></h4>
+<ul>
+<li>New <code>internal/llm/</code> package providing a typed, composable LLM abstraction inspired by DSPy</li>
+<li><code>Signature</code> type defining typed input/output fields for structured LLM interactions</li>
+<li><code>Module</code> interface with <code>Predict</code> (single LLM call) and <code>ChainOfThought</code> (step-by-step reasoning) implementations</li>
+<li><code>Adapter</code> converting signatures + inputs into formatted prompts and parsing structured JSON responses</li>
+<li><code>Client</code> interface with <code>AnthropicClient</code> implementation using <code>net/http</code> only (no external SDK)</li>
+<li><code>Budget</code> tracker with per-subsystem spend limits, token counting, and concurrent-safe access</li>
+<li>Full table-driven unit test suite for all types, modules, adapter, client (with <code>httptest</code> server), and budget</li>
+</ul>
+<h4 id="prm-and-memory-controller-integration">PRM and Memory Controller Integration<a class="headerlink" href="#prm-and-memory-controller-integration" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>PRM wired into controller</strong>: <code>WithPRMConfig</code> reconciler option, PRM evaluator lifecycle (creation in <code>startStreamReader</code>, cleanup in <code>handleJobComplete</code>/<code>handleJobFailed</code>), real-time event processing via <code>WithEventProcessor</code>, hint recording with Prometheus metrics</li>
+<li><strong>Memory wired into controller</strong>: <code>WithMemory</code> reconciler option accepting graph, extractor, and query engine; knowledge extraction on task completion and failure via background goroutines; memory context query before execution spec building</li>
+<li><strong>Memory context in prompts</strong>: <code>MemoryContext</code> field on <code>engine.Task</code>, propagated through <code>BuildPrompt</code>, <code>BuildPromptWithProfile</code>, and <code>BuildPromptWithTeams</code> in the prompt builder template</li>
+<li><strong>Memory initialisation in main.go</strong>: SQLite store opening, graph loading, extractor and query engine creation, background decay goroutine with configurable interval and prune threshold, graceful store close on shutdown</li>
+<li><strong>PRM initialisation in main.go</strong>: Config mapping from <code>config.PRMConfig</code> to <code>prm.Config</code>, logger wiring</li>
+<li><strong>Backwards compatible</strong>: PRM disabled by default (<code>prm.enabled: false</code>), Memory disabled by default (<code>memory.enabled: false</code>); no behavioural change when features are off</li>
+<li>New controller unit tests: <code>TestWithPRMConfig</code>, <code>TestWithMemory</code>, <code>TestProcessTicketWithMemoryContext</code>, <code>TestHandleJobCompleteWithMemory</code>, <code>TestHandleJobFailedWithMemory</code></li>
+<li>New integration tests: <code>tests/integration/prm_controller_test.go</code> (PRM wiring, disabled no-op), <code>tests/integration/memory_controller_test.go</code> (memory extraction wiring, context injection, disabled no-op)</li>
+</ul>
+<h4 id="bleeding-edge-agentic-engineering-features-scaffolding">Bleeding-Edge Agentic Engineering Features (Scaffolding)<a class="headerlink" href="#bleeding-edge-agentic-engineering-features-scaffolding" title="Permanent link">&para;</a></h4>
+<blockquote>
+<p><strong>Note:</strong> PRM and Memory are now wired into the controller and functional when enabled. The remaining five features (Diagnosis, Routing, Estimator, Tournament, Adaptive Watchdog) have complete packages with types, core logic, unit tests, and integration tests, but are not yet wired into the controller. See <code>docs/roadmap.md</code> Phase I for the full integration plan.</p>
+</blockquote>
+<h5 id="controller-level-process-reward-model-feature-2-real-time-agent-coaching">Controller-Level Process Reward Model (Feature 2) — Real-Time Agent Coaching<a class="headerlink" href="#controller-level-process-reward-model-feature-2-real-time-agent-coaching" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/prm/</code> package: rule-based step scoring from tool call patterns, trajectory tracking with pattern detection (sustained decline, plateau, oscillation, recovery), and intervention decision logic (continue/nudge/escalate)</li>
+<li><code>Scorer</code> evaluates rolling windows of tool calls: penalises repetition, rewards productive patterns (read→edit, edit→test), and tracks tool diversity</li>
+<li><code>Trajectory</code> detects patterns across score history with configurable window length</li>
+<li><code>InterventionDecider</code> triggers soft nudges (hint file at <code>/workspace/.robodev-hint.md</code>) or watchdog escalation based on score thresholds and trajectory patterns</li>
+<li><code>Evaluator</code> ties scoring, trajectory, and intervention into a single entry point wired into the streaming pipeline via <code>WithEventProcessor</code></li>
+<li><code>PRMConfig</code> in controller config: <code>evaluation_interval</code>, <code>window_size</code>, <code>score_threshold_nudge</code>, <code>score_threshold_escalate</code>, <code>hint_file_path</code>, <code>max_budget_usd</code></li>
+<li>Prometheus metrics: <code>prm_step_scores</code> histogram, <code>prm_interventions_total</code> counter by action, <code>prm_trajectory_patterns_total</code> counter by pattern</li>
+</ul>
+<h5 id="cross-task-episodic-memory-with-temporal-knowledge-graph-feature-3">Cross-Task Episodic Memory with Temporal Knowledge Graph (Feature 3)<a class="headerlink" href="#cross-task-episodic-memory-with-temporal-knowledge-graph-feature-3" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/memory/</code> package: persistent knowledge graph accumulating structured lessons from every TaskRun across all engines, repos, and tenants</li>
+<li>Node types: <code>Fact</code> (with temporal validity and confidence decay), <code>Pattern</code> (recurring observations), <code>EngineProfile</code> (per-engine capability data)</li>
+<li>Edge relations: <code>relates_to</code>, <code>contradicts</code>, <code>supersedes</code> with weighted connections</li>
+<li>SQLite-backed storage (<code>modernc.org/sqlite</code>, pure Go) with auto-migration on startup</li>
+<li>Heuristic knowledge extractor: harvests facts from task outcomes, watchdog events, engine fallbacks, and tool call patterns</li>
+<li>Temporal query engine: retrieves relevant facts weighted by recency, confidence, and decay rate with cross-tenant isolation</li>
+<li><code>MemoryConfig</code> in controller config: <code>store_path</code>, <code>decay_interval_hours</code>, <code>prune_threshold</code>, <code>max_facts_per_query</code>, <code>tenant_isolation</code></li>
+<li>Prometheus metrics: <code>memory_nodes_total</code> gauge by type, <code>memory_queries_total</code> counter, <code>memory_extractions_total</code> counter by outcome, <code>memory_confidence_distribution</code> histogram</li>
+</ul>
+<h5 id="self-healing-retry-with-causal-diagnosis-feature-4">Self-Healing Retry with Causal Diagnosis (Feature 4)<a class="headerlink" href="#self-healing-retry-with-causal-diagnosis-feature-4" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/diagnosis/</code> package: structured failure diagnosis pipeline replacing blind retries with informed corrective action</li>
+<li>Failure mode classifier: <code>WrongApproach</code>, <code>DependencyMissing</code>, <code>TestMisunderstanding</code>, <code>ScopeCreep</code>, <code>PermissionBlocked</code>, <code>ModelConfusion</code>, <code>InfraFailure</code> — rule-based pattern matching on tool call sequences, event content, and watchdog reasons</li>
+<li>Template-based prescription generator: per-failure-mode corrective instructions using safe <code>text/template</code> (prevents prompt injection from agent output)</li>
+<li>Retry builder: composes original prompt + diagnosis prescription + optional engine switch recommendation</li>
+<li><code>DiagnosisHistory []DiagnosisRecord</code> field on TaskRun prevents repeating the same diagnosis</li>
+<li><code>DiagnosisConfig</code> in controller config: <code>max_diagnoses_per_task</code>, <code>enable_engine_switch</code></li>
+<li>Prometheus metrics: <code>diagnosis_total</code> counter by failure mode, <code>diagnosis_engine_switches_total</code> counter, <code>diagnosis_retry_success_total</code> counter</li>
+</ul>
+<h5 id="adaptive-watchdog-calibration-feature-5">Adaptive Watchdog Calibration (Feature 5)<a class="headerlink" href="#adaptive-watchdog-calibration-feature-5" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/watchdog/calibrator.go</code>: running percentile statistics (P50, P90, P99) per (repo pattern, engine, task type) for key telemetry signals — token consumption rate, tool call frequency, file change rate, cost velocity, duration, consecutive identical tools</li>
+<li>New <code>internal/watchdog/profiles.go</code>: calibrated threshold profiles with cold-start fallback (minimum 10 completed TaskRuns before overriding static defaults), best-match profile resolution (exact → partial → global → static)</li>
+<li><code>AdaptiveCalibrationConfig</code> in watchdog config: <code>min_sample_count</code>, <code>percentile_threshold</code> (p50/p90/p99), <code>cold_start_fallback</code></li>
+<li>Prometheus metrics: <code>watchdog_calibrated_threshold</code> gauge by (signal, repo_pattern, engine, task_type), <code>watchdog_calibration_samples</code> gauge, <code>watchdog_calibration_overrides_total</code> counter</li>
+</ul>
+<h5 id="engine-fingerprinting-and-intelligent-task-routing-feature-6">Engine Fingerprinting and Intelligent Task Routing (Feature 6)<a class="headerlink" href="#engine-fingerprinting-and-intelligent-task-routing-feature-6" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/routing/</code> package: statistical engine profiles built from historical task outcomes, replacing static fallback chains with data-driven routing</li>
+<li><code>EngineFingerprint</code> with Laplace-smoothed success rates across dimensions: task type, repo language, repo size, complexity</li>
+<li><code>IntelligentSelector</code> implementing <code>EngineSelector</code> interface: weighted composite scoring with epsilon-greedy exploration (default ε=0.1) to discover new engine capabilities</li>
+<li>In-memory fingerprint store with thread-safe concurrent access</li>
+<li><code>RoutingConfig</code> in controller config: <code>epsilon_greedy</code>, <code>min_samples_for_routing</code>, <code>store_path</code></li>
+<li>Prometheus metrics: <code>routing_engine_selected_total</code> counter by engine, <code>routing_exploration_total</code> counter, <code>routing_fingerprint_samples</code> gauge by engine, <code>routing_success_rate</code> gauge by (engine, dimension, value)</li>
+</ul>
+<h5 id="predictive-cost-and-duration-estimation-feature-7">Predictive Cost and Duration Estimation (Feature 7)<a class="headerlink" href="#predictive-cost-and-duration-estimation-feature-7" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/estimator/</code> package: pre-execution cost ($) and duration (minutes) prediction based on task complexity and historical data</li>
+<li>Multi-dimensional complexity scorer: description complexity, label complexity, repo size, task type complexity → weighted composite score</li>
+<li>k-nearest-neighbours predictor (k=5): finds similar historical tasks, returns [P25, P75] cost/duration ranges with confidence based on sample count</li>
+<li>Cold-start defaults per engine when insufficient historical data</li>
+<li>New guard rail: <code>max_predicted_cost_per_job</code> — auto-reject tasks predicted to exceed cost threshold</li>
+<li><code>EstimatorConfig</code> in controller config: <code>max_predicted_cost_per_job</code>, <code>default_cost_per_engine</code>, <code>default_duration_per_engine</code></li>
+<li>Prometheus metrics: <code>estimator_predictions_total</code> counter, <code>estimator_predicted_cost</code> histogram, <code>estimator_auto_rejections_total</code> counter, <code>estimator_prediction_accuracy</code> histogram</li>
+</ul>
+<h5 id="competitive-execution-with-tournament-selection-feature-1">Competitive Execution with Tournament Selection (Feature 1)<a class="headerlink" href="#competitive-execution-with-tournament-selection-feature-1" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/tournament/</code> package: launch N parallel K8s Jobs with different engines/strategies, judge results, and select the best solution</li>
+<li><code>Coordinator</code> manages tournament lifecycle: start parallel candidates, track completions, trigger early termination, launch judge, select winner</li>
+<li><code>JudgeBuilder</code> constructs judge Jobs with side-by-side diff comparison prompts and structured JSON output</li>
+<li>Tournament-aware TaskRun fields: <code>TournamentID</code>, <code>CandidateIndex</code>, <code>TournamentState</code> (Competing/Judging/Selected/Eliminated)</li>
+<li><code>CompetitiveExecutionConfig</code> in controller config: <code>default_candidates</code>, <code>judge_engine</code>, <code>early_termination_threshold</code>, <code>max_concurrent_tournaments</code></li>
+<li>Prometheus metrics: <code>tournament_total</code> counter, <code>tournament_candidates_total</code> counter by engine, <code>tournament_winner_engine_total</code> counter by engine, <code>tournament_cost_total</code> histogram, <code>tournament_duration_seconds</code> histogram</li>
+</ul>
+<h4 id="strategic-roadmap-phase-a-e-items-1-8">Strategic Roadmap Phase A-E (Items 1-8)<a class="headerlink" href="#strategic-roadmap-phase-a-e-items-1-8" title="Permanent link">&para;</a></h4>
+<h5 id="enhanced-claude-code-engine-item-1">Enhanced Claude Code Engine (Item 1)<a class="headerlink" href="#enhanced-claude-code-engine-item-1" title="Permanent link">&para;</a></h5>
+<ul>
+<li><code>DefaultTaskResultSchema</code> const with JSON schema for structured task result output</li>
+<li>Functional options pattern: <code>WithFallbackModel</code>, <code>WithToolWhitelist</code>, <code>WithJSONSchema</code></li>
+<li>Conditional CLI flag construction: <code>--output-format stream-json</code>, <code>--json-schema</code>, <code>--fallback-model</code>, <code>--no-session-persistence</code>, <code>--append-system-prompt</code>, <code>--allowedTools</code>, <code>--disallowedTools</code></li>
+<li>Extended <code>EngineConfig</code> with <code>FallbackModel</code>, <code>ToolWhitelist</code>, <code>ToolBlacklist</code>, <code>JSONSchema</code>, <code>AppendSystemPrompt</code>, <code>NoSessionPersistence</code>, <code>StreamingEnabled</code> fields</li>
+<li>Extended <code>ClaudeCodeEngineConfig</code> with matching YAML fields</li>
+</ul>
+<h5 id="real-time-agent-streaming-item-2">Real-Time Agent Streaming (Item 2)<a class="headerlink" href="#real-time-agent-streaming-item-2" title="Permanent link">&para;</a></h5>
+<ul>
+<li>New <code>internal/agentstream/</code> package: NDJSON event types (<code>ToolCallEvent</code>, <code>ContentDeltaEvent</code>, <code>CostEvent</code>, <code>ResultEvent</code>), K8s pod log stream reader, event forwarder to watchdog and notifications</li>
+<li>Watchdog <code>ConsumeStreamEvent</code> method for live tool call tracking, cost monitoring, and heartbeat updates from streaming agents</li>
+<li>Controller stream reader lifecycle: starts per active Claude Code job, cancels on completion/failure</li>
+<li><code>StreamingConfig</code> with <code>Enabled</code> and <code>LiveNotifications</code> fields</li>
+<li><code>--verbose</code> flag added when streaming is enabled for richer event data</li>
+</ul>
+<h5 id="engine-fallback-chains-item-3">Engine Fallback Chains (Item 3)<a class="headerlink" href="#engine-fallback-chains-item-3" title="Permanent link">&para;</a></h5>
+<ul>
+<li><code>EngineSelector</code> interface with <code>DefaultEngineSelector</code> implementation</li>
+<li>Ticket label override (<code>robodev:engine:&lt;name&gt;</code>) for per-ticket engine selection</li>
+<li><code>FallbackEngines []string</code> in <code>EnginesConfig</code> for ordered fallback chain</li>
+<li><code>EngineAttempts</code> and <code>CurrentEngine</code> tracking on TaskRun</li>
+<li>Automatic fallback to next engine in <code>handleJobFailed</code> before exhausting retries</li>
+<li><code>launchFallbackJob</code> helper with unique job IDs per attempt</li>
+</ul>
+<h5 id="agent-sandbox-integration-item-4">Agent Sandbox Integration (Item 4)<a class="headerlink" href="#agent-sandbox-integration-item-4" title="Permanent link">&para;</a></h5>
+<ul>
+<li><code>SandboxBuilder</code> implementing <code>JobBuilder</code> with gVisor/Kata RuntimeClass, SandboxClaim annotations, and warm pool labels</li>
+<li><code>ExecutionConfig</code> with <code>Backend</code> ("job"/"sandbox"/"local") and <code>SandboxConfig</code> (runtime class, warm pool, env stripping)</li>
+<li>Helm templates: <code>runtimeclass-gvisor.yaml</code> and <code>sandboxwarmpool.yaml</code> (gated by <code>sandbox.enabled</code>)</li>
+<li>Environment variable stripping in Claude Code entrypoint (guarded by <code>ENV_STRIPPING</code>)</li>
+</ul>
+<h5 id="multi-agent-coordination-phase-1-item-5">Multi-Agent Coordination Phase 1 (Item 5)<a class="headerlink" href="#multi-agent-coordination-phase-1-item-5" title="Permanent link">&para;</a></h5>
+<ul>
+<li><code>AgentDef</code> config type with role, model, and instructions</li>
+<li><code>BuildAgentFlags</code> generating <code>--agents</code> JSON from config or task-type defaults (bug_fix: coder+reviewer, feature: coder+reviewer+tester)</li>
+<li><code>WithTeamsConfig</code> functional option on Claude Code engine</li>
+<li>Team coordination prompt section in <code>BuildPromptWithTeams</code></li>
+<li><code>CLAUDE_CODE_MAX_TEAMMATES</code> environment variable</li>
+</ul>
+<h5 id="tdd-workflow-mode-item-6">TDD Workflow Mode (Item 6)<a class="headerlink" href="#tdd-workflow-mode-item-6" title="Permanent link">&para;</a></h5>
+<ul>
+<li><code>WorkflowInstructions()</code> function returning structured instructions for "tdd" and "review-first" modes</li>
+<li><code>TaskProfileConfig</code> with <code>Workflow</code>, <code>ToolWhitelist</code>, <code>ToolBlacklist</code> fields</li>
+<li>Workflow instructions injected between task description and guard rails in prompt template</li>
+<li><code>BuildPromptWithProfile</code> method for profile-aware prompt construction</li>
+</ul>
+<h5 id="approval-workflows-and-audit-trail-item-7">Approval Workflows and Audit Trail (Item 7)<a class="headerlink" href="#approval-workflows-and-audit-trail-item-7" title="Permanent link">&para;</a></h5>
+<ul>
+<li><code>TaskRunStore</code> interface with <code>Save</code>, <code>Get</code>, <code>List</code>, <code>ListByTicketID</code> methods</li>
+<li><code>MemoryStore</code> thread-safe in-memory implementation</li>
+<li>Pre-start and pre-merge approval gates in controller</li>
+<li>Queued → NeedsHuman state transition for approval holds</li>
+<li>Slack approval callback parsing (<code>robodev_approve_*</code> / <code>robodev_reject_*</code> actions)</li>
+<li><code>ApprovalGates</code> and <code>ApprovalCostThresholdUSD</code> in guard rails config</li>
+</ul>
+<h4 id="local-development-mode-docker-compose">Local Development Mode (Docker Compose)<a class="headerlink" href="#local-development-mode-docker-compose" title="Permanent link">&para;</a></h4>
+<ul>
+<li>DockerBuilder (<code>internal/jobbuilder/docker.go</code>) implementing <code>controller.JobBuilder</code> for local Docker execution — produces K8s Job objects annotated with <code>robodev.io/execution-backend: local</code></li>
+<li>Builder selection in <code>cmd/robodev/main.go</code>: reads <code>execution.backend</code> config to choose between standard ("job"), sandbox, or local Docker builder</li>
+<li>Noop ticketing file-watcher mode: <code>NewWithTaskFile</code> constructor reads tasks from a local YAML file, enabling local development without a real ticketing provider</li>
+<li><code>FileTask</code> struct for YAML task definitions with ID, title, description, repo URL, and labels</li>
+<li><code>docker-compose.yaml</code> for running the controller outside Kubernetes with config and workspace volume mounts</li>
+<li>Makefile targets: <code>compose-up</code> and <code>compose-down</code> for Docker Compose lifecycle</li>
+<li>Table-driven tests for DockerBuilder (backend annotation, security context, volumes, env vars, resources)</li>
+<li>Tests for noop file-watcher (valid YAML, empty file, malformed YAML, missing file, in-progress filtering)</li>
+</ul>
+<h4 id="governance-approval-workflows-audit-trail-and-taskrun-store">Governance: Approval Workflows, Audit Trail, and TaskRun Store<a class="headerlink" href="#governance-approval-workflows-audit-trail-and-taskrun-store" title="Permanent link">&para;</a></h4>
+<ul>
+<li>TaskRunStore interface (<code>internal/taskrun/store.go</code>) with <code>Save</code>, <code>Get</code>, <code>List</code>, and <code>ListByTicketID</code> methods for persistent TaskRun storage</li>
+<li>MemoryStore in-memory implementation of TaskRunStore with thread-safe operations</li>
+<li>Approval gates configuration: <code>approval_gates</code> list and <code>approval_cost_threshold_usd</code> in GuardRailsConfig (values: "pre_start", "high_cost", "pre_merge")</li>
+<li>Pre-start approval gate: when "pre_start" is configured, TaskRun transitions Queued → NeedsHuman instead of launching a K8s Job, requiring human approval before execution begins</li>
+<li>Pre-merge approval gate: when "pre_merge" is configured, completed jobs transition Running → NeedsHuman instead of marking the ticket complete, requiring human approval before merge</li>
+<li>TaskRunStoreConfig with backend selection ("memory", "sqlite", "postgres") and SQLite path configuration — future durable backends can implement the TaskRunStore interface</li>
+<li>Reconciler now persists TaskRun state to the store after every state transition (creation, approval hold, running, completion, failure, retry)</li>
+<li><code>WithTaskRunStore</code> reconciler option; defaults to MemoryStore when not provided</li>
+<li>Slack webhook handler now parses <code>robodev_approve_*</code> and <code>robodev_reject_*</code> action IDs from approval callbacks, extracting task run IDs and logging structured approval/rejection events (stub for future resolution wiring)</li>
+<li>Queued → NeedsHuman added as a valid state transition in the TaskRun state machine</li>
+<li>Table-driven tests for MemoryStore (save/get, list, filter by ticket ID, not-found error)</li>
+<li>Controller tests for pre-start approval gate blocking job creation, pre-merge gate holding completion, and store persistence verification</li>
+<li>Config loading tests for new governance fields (approval gates, cost threshold, taskrun store backend)</li>
+</ul>
+<h4 id="integration-test-suite">Integration Test Suite<a class="headerlink" href="#integration-test-suite" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Comprehensive three-tier integration test architecture: Tier 1 (E2E against Kind cluster), Tier 2 (in-process with fake K8s client), Tier 3 (in-process, no K8s)</li>
+<li>No-op ticketing backend (<code>pkg/plugin/ticketing/noop/</code>) as fallback for webhook-only and test deployments — prevents nil-pointer panics when no ticketing backend is configured</li>
+<li>Tier 3 tests: engine spec validation across all 5 engines, JobBuilder security hardening verification</li>
+<li>Tier 2 tests: full reconciler pipeline, webhook-to-reconciler integration, TaskRun state machine lifecycle, guard rails with real reconciler wiring, secret resolver parsing and policy enforcement</li>
+<li>Tier 1 E2E tests: webhook signature validation (GitHub HMAC-SHA256), container security contexts, Helm resource verification, NetworkPolicy rules, Prometheus metrics endpoints</li>
+<li>Test orchestration script (<code>hack/run-integration-tests.sh</code>) producing markdown reports suitable for <code>claude -p</code> analysis</li>
+<li>Test Helm values overlay (<code>hack/values-test.yaml</code>) with webhook secrets and NetworkPolicy enabled</li>
+<li>Makefile targets: <code>deploy-test</code>, <code>integration-test</code>, <code>test-report</code>, <code>test-all</code></li>
+</ul>
+<h4 id="webhook-receiver-event-driven-ingestion">Webhook Receiver &amp; Event-Driven Ingestion<a class="headerlink" href="#webhook-receiver-event-driven-ingestion" title="Permanent link">&para;</a></h4>
+<ul>
+<li>HTTP webhook server (<code>internal/webhook/</code>) with route handlers for GitHub, GitLab, Slack, Shortcut, and a configurable generic handler</li>
+<li>GitHub HMAC-SHA256 signature validation (<code>X-Hub-Signature-256</code>), issue event parsing for <code>opened</code> and <code>labeled</code> actions</li>
+<li>GitLab secret token validation (<code>X-Gitlab-Token</code>), issue and merge request event parsing</li>
+<li>Slack signing secret validation (<code>X-Slack-Signature</code>) with 5-minute replay attack prevention</li>
+<li>Shortcut webhook handler with optional HMAC signature validation and story state change parsing</li>
+<li>Generic webhook handler with configurable HMAC or bearer token auth and dot-notation JSON field mapping</li>
+<li>Webhook server wired into <code>cmd/robodev/main.go</code> with graceful shutdown support</li>
+<li>New <code>WebhookConfig</code> in controller configuration for per-source secrets</li>
+</ul>
+<h4 id="task-scoped-secret-resolution">Task-Scoped Secret Resolution<a class="headerlink" href="#task-scoped-secret-resolution" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Secret resolver (<code>internal/secretresolver/</code>) parsing <code>&lt;!-- robodev:secrets --&gt;</code> HTML comment blocks and <code>robodev:secret:</code> label prefixes</li>
+<li>Policy engine validating environment variable names against allowed/blocked glob patterns, URI scheme restrictions, and tenant scoping</li>
+<li>Multi-backend resolver dispatching secrets by URI scheme (<code>vault://</code>, <code>k8s://</code>, <code>alias://</code>) to registered backends</li>
+<li>Structured audit logging (secret names only, never values) for compliance and debugging</li>
+<li>New <code>SecretResolverConfig</code> and <code>VaultSecretsConfig</code> types in controller configuration</li>
+</ul>
+<h4 id="hashicorp-vault-secrets-backend">HashiCorp Vault Secrets Backend<a class="headerlink" href="#hashicorp-vault-secrets-backend" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Vault backend (<code>pkg/plugin/secrets/vault/</code>) implementing <code>secrets.Backend</code> interface</li>
+<li>Kubernetes auth method: reads ServiceAccount token and authenticates to Vault's <code>/v1/auth/kubernetes/login</code> endpoint</li>
+<li>KV v2 secret reads with token caching for performance</li>
+<li>Uses <code>net/http</code> directly — no external Vault client library dependency</li>
+</ul>
+<h4 id="opencode-execution-engine">OpenCode Execution Engine<a class="headerlink" href="#opencode-execution-engine" title="Permanent link">&para;</a></h4>
+<ul>
+<li>OpenCode engine (<code>pkg/engine/opencode/</code>) implementing <code>ExecutionEngine</code> for the OpenCode CLI</li>
+<li>Command: <code>opencode --non-interactive --message &lt;prompt&gt;</code>, context file: <code>AGENTS.md</code></li>
+<li>Supports Anthropic, OpenAI, and Google model providers</li>
+<li>OpenCode engine Dockerfile (<code>docker/engine-opencode/</code>) with <code>node:22-slim</code> base, OpenCode CLI, and non-root user</li>
+<li>OpenCode entrypoint script with repo cloning, multi-provider support, and semantic exit codes</li>
+<li>Makefile targets: <code>docker-build-engine-opencode</code>, <code>docker-build-dev-engine-opencode</code></li>
+</ul>
+<h4 id="cline-execution-engine">Cline Execution Engine<a class="headerlink" href="#cline-execution-engine" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Cline engine (<code>pkg/engine/cline/</code>) implementing <code>ExecutionEngine</code> for the Cline CLI</li>
+<li>Command: <code>cline --headless --task &lt;prompt&gt; --output-format json</code>, context file: <code>.clinerules</code></li>
+<li>Supports Anthropic, OpenAI, Google, and AWS Bedrock model providers</li>
+<li>Optional MCP (Model Context Protocol) support via <code>WithMCPEnabled</code> option and <code>--mcp</code> flag</li>
+<li>Cline engine Dockerfile (<code>docker/engine-cline/</code>) with <code>node:22-slim</code> base, headless CLI, and non-root user</li>
+<li>Cline entrypoint script with repo cloning, MCP toggle (<code>MCP_ENABLED</code>), JSON output, and semantic exit codes</li>
+<li>Makefile targets: <code>docker-build-engine-cline</code>, <code>docker-build-dev-engine-cline</code></li>
+</ul>
+<h4 id="shortcut-ticketing-backend">Shortcut Ticketing Backend<a class="headerlink" href="#shortcut-ticketing-backend" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Shortcut.com backend (<code>pkg/plugin/ticketing/shortcut/</code>) implementing <code>ticketing.Backend</code></li>
+<li>REST API v3 integration with story search, label management, comments, and completion</li>
+<li>Auth via <code>Shortcut-Token</code> header, configurable workflow state ID and label filtering</li>
+</ul>
+<h4 id="linear-ticketing-backend">Linear Ticketing Backend<a class="headerlink" href="#linear-ticketing-backend" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Linear backend (<code>pkg/plugin/ticketing/linear/</code>) implementing <code>ticketing.Backend</code></li>
+<li>GraphQL API integration with issue queries, state transitions, comments, and label management</li>
+<li>Auth via raw API key, configurable team ID, state filter, and label filtering</li>
+</ul>
+<h4 id="telegram-notification-channel">Telegram Notification Channel<a class="headerlink" href="#telegram-notification-channel" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Telegram channel (<code>pkg/plugin/notifications/telegram/</code>) implementing <code>notifications.Channel</code></li>
+<li>Bot API <code>sendMessage</code> endpoint with Markdown formatting and optional topic-based thread support</li>
+<li>Builder options: <code>WithAPIURL</code>, <code>WithHTTPClient</code>, <code>WithThreadID</code></li>
+</ul>
+<h4 id="discord-notification-channel">Discord Notification Channel<a class="headerlink" href="#discord-notification-channel" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Discord channel (<code>pkg/plugin/notifications/discord/</code>) implementing <code>notifications.Channel</code></li>
+<li>Webhook-based with colour-coded rich embeds (green success, red failure, blue info)</li>
+<li>No auth library needed — webhook URL contains the token</li>
+</ul>
+<h4 id="networkpolicy-security-hardening">NetworkPolicy &amp; Security Hardening<a class="headerlink" href="#networkpolicy-security-hardening" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Agent NetworkPolicy (<code>networkpolicy-agent.yaml</code>): deny all ingress, egress allowed to DNS (53), HTTPS (443), SSH (22) only</li>
+<li>Controller NetworkPolicy (<code>networkpolicy-controller.yaml</code>): allow webhook and metrics ingress, egress to DNS, HTTPS, and K8s API</li>
+<li>PodDisruptionBudget (<code>pdb.yaml</code>): configurable <code>minAvailable</code> / <code>maxUnavailable</code>, defaults to <code>minAvailable: 1</code></li>
+<li>All templates gated by <code>networkPolicy.enabled</code> and <code>pdb.enabled</code> values</li>
+<li>Webhook Service template (<code>service-webhook.yaml</code>) exposing webhook port separately from metrics</li>
+<li>Webhook Ingress template (<code>ingress.yaml</code>) with className, annotations, hosts, paths, and TLS support</li>
+<li>Webhook container port added to controller Deployment template (conditional on <code>webhook.enabled</code>)</li>
+<li>New Helm values: <code>webhook</code> (with <code>service</code>, <code>ingress</code> sub-config), <code>networkPolicy</code>, <code>pdb</code> sections</li>
+</ul>
+<h4 id="github-backend-filtering">GitHub Backend Filtering<a class="headerlink" href="#github-backend-filtering" title="Permanent link">&para;</a></h4>
+<ul>
+<li>GitHub ticketing backend now supports filtering by assignee, milestone, and issue state in addition to labels</li>
+<li>Added client-side label exclusion to prevent re-pickup of in-progress and failed issues (default: <code>in-progress</code>, <code>robodev-failed</code>)</li>
+<li>New functional options: <code>WithAssignee</code>, <code>WithMilestone</code>, <code>WithState</code>, <code>WithExcludeLabels</code></li>
+<li>Labels filter is now optional — omitting it enables assignee-only or milestone-only workflows</li>
+<li>Refactored <code>PollReadyTickets</code> URL construction to use <code>url.Values</code> for safer query parameter encoding</li>
+</ul>
+<h4 id="live-end-to-end-testing">Live End-to-End Testing<a class="headerlink" href="#live-end-to-end-testing" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Wired up <code>cmd/robodev/main.go</code> with full backend initialisation: K8s client, GitHub ticketing, Claude Code engine, job builder, and Slack notifications</li>
+<li>Controller now reads secrets from Kubernetes at startup (GitHub token, Slack token) using config-driven secret references</li>
+<li>Added <code>hack/setup-secrets.sh</code> interactive script for provisioning K8s secrets (GitHub token, Anthropic API key, Slack bot token)</li>
+<li>Added <code>hack/values-live.yaml</code> Helm values overlay for live testing with real backends (conservative guardrails: $10 cost cap, 30min timeout, max 2 jobs)</li>
+<li>Added Makefile targets: <code>setup-secrets</code>, <code>live-deploy</code>, <code>live-up</code>, <code>live-redeploy</code> for full live testing workflow</li>
+<li>In-cluster and kubeconfig fallback for K8s client creation (supports both deployed and local dev)</li>
+</ul>
+<h4 id="local-development-e2e-testing">Local Development &amp; E2E Testing<a class="headerlink" href="#local-development-e2e-testing" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Kind cluster configuration (<code>hack/kind-config.yaml</code>) with two-node topology and host port mapping</li>
+<li>Local dev Helm values overlay (<code>hack/values-dev.yaml</code>) with <code>pullPolicy: Never</code>, disabled leader election, and NodePort access</li>
+<li>End-to-end smoke test suite (<code>tests/e2e/</code>) covering deployment readiness, health endpoints, metrics, RBAC, and resource creation</li>
+<li>Makefile targets for full local workflow: <code>check-prereqs</code>, <code>kind-create</code>, <code>kind-delete</code>, <code>docker-build-dev</code>, <code>kind-load</code>, <code>deploy</code>, <code>undeploy</code>, <code>local-up</code>, <code>local-down</code>, <code>local-redeploy</code>, <code>e2e-test</code>, <code>logs</code></li>
+<li>Configurable service type in Helm chart (supports NodePort for local development)</li>
+<li>Local development workflow documentation in CONTRIBUTING.md</li>
+</ul>
+<h4 id="phase-1-core-framework-abstractions">Phase 1: Core Framework &amp; Abstractions<a class="headerlink" href="#phase-1-core-framework-abstractions" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Protobuf definitions for all 7 plugin interfaces: ticketing, notifications, approval, secrets, review, SCM, engine (plus shared common.proto)</li>
+<li>buf.yaml and buf.gen.yaml for protobuf linting and Go/gRPC code generation</li>
+<li>Makefile targets: <code>proto-lint</code> and <code>proto-gen</code> for protobuf workflow</li>
+<li>All plugin Go interfaces: ticketing.Backend, notifications.Channel, approval.Backend, secrets.Backend, review.Backend, scm.Backend</li>
+<li>gRPC plugin host (pkg/plugin/host.go) using hashicorp/go-plugin with version handshake, crash detection, and restart with exponential backoff</li>
+<li>JobBuilder (internal/jobbuilder) translating ExecutionSpec to K8s batch/v1.Job with security contexts, tolerations, and labels</li>
+<li>Progress watchdog (internal/watchdog) with anomaly detection rules: loop detection, thrashing, stall, cost velocity, telemetry failure</li>
+<li>Cost tracker (internal/costtracker) with per-engine token rates and budget checking</li>
+<li>Prompt builder (internal/promptbuilder) with guard rails injection and task profile support</li>
+<li>Controller reconciliation loop with ticket polling, idempotency, guard rails validation, job lifecycle management, and retry logic</li>
+<li>Health endpoints (/healthz, /readyz) and Prometheus metrics serving in main.go</li>
+<li>Graceful shutdown with signal handling (SIGTERM, SIGINT)</li>
+</ul>
+<h4 id="phase-2-claude-code-engine-github-slack">Phase 2: Claude Code Engine + GitHub + Slack<a class="headerlink" href="#phase-2-claude-code-engine-github-slack" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Claude Code execution engine (pkg/engine/claudecode) with BuildExecutionSpec, BuildPrompt, and hooks generation</li>
+<li>Claude Code hooks system for guard rails: PreToolUse blockers, PostToolUse heartbeat, Stop handler</li>
+<li>GitHub Issues ticketing backend (pkg/plugin/ticketing/github) with REST API integration</li>
+<li>GitHub SCM backend (pkg/plugin/scm/github) for branch and pull request management</li>
+<li>Kubernetes Secrets backend (pkg/plugin/secrets/k8s) with secret retrieval and env var building</li>
+<li>Slack notification channel (pkg/plugin/notifications/slack) with Block Kit formatted messages</li>
+<li>Slack approval backend (pkg/plugin/approval/slack) with interactive messages and callback handling</li>
+</ul>
+<h4 id="phase-2d-dockerfiles-helm-chart">Phase 2D: Dockerfiles &amp; Helm Chart<a class="headerlink" href="#phase-2d-dockerfiles-helm-chart" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Multi-stage controller Dockerfile (golang:1.23-alpine builder to distroless runtime)</li>
+<li>Claude Code engine Dockerfile with Node.js, Claude Code CLI, git, gh, python3, guard rail hooks</li>
+<li>Claude Code entrypoint.sh with repo cloning, CLAUDE.md injection, and semantic exit codes</li>
+<li>Guard rail hooks: block-dangerous-commands.sh (PreToolUse/Bash) and block-sensitive-files.sh (PreToolUse/Write|Edit)</li>
+<li>OpenAI Codex engine Dockerfile with Node.js, Codex CLI, and full-auto entrypoint</li>
+<li>Helm chart: plugin init container support via values.yaml plugins array and shared emptyDir volume</li>
+<li>Helm chart: metrics Service, leader election flag, and post-install NOTES.txt</li>
+<li>Makefile targets: docker-build-controller, docker-build-engine-claude-code, docker-build-engine-codex, docker-build, helm-lint</li>
+<li>.dockerignore for clean container builds</li>
+</ul>
+<h4 id="phase-3-codex-aider-gitlab-coderabbit">Phase 3: Codex + Aider + GitLab + CodeRabbit<a class="headerlink" href="#phase-3-codex-aider-gitlab-coderabbit" title="Permanent link">&para;</a></h4>
+<ul>
+<li>OpenAI Codex execution engine (pkg/engine/codex) with prompt-based guard rails</li>
+<li>Aider execution engine (pkg/engine/aider) with conventions.md support</li>
+<li>Engine registry (pkg/engine/registry.go) for engine selection and management</li>
+<li>GitLab SCM backend (pkg/plugin/scm/gitlab) with merge request support</li>
+<li>CodeRabbit review backend (pkg/plugin/review/coderabbit) for quality gate integration</li>
+</ul>
+<h4 id="phase-4-agent-teams-scaling-multi-tenancy">Phase 4: Agent Teams, Scaling &amp; Multi-Tenancy<a class="headerlink" href="#phase-4-agent-teams-scaling-multi-tenancy" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Claude Code agent teams configuration (pkg/engine/claudecode/teams.go) with in-process mode</li>
+<li>Multi-tenancy support via namespace-per-tenant model in config</li>
+<li>Quality gate configuration with security checks</li>
+<li>Progress watchdog configuration in main config</li>
+<li>Extended engine configs with auth settings (API key, Bedrock, Vertex, setup-token)</li>
+<li>Karpenter NodePool example (examples/karpenter/) with spot instances and taints</li>
+<li>KEDA ScaledObject example (examples/keda/) for Prometheus-based scaling</li>
+<li>Example configurations: github-slack, gitlab-teams, enterprise (with full feature set)</li>
+<li>Example third-party plugins: Jira (Python) and Microsoft Teams (TypeScript)</li>
+<li>Grafana dashboard JSON (charts/robodev/dashboards/)</li>
+<li>Scaling documentation (docs/scaling.md)</li>
+</ul>
+<h4 id="phase-5-community-documentation">Phase 5: Community &amp; Documentation<a class="headerlink" href="#phase-5-community-documentation" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Comprehensive README with architecture diagram, quick start, and full feature overview</li>
+<li>Guard rails documentation (docs/guardrails.md) covering all six layers</li>
+<li>Plugin interface documentation: ticketing, notifications, secrets, engines</li>
+<li>Expanded CI pipeline: protobuf linting, Helm linting, Docker build verification</li>
+<li>Release workflow with cosign image signing and syft SBOM generation</li>
+<li>GitHub issue templates (bug report, feature request, plugin request)</li>
+<li>Pull request template with checklist</li>
+<li>Comprehensive architecture documentation with system diagrams and component details</li>
+<li>Full security documentation with threat model, defence in depth, and container hardening</li>
+<li>Getting started guide with step-by-step quick start, configuration reference, and troubleshooting</li>
+<li>Plugin development guide covering Go built-in and gRPC third-party plugin authoring</li>
+<li>Expanded plugin interface docs: ticketing (269 lines), notifications (246 lines), secrets (261 lines), engines (500 lines) with full RPC coverage, implementation guidance, and design considerations</li>
+</ul>
+<h4 id="documentation-site-mkdocs-material">Documentation Site (MkDocs Material)<a class="headerlink" href="#documentation-site-mkdocs-material" title="Permanent link">&para;</a></h4>
+<ul>
+<li>MkDocs Material documentation site with deep purple/amber theme, dark mode, search, and code copy</li>
+<li>Landing page with feature cards, Mermaid architecture diagram, and full project layout reference</li>
+<li>Dual quick start paths: Docker Compose (K8s newbies) and Kubernetes (experienced users)</li>
+<li>Four newcomer-facing concept pages: What is RoboDev?, TaskRun Lifecycle, Engines Explained, Guard Rails Overview</li>
+<li>Full configuration reference page documenting all config sections from <code>internal/config/config.go</code></li>
+<li>Troubleshooting guide covering controller, agent, webhook, notification, and watchdog issues</li>
+<li>Mermaid diagrams: system architecture, TaskRun state machine, job lifecycle sequence, guard rail layers, engine decision tree</li>
+<li>Community section with contributing guide, code of conduct, security policy, roadmap, and changelog</li>
+<li>GitHub Actions workflow for automatic deployment to GitHub Pages on push to main</li>
+<li>Makefile targets: <code>docs-serve</code> and <code>docs-build</code> for local development</li>
+<li>Admonition boxes added to plugin documentation for tips, warnings, and interface info</li>
+<li>Existing docs updated: ASCII diagrams replaced with Mermaid, internal links fixed for MkDocs compatibility</li>
+<li><code>getting-started.md</code> split into <code>getting-started/</code> subdirectory (kubernetes, docker-compose, configuration, troubleshooting)</li>
+</ul>
+<h4 id="infrastructure">Infrastructure<a class="headerlink" href="#infrastructure" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Go module and core skeleton: controller entrypoint, config loading, TaskRun state machine, Prometheus metrics, ExecutionEngine interface</li>
+<li>CI pipeline with lint, test, build, proto-lint, helm-lint, docker-build jobs</li>
+<li>Helm chart with deployment, RBAC, ConfigMap, ServiceMonitor, Service templates</li>
+<li>Community files: CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md</li>
+<li>Comprehensive table-driven tests for all packages (20 test suites)</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 Unitary AI — Apache 2.0 Licence
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/unitaryai/robodev" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

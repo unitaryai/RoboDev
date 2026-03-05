@@ -1,0 +1,3023 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Kubernetes-native AI coding agent harness">
+      
+      
+      
+        <link rel="canonical" href="https://unitaryai.github.io/robodev/roadmap/">
+      
+      
+        <link rel="prev" href="../security-policy/">
+      
+      
+        <link rel="next" href="../changelog/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+    
+    
+      
+        <title>Roadmap - RoboDev</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#robodev-feature-roadmap" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="RoboDev" class="md-header__button md-logo" aria-label="RoboDev" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RoboDev
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Roadmap
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/unitaryai/robodev" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/robodev
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="RoboDev" class="md-nav__button md-logo" aria-label="RoboDev" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RoboDev
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/unitaryai/robodev" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/robodev
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/github-issues-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: GitHub Issues + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/shortcut-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: Shortcut + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/what-is-robodev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What is RoboDev?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/taskrun-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How a TaskRun Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines Explained
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/guardrails-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/prm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-Time Agent Coaching (PRM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/memory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Episodic Memory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Abstraction Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails (Detailed)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine Comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/writing-a-plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a Plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/ticketing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ticketing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/notifications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notifications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/sdks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SDKs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/webhooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webhook API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin gRPC API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code-of-conduct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status-legend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Legend
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-priority-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Priority Order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#item-20-prmr-comment-response-2026-03-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Item 20: PR/MR Comment Response ✅ (2026-03-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-live-backend-e2e-validation-remaining-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Live-Backend E2E Validation — Remaining Gaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Live-Backend E2E Validation — Remaining Gaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#live-test-suite-initial-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Live Test Suite ✅ (initial coverage)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-tests-live-backend-extended-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Tests (Live Backend) — Extended Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-high-priority-upcoming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. High-Priority Upcoming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. High-Priority Upcoming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#10-agent-dashboard-web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Agent Dashboard (Web UI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-design-first-adr-required-before-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Design-First — ADR Required Before Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Design-First — ADR Required Before Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#24-non-standard-task-types-analysis-reporting-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24. Non-Standard Task Types (Analysis, Reporting, Review)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-supervisor-agent-or-prm-v2-with-strategic-oversight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25. Supervisor Agent (or: PRM V2 with Strategic Oversight)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#9-plugin-sdks-python-go-typescript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Plugin SDKs (Python, Go, TypeScript)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-documentation-site-in-progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Documentation Site (In Progress)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Completed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Completed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 5 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 4 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 3 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#near-term-items-all-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Near-Term Items — All Complete ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 2 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 1 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#original-13-item-improvements-plan-1213-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Original 13-Item Improvements Plan — 12/13 complete
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status-legend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Legend
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-priority-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Priority Order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#item-20-prmr-comment-response-2026-03-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Item 20: PR/MR Comment Response ✅ (2026-03-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-live-backend-e2e-validation-remaining-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Live-Backend E2E Validation — Remaining Gaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Live-Backend E2E Validation — Remaining Gaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#live-test-suite-initial-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Live Test Suite ✅ (initial coverage)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-tests-live-backend-extended-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Tests (Live Backend) — Extended Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-high-priority-upcoming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. High-Priority Upcoming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. High-Priority Upcoming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#10-agent-dashboard-web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Agent Dashboard (Web UI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-design-first-adr-required-before-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Design-First — ADR Required Before Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Design-First — ADR Required Before Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#24-non-standard-task-types-analysis-reporting-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24. Non-Standard Task Types (Analysis, Reporting, Review)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-supervisor-agent-or-prm-v2-with-strategic-oversight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25. Supervisor Agent (or: PRM V2 with Strategic Oversight)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#9-plugin-sdks-python-go-typescript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Plugin SDKs (Python, Go, TypeScript)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-documentation-site-in-progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Documentation Site (In Progress)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Completed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Completed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 5 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 4 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 3 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#near-term-items-all-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Near-Term Items — All Complete ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 2 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-integration-phase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Integration — Phase 1 ✅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#original-13-item-improvements-plan-1213-complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Original 13-Item Improvements Plan — 12/13 complete
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/unitaryai/robodev/edit/main/docs/roadmap.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="robodev-feature-roadmap">RoboDev Feature Roadmap<a class="headerlink" href="#robodev-feature-roadmap" title="Permanent link">&para;</a></h1>
+<p>This document tracks what to work on next, in priority order. Completed work is
+archived at the bottom. See <code>docs/improvements-plan.md</code> for the original 13-item
+plan (12/13 complete).</p>
+<hr />
+<h2 id="status-legend">Status Legend<a class="headerlink" href="#status-legend" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Not started</li>
+<li>[x] Complete</li>
+<li><strong>In Progress</strong> — marked in the item description when actively being worked on</li>
+</ul>
+<hr />
+<h2 id="current-priority-order">Current Priority Order<a class="headerlink" href="#current-priority-order" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1. High-Priority Upcoming               — item 10 (dashboard); item 20 complete ✅
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>2. Live-backend E2E validation          — long-running / real-GitHub items below
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>3. Design-First (ADR before code)       — items 24, 25
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>4. Infrastructure                       — items 9 (plugin SDKs), 11 (docs — in progress)
+</code></pre></div>
+<hr />
+<h2 id="item-20-prmr-comment-response-2026-03-04">Item 20: PR/MR Comment Response ✅ (2026-03-04)<a class="headerlink" href="#item-20-prmr-comment-response-2026-03-04" title="Permanent link">&para;</a></h2>
+<p>RoboDev now monitors open pull/merge requests it creates and spawns follow-up
+jobs to address actionable review feedback.</p>
+<p><strong>Implemented:</strong></p>
+<ul>
+<li><code>pkg/plugin/scm</code> — <code>ReviewComment</code> type; <code>ListReviewComments</code>, <code>ReplyToComment</code>,
+  <code>ResolveThread</code> added to the <code>Backend</code> interface</li>
+<li><code>pkg/plugin/scm/github</code> — GitHub REST implementation of the three new methods
+  (<code>ListReviewComments</code> merges review + issue comment endpoints; <code>ReplyToComment</code>
+  attempts review reply then falls back to issue comment; <code>ResolveThread</code> is a
+  no-op since GitHub REST does not support thread resolution)</li>
+<li><code>pkg/plugin/scm/gitlab</code> — GitLab REST implementation (notes endpoint;
+  discussion-aware reply; PUT <code>resolved: true</code> for thread resolution)</li>
+<li><code>internal/reviewpoller</code> — new package:</li>
+<li><code>types.go</code> — <code>Classification</code>, <code>ClassifiedComment</code>, <code>TrackedPR</code>, <code>FollowUpRequest</code></li>
+<li><code>classifier.go</code> — <code>RuleBasedClassifier</code> (keyword + bot author heuristics) and
+    <code>LLMClassifier</code> (ChainOfThought with rule-based fallback)</li>
+<li><code>poller.go</code> — background <code>Poller</code> with <code>Register</code>, <code>DrainFollowUps</code>, <code>Start</code></li>
+<li><code>internal/config</code> — <code>ReviewResponseConfig</code> struct + validation</li>
+<li><code>internal/taskrun</code> — <code>ParentTicketID</code>, <code>ReviewCommentID</code>, <code>ReviewThreadID</code>,
+  <code>ReviewPRURL</code> fields on <code>TaskRun</code></li>
+<li><code>internal/controller</code> — <code>reviewPoller</code> field, <code>WithReviewPoller</code> option,
+  <code>handleFollowUpComplete</code>, <code>processFollowUpTask</code>, <code>scmFor</code> helper; drain in
+  <code>reconcileOnce</code>; register in <code>handleJobComplete</code></li>
+<li><code>cmd/robodev/main.go</code> — review response subsystem wiring</li>
+<li><code>tests/integration/review_response_test.go</code> — 9 integration tests</li>
+</ul>
+<p><strong>Configuration</strong> (<code>robodev-config.yaml</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">review_response</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">poll_interval_minutes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">min_severity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">warning</span><span class="w">        </span><span class="c1"># info | warning | error</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">max_follow_up_jobs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w">        </span><span class="c1"># per PR</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">reply_to_comments</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">resolve_threads</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># GitLab only; no-op on GitHub REST</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">llm_classifier</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">        </span><span class="c1"># set true to enable LLM-backed classification</span>
+</code></pre></div>
+<hr />
+<h2 id="1-live-backend-e2e-validation-remaining-gaps">1. Live-Backend E2E Validation — Remaining Gaps<a class="headerlink" href="#1-live-backend-e2e-validation-remaining-gaps" title="Permanent link">&para;</a></h2>
+<p>The fake-agent E2E workflow test suite (Phase 5) covers all subsystem interactions
+end-to-end against a real kind cluster. Two live tests (<code>make e2e-live-test</code>) now
+run against the real Shortcut + GitLab + Claude Code stack. The items below require
+extended live workloads (50+ tasks, 3-engine comparison) and will be validated once
+a staging environment is available.</p>
+<hr />
+<h3 id="live-test-suite-initial-coverage">Live Test Suite ✅ (initial coverage)<a class="headerlink" href="#live-test-suite-initial-coverage" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Happy path — story created → Claude Code picks up → MR opened → story done (<code>TestLiveHappyPath</code>)</li>
+<li>[x] Graceful clone failure — invalid repo URL → Claude Code handles error → story done with failure description (<code>TestLiveGracefulCloneFailure</code>)</li>
+</ul>
+<p>Key finding from initial live testing: Claude Code handles clone failures at the
+application level (exits 0, writes error description). <code>MarkFailed</code> / <code>robodev-failed</code>
+label is triggered by K8s-level failures only (watchdog termination, OOM kill, etc.).</p>
+<p>Run with: <code>make e2e-live-test</code> (requires <code>make live-up</code> + valid secrets)</p>
+<hr />
+<h3 id="end-to-end-tests-live-backend-extended-coverage">End-to-End Tests (Live Backend) — Extended Coverage<a class="headerlink" href="#end-to-end-tests-live-backend-extended-coverage" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] PRM with live Claude Code agent — verify scoring and interventions fire at correct thresholds</li>
+<li>[ ] Memory across 50+ tasks — verify accumulation, decay, and prompt injection resistance</li>
+<li>[ ] Adaptive watchdog across 15+ tasks — verify calibration reduces false positives</li>
+<li>[ ] Diagnosis on intentionally failing tasks — correct classification, enriched retry</li>
+<li>[ ] Routing across 20+ tasks on 3 engines — verify convergence to optimal engine selection</li>
+<li>[ ] Cost estimator — validate predictions against actuals within 2×</li>
+<li>[ ] 3-engine tournament on a real GitHub issue — verify judge selects best solution</li>
+<li>[ ] All features enabled simultaneously — no conflicts or race conditions</li>
+</ul>
+<hr />
+<h2 id="2-high-priority-upcoming">2. High-Priority Upcoming<a class="headerlink" href="#2-high-priority-upcoming" title="Permanent link">&para;</a></h2>
+<hr />
+<h3 id="10-agent-dashboard-web-ui">10. Agent Dashboard (Web UI)<a class="headerlink" href="#10-agent-dashboard-web-ui" title="Permanent link">&para;</a></h3>
+<p><strong>Priority:</strong> High
+<strong>Scope:</strong> Large (new service)
+<strong>Dependencies:</strong> Real-time streaming (done), TaskRun store (done)</p>
+<p>A web dashboard for real-time agent observability and control.</p>
+<p><strong>Approach options:</strong>
+- <strong>Grafana-based</strong> — Prometheus metrics + Loki logs + custom panels. Lowest effort,
+  read-only. Good for internal ops teams.
+- <strong>Custom UI</strong> — Go backend + React/Next.js. Interactive approve/cancel/retry, live
+  streaming via SSE/WebSocket. More effort but purpose-built.
+- <strong>Hybrid</strong> — Grafana for metrics + thin custom UI for interactive actions.</p>
+<p><strong>Minimum viable features:</strong>
+- [ ] Real-time TaskRun status view (queued, running, succeeded, failed, needs-human)
+- [ ] Live streaming progress per agent (tool calls, token usage, cost)
+- [ ] Task run history with filtering by engine, ticket, status, date range
+- [ ] Cost tracking dashboard (per-task, per-engine, daily/weekly aggregates)
+- [ ] Manual controls: approve, cancel, retry
+- [ ] Engine health overview</p>
+<p><strong>If custom UI:</strong>
+- [ ] <code>cmd/robodev-dashboard/</code> — separate binary or embedded in controller
+- [ ] <code>/api/v1/</code> REST endpoints: <code>GET /taskruns</code>, <code>POST /taskruns/:id/approve</code>,
+  <code>GET /taskruns/:id/stream</code> (SSE)
+- [ ] Frontend: React + Tailwind or equivalent</p>
+<p><strong>If Grafana-based:</strong>
+- [ ] Dashboard JSON provisioning in <code>charts/robodev/dashboards/</code>
+- [ ] Loki log aggregation for structured slog output
+- [ ] Alert rules for cost velocity, stalled agents, failed tasks</p>
+<hr />
+<h2 id="3-design-first-adr-required-before-implementation">3. Design-First — ADR Required Before Implementation<a class="headerlink" href="#3-design-first-adr-required-before-implementation" title="Permanent link">&para;</a></h2>
+<p>These items have a clear problem and rough direction but need a design document or ADR
+agreed before writing code.</p>
+<hr />
+<h3 id="24-non-standard-task-types-analysis-reporting-review">24. Non-Standard Task Types (Analysis, Reporting, Review)<a class="headerlink" href="#24-non-standard-task-types-analysis-reporting-review" title="Permanent link">&para;</a></h3>
+<p><strong>Priority:</strong> Medium
+<strong>Scope:</strong> Large (controller, prompt builder, execution spec)
+<strong>Dependencies:</strong> Task profiles (partially implemented), prompt builder</p>
+<p>Tasks like "review open MRs and report which need approval" do not fit the standard
+clone-fix-push-MR flow. They need read-only execution and a ticket comment + notification
+as output rather than a merge request.</p>
+<p><strong>Design questions before implementation:</strong></p>
+<ol>
+<li><strong>Execution mode taxonomy</strong>: <code>clone_push_mr</code> (today) | <code>read_only</code> (no git clone) |
+   <code>api_read</code> (no workspace, just SCM API access)</li>
+<li><strong>Result handler taxonomy</strong>: <code>open_mr</code> (today) | <code>comment_and_notify</code> (post summary as
+   ticket comment + notify channels)</li>
+<li><strong>Profile dispatch</strong>: label-based (<code>robodev:analysis</code>) or story-type-based?</li>
+<li><strong>Prompt design</strong>: what system prompt makes a read-only analysis task produce a
+   well-structured summary?</li>
+</ol>
+<p><strong>Rough sketch (validate design first):</strong>
+- Extend <code>TaskProfileConfig</code> with <code>ExecutionMode</code> and <code>ResultHandler</code> fields
+- Update <code>BuildExecutionSpec</code> in all engines to skip git clone for <code>read_only</code> mode
+- Add <code>result_handler</code> dispatch in <code>handleJobComplete</code>
+- Update prompt builder to inject different system prompt per execution mode</p>
+<hr />
+<h3 id="25-supervisor-agent-or-prm-v2-with-strategic-oversight">25. Supervisor Agent (or: PRM V2 with Strategic Oversight)<a class="headerlink" href="#25-supervisor-agent-or-prm-v2-with-strategic-oversight" title="Permanent link">&para;</a></h3>
+<p><strong>Priority:</strong> Medium
+<strong>Scope:</strong> Medium–Large
+<strong>Dependencies:</strong> PRM (<code>internal/prm/</code>), agentstream <code>Forwarder</code>, <code>internal/llm/</code></p>
+<p>The watchdog detects quantitative failure modes and terminates. The PRM scores each tool
+call and nudges. Neither can reason about <em>whether the agent is pursuing the right approach</em>.</p>
+<p>A supervisor adds LLM-based qualitative oversight: "you're correctly implementing a cache
+but the ticket asked for pagination."</p>
+<p><strong>Key design question — standalone package vs PRM V2:</strong></p>
+<p>The PRM already has <code>StreamEventProcessor</code>, sliding window, hint file writer, and
+intervention logic. The cleanest path is probably to extend the PRM <code>Evaluator</code> with an
+optional LLM scoring backend (PRM V2) rather than a parallel <code>internal/supervisor/</code> package.</p>
+<p><strong>Resolve before implementation:</strong>
+1. PRM V2 extension vs standalone <code>internal/supervisor/</code> — pick one
+2. Full task description + codebase context, or only recent event window?
+3. Can it trigger <code>NeedsHuman</code>, or only write hints?
+4. Anti-thrashing: how to avoid over-correcting an on-track agent?
+5. What constitutes "severely off-track" vs what PRM escalation already handles?</p>
+<hr />
+<h2 id="4-infrastructure">4. Infrastructure<a class="headerlink" href="#4-infrastructure" title="Permanent link">&para;</a></h2>
+<hr />
+<h3 id="9-plugin-sdks-python-go-typescript">9. Plugin SDKs (Python, Go, TypeScript)<a class="headerlink" href="#9-plugin-sdks-python-go-typescript" title="Permanent link">&para;</a></h3>
+<p><strong>Priority:</strong> Medium
+<strong>Scope:</strong> Large (separate repositories)
+<strong>Dependencies:</strong> Protobuf definitions (complete in <code>proto/</code>)</p>
+<ul>
+<li>[ ] Configure <code>buf.gen.yaml</code> for multi-language stub generation</li>
+<li>[ ] <strong>Python SDK</strong> (<code>unitaryai/robodev-plugin-sdk-python</code>) — gRPC stubs, base classes,
+  <code>scaffold</code>/<code>serve</code>/<code>test</code> CLI, example plugins</li>
+<li>[ ] <strong>Go SDK</strong> (<code>unitaryai/robodev-plugin-sdk-go</code>) — gRPC stubs (separate module),
+  hashicorp/go-plugin boilerplate, example plugins</li>
+<li>[ ] <strong>TypeScript SDK</strong> (<code>unitaryai/robodev-plugin-sdk-ts</code>) — gRPC stubs, grpc-js wrapper,
+  example plugins</li>
+<li>[ ] Publish SDK documentation to <code>docs/plugins/</code></li>
+</ul>
+<hr />
+<h3 id="11-documentation-site-in-progress">11. Documentation Site <em>(In Progress)</em><a class="headerlink" href="#11-documentation-site-in-progress" title="Permanent link">&para;</a></h3>
+<p><strong>Priority:</strong> High
+<strong>Framework:</strong> MkDocs Material</p>
+<ul>
+<li>[x] Landing page, getting started, architecture overview, configuration reference</li>
+<li>[x] Engine guides, plugin development guide, security model, deployment guides</li>
+<li>[x] Search + dark mode</li>
+<li>[ ] API reference (webhook endpoints, protobuf service definitions)</li>
+<li>[ ] Changelog and migration guides</li>
+<li>[ ] CI/CD pipeline for automatic deployment on merge to main</li>
+<li>[ ] Custom domain (<code>docs.robodev.dev</code> or similar)</li>
+<li>[ ] <code>make docs-serve</code> / <code>make docs-build</code> targets</li>
+</ul>
+<hr />
+<h2 id="5-completed">5. Completed<a class="headerlink" href="#5-completed" title="Permanent link">&para;</a></h2>
+<p>Everything below is implemented and merged.</p>
+<hr />
+<h3 id="active-integration-phase-5">Active Integration — Phase 5 ✅<a class="headerlink" href="#active-integration-phase-5" title="Permanent link">&para;</a></h3>
+<p>E2E workflow pipeline tests with fake-agent binary:</p>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Validates</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TestWorkflowHappyPath</code></td>
+<td>Ticket → K8s Job → NDJSON stream → <code>StateSucceeded</code> + result</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>TestWorkflowJobFailure</code></td>
+<td>Non-zero exit → retry exhaustion → <code>StateFailed</code> + <code>MarkFailed</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>TestWorkflowEngineChainFallback</code></td>
+<td>Primary engine fails → fallback engine completes → <code>StateSucceeded</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>TestWorkflowPRMHintDelivery</code></td>
+<td>Looping agent triggers PRM nudge intervention and logs</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>TestWorkflowWatchdogTermination</code></td>
+<td>Cost-thrashing agent terminated by watchdog → <code>StateFailed</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>TestWorkflowSequentialTasksMemory</code></td>
+<td>Memory extracted after task 1; injected into task 2 prompt</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>TestWorkflowTournamentEndToEnd</code></td>
+<td>2 candidates + 1 judge → judge selects winner → <code>MarkComplete</code></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>Infrastructure added:
+- <code>hack/fake-agent/</code> — standalone Go module; <code>Dockerfile</code> (scratch, UID 10000)
+- <code>make fake-agent-image</code> / <code>make fake-agent-load</code> / <code>make e2e-workflow-test</code> / <code>make e2e-workflow-test-verbose</code></p>
+<p>Test suite hardening (post-merge fixes):
+- Job list queries filtered by <code>LabelTaskRunID</code> label to prevent stale-job count failures across runs
+- <code>workflowFakeEngine.BuildExecutionSpec</code> now calls <code>BuildPrompt</code> (mirrors real engine pattern) so <code>MemoryContext</code> is correctly captured in <code>TestWorkflowSequentialTasksMemory</code>
+- <code>make e2e-workflow-test</code> switched to quiet mode (failures only) + <code>-count=1</code> to prevent cached results</p>
+<hr />
+<h3 id="active-integration-phase-4">Active Integration — Phase 4 ✅<a class="headerlink" href="#active-integration-phase-4" title="Permanent link">&para;</a></h3>
+<p>SQLite persistence, security hardening, LLM V2 upgrades, and integration tests:</p>
+<table>
+<thead>
+<tr>
+<th>Subsystem</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQLite persistence — routing (<code>SQLiteFingerprintStore</code>)</td>
+<td>✅ WAL mode, upserts, persistence tests</td>
+</tr>
+<tr>
+<td>SQLite persistence — estimator (<code>SQLiteEstimatorStore</code>)</td>
+<td>✅ kNN similarity in Go, persistence tests</td>
+</tr>
+<tr>
+<td>SQLite persistence — watchdog (<code>SQLiteProfileStore</code>)</td>
+<td>✅ composite PK <code>(repo_pattern, engine, task_type)</code></td>
+</tr>
+<tr>
+<td>Memory graph tenant isolation</td>
+<td>✅ <code>ListNodes</code>/<code>DeleteNode</code> tenant params; cross-tenant <code>SaveEdge</code> rejected; adversarial tests</td>
+</tr>
+<tr>
+<td>Diagnosis prompt injection defence</td>
+<td>✅ <code>sanitiseForPrompt</code>; XML delimiters in retry builder</td>
+</tr>
+<tr>
+<td>Tournament judge prompt injection defence</td>
+<td>✅ <code>CANDIDATE-DIFF-BEGIN/END</code> comment markers</td>
+</tr>
+<tr>
+<td>Config validation</td>
+<td>✅ <code>validate.go</code>; <code>Config.Validate()</code> called in <code>Load()</code></td>
+</tr>
+<tr>
+<td>Rate-limited LLM client</td>
+<td>✅ <code>RateLimitedClient</code> with configurable RPS</td>
+</tr>
+<tr>
+<td>PRM LLM scorer V2</td>
+<td>✅ <code>LLMScorer</code> with <code>ChainOfThought</code> + V1 fallback</td>
+</tr>
+<tr>
+<td>Memory LLM extractor V2</td>
+<td>✅ <code>LLMExtractor</code> merging LLM + V1 results</td>
+</tr>
+<tr>
+<td>Diagnosis LLM analyser V2</td>
+<td>✅ <code>LLMAnalyser</code> with failure-mode validation + V1 fallback</td>
+</tr>
+<tr>
+<td>Integration tests — 8 subsystem scenarios</td>
+<td>✅ <code>tests/integration/subsystems_test.go</code></td>
+</tr>
+<tr>
+<td>Integration tests — all-features smoke test</td>
+<td>✅ <code>tests/integration/all_features_test.go</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="active-integration-phase-3">Active Integration — Phase 3 ✅<a class="headerlink" href="#active-integration-phase-3" title="Permanent link">&para;</a></h3>
+<p>Tournament coordinator, PRM hint file writer:</p>
+<table>
+<thead>
+<tr>
+<th>Subsystem</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tournament coordinator wiring (item 18)</td>
+<td>✅ <code>launchTournament</code> / <code>handleCandidateComplete</code> / <code>launchJudge</code> / <code>handleJudgeComplete</code></td>
+</tr>
+<tr>
+<td>PRM hint file writer</td>
+<td>✅ <code>writeHintFile</code> via K8s exec; <code>cleanupHintFile</code>; <code>validateHintPath</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="near-term-items-all-complete">Near-Term Items — All Complete ✅<a class="headerlink" href="#near-term-items-all-complete" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Feature</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>21</td>
+<td>Transcript Storage &amp; Audit Log</td>
+<td><code>TranscriptSink</code> interface; local filesystem sink; wired into controller agentstream</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Multi-SCM Backend Routing</td>
+<td><code>internal/scmrouter</code> package; host-pattern routing; backward-compatible config</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Skills, Subagents &amp; Per-Task MCP Plugins</td>
+<td><code>Skill</code> + <code>SkillEnvVars</code>; base64 env var delivery via <code>setup-claude.sh</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="active-integration-phase-2">Active Integration — Phase 2 ✅<a class="headerlink" href="#active-integration-phase-2" title="Permanent link">&para;</a></h3>
+<p>Diagnosis, calibration, routing, estimator, SCM router, and transcript all wired into the
+live controller and <code>main.go</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Subsystem</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Causal diagnosis (item 14)</td>
+<td>✅ Wired — <code>WithDiagnosis</code>; enriched retry prompts in <code>handleJobFailed</code></td>
+</tr>
+<tr>
+<td>Adaptive watchdog calibration (item 15)</td>
+<td>✅ Wired — <code>WithWatchdog</code> + <code>WithWatchdogCalibration</code>; <code>ConsumeStreamEvent</code> in stream reader</td>
+</tr>
+<tr>
+<td>Intelligent routing (item 16)</td>
+<td>✅ Wired — <code>WithIntelligentSelector</code>; <code>RecordOutcome</code> after every terminal run</td>
+</tr>
+<tr>
+<td>Predictive cost estimation (item 17)</td>
+<td>✅ Wired — <code>WithEstimator</code>; auto-reject in <code>ProcessTicket</code>; <code>RecordOutcome</code> after terminal run</td>
+</tr>
+<tr>
+<td>Multi-SCM routing (item 22)</td>
+<td>✅ Wired — <code>WithSCMRouter</code>; <code>cfg.SCM.Backends</code> array in <code>main.go</code></td>
+</tr>
+<tr>
+<td>Transcript storage (item 21)</td>
+<td>✅ Wired — <code>WithTranscriptSink</code>; <code>Append</code> in stream reader; <code>Flush</code> on completion</td>
+</tr>
+<tr>
+<td>Bug fix: <code>launchRetryJob</code></td>
+<td>✅ Same-engine retries were transitioning to <code>StateRetrying</code> with no new job created</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="active-integration-phase-1">Active Integration — Phase 1 ✅<a class="headerlink" href="#active-integration-phase-1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Subsystem</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 1 agent log filtering</td>
+<td><code>LoggingEventProcessor</code> in <code>agentstream/</code></td>
+</tr>
+<tr>
+<td>Multi-workflow Shortcut (item 4 from post-testing plan)</td>
+<td><code>workflows:</code> array; per-story state resolution</td>
+</tr>
+<tr>
+<td>Code review config (item 7)</td>
+<td><code>code_review.enabled</code> guard in controller</td>
+</tr>
+<tr>
+<td>PRM — Real-Time Agent Coaching (item 12)</td>
+<td>Integrated; V2 (LLM scoring) pending</td>
+</tr>
+<tr>
+<td>Episodic Memory (item 13)</td>
+<td>Integrated; V2 (LLM extraction) pending</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="original-13-item-improvements-plan-1213-complete">Original 13-Item Improvements Plan — 12/13 complete<a class="headerlink" href="#original-13-item-improvements-plan-1213-complete" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Feature</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Webhook Receiver &amp; Event-Driven Ingestion</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Agent Sandbox Integration (gVisor / Warm Pools)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OpenCode Execution Engine</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Cline CLI Execution Engine</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Shortcut.com Ticketing Backend</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Telegram Notification Channel</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Linear Ticketing Backend</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Discord Notification Channel</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>9</td>
+<td>HashiCorp Vault Secrets Backend</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Task-Scoped Secret Resolution</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>11</td>
+<td>NetworkPolicy &amp; Security Hardening</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Plugin SDKs (Python, Go, TypeScript)</td>
+<td>🚧 In progress</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Local Development Mode (Docker Compose)</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="summary-table">Summary Table<a class="headerlink" href="#summary-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Feature</th>
+<th>Priority</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>—</td>
+<td>Tournament coordinator wiring</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>—</td>
+<td>PRM hint file writer</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>—</td>
+<td>SQLite persistence (routing, estimator, calibrator)</td>
+<td>Medium</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>—</td>
+<td>LLM V2 upgrades (PRM, memory, diagnosis, judge)</td>
+<td>Medium</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Security hardening</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>—</td>
+<td>E2E workflow suite (fake-agent, 7 tests)</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>—</td>
+<td>E2E live-backend validation (initial 2 tests)</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>—</td>
+<td>E2E live-backend extended coverage (50+ tasks)</td>
+<td>High</td>
+<td>In progress</td>
+</tr>
+<tr>
+<td>20</td>
+<td>PR/MR Comment Response</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Agent Dashboard</td>
+<td>High</td>
+<td>Not started</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Non-Standard Task Types</td>
+<td>Medium</td>
+<td>Design doc required</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Supervisor Agent / PRM V2</td>
+<td>Medium</td>
+<td>Design doc required</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Plugin SDKs</td>
+<td>Medium</td>
+<td>🚧 In progress</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Documentation Site</td>
+<td>High</td>
+<td><strong>In progress</strong></td>
+</tr>
+<tr>
+<td>21</td>
+<td>Transcript Storage &amp; Audit Log</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Multi-SCM Backend Routing</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Skills, Subagents &amp; Per-Task MCP Plugins</td>
+<td>Medium</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Causal Diagnosis (Self-Healing Retry)</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Adaptive Watchdog Calibration</td>
+<td>High</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Engine Fingerprinting + Routing</td>
+<td>Medium</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Predictive Cost Estimation</td>
+<td>Medium</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Competitive Execution (Tournament)</td>
+<td>Medium</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Shortcut webhook state filtering</td>
+<td>Low</td>
+<td>✅ Complete</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 Unitary AI — Apache 2.0 Licence
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/unitaryai/robodev" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

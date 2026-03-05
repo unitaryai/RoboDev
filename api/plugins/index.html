@@ -1,0 +1,3729 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Kubernetes-native AI coding agent harness">
+      
+      
+      
+        <link rel="canonical" href="https://unitaryai.github.io/robodev/api/plugins/">
+      
+      
+        <link rel="prev" href="../webhooks/">
+      
+      
+        <link rel="next" href="../../contributing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+    
+    
+      
+        <title>Plugin gRPC API - RoboDev</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plugin-grpc-api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="RoboDev" class="md-header__button md-logo" aria-label="RoboDev" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RoboDev
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Plugin gRPC API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/unitaryai/robodev" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/robodev
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="RoboDev" class="md-nav__button md-logo" aria-label="RoboDev" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RoboDev
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/unitaryai/robodev" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/robodev
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/github-issues-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: GitHub Issues + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/shortcut-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: Shortcut + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/what-is-robodev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What is RoboDev?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/taskrun-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How a TaskRun Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines Explained
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/guardrails-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/prm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-Time Agent Coaching (PRM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/memory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Episodic Memory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Abstraction Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails (Detailed)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine Comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/writing-a-plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a Plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/ticketing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ticketing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/notifications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notifications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/sdks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SDKs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../webhooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webhook API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin gRPC API
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin gRPC API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#services-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Services overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handshake-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handshake pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shared-message-types-protocommonproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared message types (proto/common.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shared message types (proto/common.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#taskresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TaskResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tokenusage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TokenUsage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ticketingbackend-prototicketingproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TicketingBackend (proto/ticketing.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TicketingBackend (proto/ticketing.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notificationchannel-protonotificationsproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NotificationChannel (proto/notifications.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="NotificationChannel (proto/notifications.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#humanapprovalbackend-protoapprovalproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HumanApprovalBackend (proto/approval.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HumanApprovalBackend (proto/approval.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secretsbackend-protosecretsproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretsBackend (proto/secrets.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SecretsBackend (proto/secrets.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scmbackend-protoscmproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SCMBackend (proto/scm.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SCMBackend (proto/scm.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reviewbackend-protoreviewproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReviewBackend (proto/review.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ReviewBackend (proto/review.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#executionengine-protoengineproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExecutionEngine (proto/engine.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ExecutionEngine (proto/engine.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdk-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SDK generation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code-of-conduct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#services-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Services overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handshake-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handshake pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shared-message-types-protocommonproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared message types (proto/common.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shared message types (proto/common.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#taskresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TaskResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tokenusage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TokenUsage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ticketingbackend-prototicketingproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TicketingBackend (proto/ticketing.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TicketingBackend (proto/ticketing.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notificationchannel-protonotificationsproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NotificationChannel (proto/notifications.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="NotificationChannel (proto/notifications.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#humanapprovalbackend-protoapprovalproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HumanApprovalBackend (proto/approval.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HumanApprovalBackend (proto/approval.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secretsbackend-protosecretsproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretsBackend (proto/secrets.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SecretsBackend (proto/secrets.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scmbackend-protoscmproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SCMBackend (proto/scm.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SCMBackend (proto/scm.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reviewbackend-protoreviewproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReviewBackend (proto/review.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ReviewBackend (proto/review.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#executionengine-protoengineproto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExecutionEngine (proto/engine.proto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ExecutionEngine (proto/engine.proto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rpcs_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RPCs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-message-types_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key message types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdk-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SDK generation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/unitaryai/robodev/edit/main/docs/api/plugins.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="plugin-grpc-api-reference">Plugin gRPC API Reference<a class="headerlink" href="#plugin-grpc-api-reference" title="Permanent link">&para;</a></h1>
+<p>All RoboDev plugin interfaces are defined as protobuf services in <code>proto/</code>.
+The proto files are the <strong>source of truth</strong> — generated Go stubs, Python stubs,
+and TypeScript stubs are all derived from them. Do not edit generated files
+directly; regenerate them with <code>make sdk-gen</code> instead.</p>
+<p>Plugins communicate with the controller over gRPC using the
+<a href="https://github.com/hashicorp/go-plugin">hashicorp/go-plugin</a> subprocess
+model. Each plugin binary is spawned as a child process, connects over a local
+Unix socket, and negotiates its interface version via the <code>Handshake</code> RPC
+before any other calls are made.</p>
+<p>For a guide on writing and deploying plugins, see
+<a href="../../plugins/writing-a-plugin/">Writing a Plugin</a>.</p>
+<hr />
+<h2 id="services-overview">Services overview<a class="headerlink" href="#services-overview" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Interface type</th>
+<th>Proto file</th>
+<th>Go package</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TicketingBackend</code></td>
+<td>Ticketing</td>
+<td><code>proto/ticketing.proto</code></td>
+<td><code>github.com/unitaryai/robodev/proto/v1</code></td>
+</tr>
+<tr>
+<td><code>NotificationChannel</code></td>
+<td>Notifications</td>
+<td><code>proto/notifications.proto</code></td>
+<td><code>github.com/unitaryai/robodev/proto/v1</code></td>
+</tr>
+<tr>
+<td><code>HumanApprovalBackend</code></td>
+<td>Approval</td>
+<td><code>proto/approval.proto</code></td>
+<td><code>github.com/unitaryai/robodev/proto/v1</code></td>
+</tr>
+<tr>
+<td><code>SecretsBackend</code></td>
+<td>Secrets</td>
+<td><code>proto/secrets.proto</code></td>
+<td><code>github.com/unitaryai/robodev/proto/v1</code></td>
+</tr>
+<tr>
+<td><code>SCMBackend</code></td>
+<td>Source control</td>
+<td><code>proto/scm.proto</code></td>
+<td><code>github.com/unitaryai/robodev/proto/v1</code></td>
+</tr>
+<tr>
+<td><code>ReviewBackend</code></td>
+<td>Code review</td>
+<td><code>proto/review.proto</code></td>
+<td><code>github.com/unitaryai/robodev/proto/v1</code></td>
+</tr>
+<tr>
+<td><code>ExecutionEngine</code></td>
+<td>Engine</td>
+<td><code>proto/engine.proto</code></td>
+<td><code>github.com/unitaryai/robodev/proto/v1</code></td>
+</tr>
+</tbody>
+</table>
+<p>All services share the package declaration <code>robodev.v1</code> and the Go package
+<code>github.com/unitaryai/robodev/proto/v1</code>.</p>
+<hr />
+<h2 id="handshake-pattern">Handshake pattern<a class="headerlink" href="#handshake-pattern" title="Permanent link">&para;</a></h2>
+<p>Every service includes a <code>Handshake</code> RPC. The controller calls it at startup
+and after any plugin restart to negotiate the interface version before making
+any functional calls.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">rpc</span><span class="w"> </span><span class="n">Handshake</span><span class="p">(</span><span class="n">HandshakeRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">HandshakeResponse</span><span class="p">);</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HandshakeRequest</code></td>
+<td><code>interface_version</code></td>
+<td><code>int32</code></td>
+<td>Version the controller expects.</td>
+</tr>
+<tr>
+<td><code>HandshakeResponse</code></td>
+<td><code>interface_version</code></td>
+<td><code>int32</code></td>
+<td>Version the plugin implements.</td>
+</tr>
+<tr>
+<td><code>HandshakeResponse</code></td>
+<td><code>plugin_name</code></td>
+<td><code>string</code></td>
+<td>Human-readable plugin identifier (e.g. <code>"jira"</code>).</td>
+</tr>
+<tr>
+<td><code>HandshakeResponse</code></td>
+<td><code>plugin_version</code></td>
+<td><code>string</code></td>
+<td>Semver version of the plugin binary (e.g. <code>"1.2.0"</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>If the plugin's <code>interface_version</code> does not match what the controller expects,
+the controller refuses to load the plugin, logs a structured error, and marks it
+permanently unhealthy. Restarting cannot resolve a version mismatch.</p>
+<p>The current <code>interface_version</code> for all services is <strong>1</strong>.</p>
+<hr />
+<h2 id="shared-message-types-protocommonproto">Shared message types (<code>proto/common.proto</code>)<a class="headerlink" href="#shared-message-types-protocommonproto" title="Permanent link">&para;</a></h2>
+<p>The following types are defined in <code>proto/common.proto</code> and referenced by
+multiple services.</p>
+<h3 id="ticket"><code>Ticket</code><a class="headerlink" href="#ticket" title="Permanent link">&para;</a></h3>
+<p>Represents a unit of work from an external issue tracker.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>Unique identifier in the external system (e.g. <code>"42"</code>, <code>"PROJ-123"</code>).</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td>Ticket summary or title.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>string</code></td>
+<td>Full ticket body. May contain markdown.</td>
+</tr>
+<tr>
+<td><code>ticket_type</code></td>
+<td><code>string</code></td>
+<td>Work classifier (e.g. <code>"bug_fix"</code>, <code>"dependency_upgrade"</code>). Used to select guard rail profiles.</td>
+</tr>
+<tr>
+<td><code>labels</code></td>
+<td><code>repeated string</code></td>
+<td>Tags or labels from the external system.</td>
+</tr>
+<tr>
+<td><code>repo_url</code></td>
+<td><code>string</code></td>
+<td>Repository URL associated with the ticket.</td>
+</tr>
+<tr>
+<td><code>external_url</code></td>
+<td><code>string</code></td>
+<td>Web URL to view the ticket in the originating system.</td>
+</tr>
+<tr>
+<td><code>raw</code></td>
+<td><code>google.protobuf.Struct</code></td>
+<td>Original unprocessed data from the external system.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="taskresult"><code>TaskResult</code><a class="headerlink" href="#taskresult" title="Permanent link">&para;</a></h3>
+<p>Structured outcome of an agent execution, written to <code>/workspace/result.json</code>
+by the engine.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>success</code></td>
+<td><code>bool</code></td>
+<td>Whether the agent completed successfully.</td>
+</tr>
+<tr>
+<td><code>merge_request_url</code></td>
+<td><code>string</code></td>
+<td>URL of the created pull/merge request, if any.</td>
+</tr>
+<tr>
+<td><code>branch_name</code></td>
+<td><code>string</code></td>
+<td>Git branch the agent worked on.</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td><code>string</code></td>
+<td>Human-readable description of what the agent did.</td>
+</tr>
+<tr>
+<td><code>token_usage</code></td>
+<td><code>TokenUsage</code></td>
+<td>Token consumption for cost accounting.</td>
+</tr>
+<tr>
+<td><code>cost_estimate_usd</code></td>
+<td><code>double</code></td>
+<td>Estimated cost in US dollars.</td>
+</tr>
+<tr>
+<td><code>exit_code</code></td>
+<td><code>int32</code></td>
+<td><code>0</code> = success, <code>1</code> = agent failure, <code>2</code> = guard rail blocked.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tokenusage"><code>TokenUsage</code><a class="headerlink" href="#tokenusage" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>input_tokens</code></td>
+<td><code>int64</code></td>
+<td>Number of input tokens consumed.</td>
+</tr>
+<tr>
+<td><code>output_tokens</code></td>
+<td><code>int64</code></td>
+<td>Number of output tokens consumed.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ticketingbackend-prototicketingproto"><code>TicketingBackend</code> (<code>proto/ticketing.proto</code>)<a class="headerlink" href="#ticketingbackend-prototicketingproto" title="Permanent link">&para;</a></h2>
+<p>Ticketing backends poll external issue trackers for ready tickets and manage
+ticket lifecycle transitions throughout the TaskRun state machine. Built-in
+backends (GitHub Issues) are compiled into the controller binary. External
+backends (Jira, Linear, Shortcut) run as gRPC subprocesses.</p>
+<h3 id="rpcs">RPCs<a class="headerlink" href="#rpcs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request</th>
+<th>Response</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Handshake</code></td>
+<td><code>HandshakeRequest</code></td>
+<td><code>HandshakeResponse</code></td>
+<td>Version negotiation at startup.</td>
+</tr>
+<tr>
+<td><code>PollReadyTickets</code></td>
+<td><code>PollReadyTicketsRequest</code></td>
+<td><code>PollReadyTicketsResponse</code></td>
+<td>Returns tickets labelled and ready for processing. Called on a configurable interval (default 30 s).</td>
+</tr>
+<tr>
+<td><code>MarkInProgress</code></td>
+<td><code>MarkInProgressRequest</code></td>
+<td><code>MarkInProgressResponse</code></td>
+<td>Transitions the ticket to an in-progress state (labels, assignees, status). Called when the controller creates a Kubernetes Job.</td>
+</tr>
+<tr>
+<td><code>MarkComplete</code></td>
+<td><code>MarkCompleteRequest</code></td>
+<td><code>MarkCompleteResponse</code></td>
+<td>Transitions the ticket to completed and attaches the execution result. Called on agent success.</td>
+</tr>
+<tr>
+<td><code>MarkFailed</code></td>
+<td><code>MarkFailedRequest</code></td>
+<td><code>MarkFailedResponse</code></td>
+<td>Transitions the ticket to failed with a human-readable reason. Called on agent failure or watchdog termination.</td>
+</tr>
+<tr>
+<td><code>AddComment</code></td>
+<td><code>AddCommentRequest</code></td>
+<td><code>AddCommentResponse</code></td>
+<td>Posts a comment on the ticket. Used for progress updates and diagnostic information.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-message-types">Key message types<a class="headerlink" href="#key-message-types" title="Permanent link">&para;</a></h3>
+<p><strong><code>PollReadyTicketsRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>labels</code></td>
+<td><code>repeated string</code></td>
+<td>Filter to tickets matching all specified labels.</td>
+</tr>
+<tr>
+<td><code>max_results</code></td>
+<td><code>int32</code></td>
+<td>Maximum tickets per poll (backend default if zero).</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>PollReadyTicketsResponse</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tickets</code></td>
+<td><code>repeated Ticket</code></td>
+<td>Tickets ready for automated processing.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>MarkCompleteRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ticket_id</code></td>
+<td><code>string</code></td>
+<td>External system identifier.</td>
+</tr>
+<tr>
+<td><code>result</code></td>
+<td><code>TaskResult</code></td>
+<td>Structured execution outcome.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>MarkFailedRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ticket_id</code></td>
+<td><code>string</code></td>
+<td>External system identifier.</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td><code>string</code></td>
+<td>Human-readable failure reason.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>AddCommentRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ticket_id</code></td>
+<td><code>string</code></td>
+<td>External system identifier.</td>
+</tr>
+<tr>
+<td><code>comment</code></td>
+<td><code>string</code></td>
+<td>Comment text. Markdown supported if the backend supports it.</td>
+</tr>
+</tbody>
+</table>
+<p><code>MarkInProgressResponse</code>, <code>MarkCompleteResponse</code>, <code>MarkFailedResponse</code>, and
+<code>AddCommentResponse</code> are intentionally empty; errors are conveyed via gRPC
+status codes.</p>
+<hr />
+<h2 id="notificationchannel-protonotificationsproto"><code>NotificationChannel</code> (<code>proto/notifications.proto</code>)<a class="headerlink" href="#notificationchannel-protonotificationsproto" title="Permanent link">&para;</a></h2>
+<p>Notification channels are fire-and-forget: they deliver messages to external
+systems (Slack, Discord, Teams, email) but do not wait for or handle responses.
+For interactive workflows requiring human input, use <code>HumanApprovalBackend</code>.</p>
+<h3 id="rpcs_1">RPCs<a class="headerlink" href="#rpcs_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request</th>
+<th>Response</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Handshake</code></td>
+<td><code>HandshakeRequest</code></td>
+<td><code>HandshakeResponse</code></td>
+<td>Version negotiation at startup.</td>
+</tr>
+<tr>
+<td><code>Notify</code></td>
+<td><code>NotifyRequest</code></td>
+<td><code>NotifyResponse</code></td>
+<td>Sends a free-form message associated with a ticket. Used for progress updates and warnings.</td>
+</tr>
+<tr>
+<td><code>NotifyStart</code></td>
+<td><code>NotifyStartRequest</code></td>
+<td><code>NotifyStartResponse</code></td>
+<td>Signals that the controller has begun processing a ticket (a Kubernetes Job has been created).</td>
+</tr>
+<tr>
+<td><code>NotifyComplete</code></td>
+<td><code>NotifyCompleteRequest</code></td>
+<td><code>NotifyCompleteResponse</code></td>
+<td>Signals that processing has finished (success or failure).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-message-types_1">Key message types<a class="headerlink" href="#key-message-types_1" title="Permanent link">&para;</a></h3>
+<p><strong><code>NotifyRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>message</code></td>
+<td><code>string</code></td>
+<td>Notification text. May contain markdown.</td>
+</tr>
+<tr>
+<td><code>ticket</code></td>
+<td><code>Ticket</code></td>
+<td>Ticket context.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>NotifyStartRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ticket</code></td>
+<td><code>Ticket</code></td>
+<td>Ticket being processed.</td>
+</tr>
+<tr>
+<td><code>task_run_id</code></td>
+<td><code>string</code></td>
+<td>Unique identifier for this execution attempt.</td>
+</tr>
+<tr>
+<td><code>engine</code></td>
+<td><code>string</code></td>
+<td>Engine name (e.g. <code>"claude-code"</code>, <code>"codex"</code>).</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>NotifyCompleteRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ticket</code></td>
+<td><code>Ticket</code></td>
+<td>Ticket that finished processing.</td>
+</tr>
+<tr>
+<td><code>task_run_id</code></td>
+<td><code>string</code></td>
+<td>Unique identifier for this execution attempt.</td>
+</tr>
+<tr>
+<td><code>result</code></td>
+<td><code>TaskResult</code></td>
+<td>Structured execution outcome.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="humanapprovalbackend-protoapprovalproto"><code>HumanApprovalBackend</code> (<code>proto/approval.proto</code>)<a class="headerlink" href="#humanapprovalbackend-protoapprovalproto" title="Permanent link">&para;</a></h2>
+<p>Approval backends handle bidirectional human-in-the-loop interactions. When an
+agent requires human input (clarification, authorisation to proceed), the
+controller transitions the TaskRun to <code>NeedsHuman</code> and delegates the question
+to the approval backend. The backend delivers the question (e.g. via a Slack
+interactive message) and the human's response resumes the flow via the webhook
+server's Slack endpoint.</p>
+<h3 id="rpcs_2">RPCs<a class="headerlink" href="#rpcs_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request</th>
+<th>Response</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Handshake</code></td>
+<td><code>HandshakeRequest</code></td>
+<td><code>HandshakeResponse</code></td>
+<td>Version negotiation at startup.</td>
+</tr>
+<tr>
+<td><code>RequestApproval</code></td>
+<td><code>RequestApprovalRequest</code></td>
+<td><code>RequestApprovalResponse</code></td>
+<td>Dispatches a question or approval request to a human. Returns once the request is sent, not when the human responds.</td>
+</tr>
+<tr>
+<td><code>CancelPending</code></td>
+<td><code>CancelPendingRequest</code></td>
+<td><code>CancelPendingResponse</code></td>
+<td>Cancels any outstanding approval requests for a task run. Called when the watchdog terminates a <code>NeedsHuman</code> job.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-message-types_2">Key message types<a class="headerlink" href="#key-message-types_2" title="Permanent link">&para;</a></h3>
+<p><strong><code>RequestApprovalRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>question</code></td>
+<td><code>string</code></td>
+<td>Text to present to the human decision-maker.</td>
+</tr>
+<tr>
+<td><code>ticket</code></td>
+<td><code>Ticket</code></td>
+<td>Ticket context.</td>
+</tr>
+<tr>
+<td><code>task_run_id</code></td>
+<td><code>string</code></td>
+<td>Used to correlate the human response back to the correct TaskRun.</td>
+</tr>
+<tr>
+<td><code>options</code></td>
+<td><code>repeated string</code></td>
+<td>Valid response choices. Free-text if empty.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>RequestApprovalResponse</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>request_id</code></td>
+<td><code>string</code></td>
+<td>Backend-specific identifier for this approval request. Used for cancellation and callback correlation.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>CancelPendingRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>task_run_id</code></td>
+<td><code>string</code></td>
+<td>Execution attempt whose pending requests should be cancelled.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="secretsbackend-protosecretsproto"><code>SecretsBackend</code> (<code>proto/secrets.proto</code>)<a class="headerlink" href="#secretsbackend-protosecretsproto" title="Permanent link">&para;</a></h2>
+<p>Secrets backends abstract over different secret storage systems (Kubernetes
+Secrets, HashiCorp Vault, AWS Secrets Manager, 1Password, External Secrets
+Operator) to provide a uniform way of injecting credentials into agent
+execution containers.</p>
+<h3 id="rpcs_3">RPCs<a class="headerlink" href="#rpcs_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request</th>
+<th>Response</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Handshake</code></td>
+<td><code>HandshakeRequest</code></td>
+<td><code>HandshakeResponse</code></td>
+<td>Version negotiation at startup.</td>
+</tr>
+<tr>
+<td><code>GetSecret</code></td>
+<td><code>GetSecretRequest</code></td>
+<td><code>GetSecretResponse</code></td>
+<td>Retrieves a single secret value by key.</td>
+</tr>
+<tr>
+<td><code>GetSecrets</code></td>
+<td><code>GetSecretsRequest</code></td>
+<td><code>GetSecretsResponse</code></td>
+<td>Retrieves multiple secrets in one call. More efficient than repeated <code>GetSecret</code> calls.</td>
+</tr>
+<tr>
+<td><code>BuildEnvVars</code></td>
+<td><code>BuildEnvVarsRequest</code></td>
+<td><code>BuildEnvVarsResponse</code></td>
+<td>Translates secret references into Kubernetes-native <code>EnvVar</code> specifications, enabling backends to use native <code>secretKeyRef</code> where possible.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-message-types_3">Key message types<a class="headerlink" href="#key-message-types_3" title="Permanent link">&para;</a></h3>
+<p><strong><code>GetSecretRequest</code></strong> / <strong><code>GetSecretResponse</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td>
+<td><code>string</code></td>
+<td>Backend-specific secret reference (e.g. <code>"namespace/secret-name/key"</code> for Kubernetes, <code>"secret/data/path#field"</code> for Vault).</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td><code>string</code></td>
+<td>Resolved secret value. Handle securely; never log.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>SecretRef</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>env_name</code></td>
+<td><code>string</code></td>
+<td>Environment variable name to set in the container.</td>
+</tr>
+<tr>
+<td><code>secret_key</code></td>
+<td><code>string</code></td>
+<td>Backend-specific secret reference.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>EnvVar</code></strong> (returned by <code>BuildEnvVars</code>)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>Environment variable name.</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td><code>string</code></td>
+<td>Direct value (mutually exclusive with <code>secret_ref</code>).</td>
+</tr>
+<tr>
+<td><code>secret_ref</code></td>
+<td><code>SecretKeyRef</code></td>
+<td>Kubernetes <code>secretKeyRef</code> (mutually exclusive with <code>value</code>).</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>SecretKeyRef</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>Kubernetes Secret name.</td>
+</tr>
+<tr>
+<td><code>key</code></td>
+<td><code>string</code></td>
+<td>Key within the Secret's data map.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="scmbackend-protoscmproto"><code>SCMBackend</code> (<code>proto/scm.proto</code>)<a class="headerlink" href="#scmbackend-protoscmproto" title="Permanent link">&para;</a></h2>
+<p>SCM backends handle git hosting operations — creating branches, opening
+pull/merge requests, and querying their status. This abstracts over different
+hosting platforms (GitHub, GitLab, Bitbucket) so the controller can manage code
+changes without coupling to a specific provider.</p>
+<h3 id="rpcs_4">RPCs<a class="headerlink" href="#rpcs_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request</th>
+<th>Response</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Handshake</code></td>
+<td><code>HandshakeRequest</code></td>
+<td><code>HandshakeResponse</code></td>
+<td>Version negotiation at startup.</td>
+</tr>
+<tr>
+<td><code>CreateBranch</code></td>
+<td><code>CreateBranchRequest</code></td>
+<td><code>CreateBranchResponse</code></td>
+<td>Creates a new git branch in the remote repository.</td>
+</tr>
+<tr>
+<td><code>CreatePullRequest</code></td>
+<td><code>CreatePullRequestRequest</code></td>
+<td><code>CreatePullRequestResponse</code></td>
+<td>Opens a pull request (GitHub) or merge request (GitLab) for the agent's changes.</td>
+</tr>
+<tr>
+<td><code>GetPullRequestStatus</code></td>
+<td><code>GetPullRequestStatusRequest</code></td>
+<td><code>GetPullRequestStatusResponse</code></td>
+<td>Retrieves the current state of a pull/merge request, including CI and review status.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-message-types_4">Key message types<a class="headerlink" href="#key-message-types_4" title="Permanent link">&para;</a></h3>
+<p><strong><code>CreatePullRequestRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>repo_url</code></td>
+<td><code>string</code></td>
+<td>Repository URL.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td>Pull request title.</td>
+</tr>
+<tr>
+<td><code>body</code></td>
+<td><code>string</code></td>
+<td>Pull request description. Markdown supported.</td>
+</tr>
+<tr>
+<td><code>head_branch</code></td>
+<td><code>string</code></td>
+<td>Source branch containing the changes.</td>
+</tr>
+<tr>
+<td><code>base_branch</code></td>
+<td><code>string</code></td>
+<td>Target branch. Defaults to repository default if empty.</td>
+</tr>
+<tr>
+<td><code>labels</code></td>
+<td><code>repeated string</code></td>
+<td>Labels to apply.</td>
+</tr>
+<tr>
+<td><code>draft</code></td>
+<td><code>bool</code></td>
+<td>Create as a draft if <code>true</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>GetPullRequestStatusResponse</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>state</code></td>
+<td><code>PullRequestState</code></td>
+<td><code>OPEN</code>, <code>CLOSED</code>, <code>MERGED</code>, or <code>DRAFT</code>.</td>
+</tr>
+<tr>
+<td><code>mergeable</code></td>
+<td><code>bool</code></td>
+<td>Whether the PR can be merged (no conflicts, all checks passing).</td>
+</tr>
+<tr>
+<td><code>ci_status</code></td>
+<td><code>CIStatus</code></td>
+<td><code>PENDING</code>, <code>PASSING</code>, or <code>FAILING</code>.</td>
+</tr>
+<tr>
+<td><code>review_status</code></td>
+<td><code>ReviewStatus</code></td>
+<td><code>PENDING</code>, <code>APPROVED</code>, or <code>CHANGES_REQUESTED</code>.</td>
+</tr>
+<tr>
+<td><code>pull_request_url</code></td>
+<td><code>string</code></td>
+<td>Web URL of the pull/merge request.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="reviewbackend-protoreviewproto"><code>ReviewBackend</code> (<code>proto/review.proto</code>)<a class="headerlink" href="#reviewbackend-protoreviewproto" title="Permanent link">&para;</a></h2>
+<p>Review backends integrate with code review systems (CodeRabbit, native
+LLM-based review, custom pipelines) to provide quality gates that evaluate
+agent-produced diffs before they are merged. The quality gate is deliberately
+read-only: it reviews output but cannot modify the repository.</p>
+<h3 id="rpcs_5">RPCs<a class="headerlink" href="#rpcs_5" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request</th>
+<th>Response</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Handshake</code></td>
+<td><code>HandshakeRequest</code></td>
+<td><code>HandshakeResponse</code></td>
+<td>Version negotiation at startup.</td>
+</tr>
+<tr>
+<td><code>ReviewDiff</code></td>
+<td><code>ReviewDiffRequest</code></td>
+<td><code>ReviewDiffResponse</code></td>
+<td>Submits a diff for code review. May return an immediate verdict (synchronous backends) or a <code>review_id</code> for a follow-up poll (asynchronous backends).</td>
+</tr>
+<tr>
+<td><code>GetGateResult</code></td>
+<td><code>GetGateResultRequest</code></td>
+<td><code>GetGateResultResponse</code></td>
+<td>Retrieves the quality gate result for a previously submitted review.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-message-types_5">Key message types<a class="headerlink" href="#key-message-types_5" title="Permanent link">&para;</a></h3>
+<p><strong><code>ReviewDiffRequest</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>task_run_id</code></td>
+<td><code>string</code></td>
+<td>Execution attempt identifier.</td>
+</tr>
+<tr>
+<td><code>ticket</code></td>
+<td><code>Ticket</code></td>
+<td>Ticket context.</td>
+</tr>
+<tr>
+<td><code>diff</code></td>
+<td><code>string</code></td>
+<td>Unified diff produced by the agent. Primary review input.</td>
+</tr>
+<tr>
+<td><code>branch_name</code></td>
+<td><code>string</code></td>
+<td>Git branch containing the changes.</td>
+</tr>
+<tr>
+<td><code>repo_url</code></td>
+<td><code>string</code></td>
+<td>Repository URL.</td>
+</tr>
+<tr>
+<td><code>result</code></td>
+<td><code>TaskResult</code></td>
+<td>Structured execution result from the agent.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>GateResult</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>passed</code></td>
+<td><code>bool</code></td>
+<td>Whether the diff meets the quality bar.</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td><code>string</code></td>
+<td>Human-readable overview of the review outcome.</td>
+</tr>
+<tr>
+<td><code>comments</code></td>
+<td><code>repeated ReviewComment</code></td>
+<td>Specific review comments attached to the diff.</td>
+</tr>
+<tr>
+<td><code>security_findings</code></td>
+<td><code>repeated SecurityFinding</code></td>
+<td>Security issues detected during review.</td>
+</tr>
+<tr>
+<td><code>score</code></td>
+<td><code>int32</code></td>
+<td>Optional numeric quality score (0–100).</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>Severity</code> enum</strong></p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SEVERITY_INFO</code></td>
+<td>Informational; no action required.</td>
+</tr>
+<tr>
+<td><code>SEVERITY_WARNING</code></td>
+<td>Potential issue that should be reviewed.</td>
+</tr>
+<tr>
+<td><code>SEVERITY_ERROR</code></td>
+<td>Definite issue that must be addressed.</td>
+</tr>
+<tr>
+<td><code>SEVERITY_CRITICAL</code></td>
+<td>Severe issue (e.g. security vulnerability) that blocks merging.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="executionengine-protoengineproto"><code>ExecutionEngine</code> (<code>proto/engine.proto</code>)<a class="headerlink" href="#executionengine-protoengineproto" title="Permanent link">&para;</a></h2>
+<p>Execution engines wrap AI coding tools (Claude Code, OpenAI Codex, Aider) and
+translate tasks into engine-agnostic <code>ExecutionSpec</code> records. The core
+<code>JobBuilder</code> (<code>internal/jobbuilder/</code>) then translates the spec into a
+Kubernetes Job. This decoupling enables testing without a cluster and opens the
+door to non-Kubernetes runtimes (Docker, Podman) in future.</p>
+<h3 id="rpcs_6">RPCs<a class="headerlink" href="#rpcs_6" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request</th>
+<th>Response</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Handshake</code></td>
+<td><code>HandshakeRequest</code></td>
+<td><code>HandshakeResponse</code></td>
+<td>Version negotiation at startup.</td>
+</tr>
+<tr>
+<td><code>BuildExecutionSpec</code></td>
+<td><code>BuildExecutionSpecRequest</code></td>
+<td><code>BuildExecutionSpecResponse</code></td>
+<td>Returns a runtime-agnostic execution specification — container image, command, environment variables, resource requirements, and volumes.</td>
+</tr>
+<tr>
+<td><code>BuildPrompt</code></td>
+<td><code>BuildPromptRequest</code></td>
+<td><code>BuildPromptResponse</code></td>
+<td>Constructs the task prompt for this engine. Different engines require different prompt formats (Claude Code uses markdown with <code>CLAUDE.md</code> context; Codex uses <code>AGENTS.md</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-message-types_6">Key message types<a class="headerlink" href="#key-message-types_6" title="Permanent link">&para;</a></h3>
+<p><strong><code>Task</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>Unique task identifier.</td>
+</tr>
+<tr>
+<td><code>ticket_id</code></td>
+<td><code>string</code></td>
+<td>External ticket system identifier.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td>Task title.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>string</code></td>
+<td>Full task description.</td>
+</tr>
+<tr>
+<td><code>repo_url</code></td>
+<td><code>string</code></td>
+<td>Repository URL to work on.</td>
+</tr>
+<tr>
+<td><code>labels</code></td>
+<td><code>repeated string</code></td>
+<td>Labels used for guard rail profile selection.</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td><code>map&lt;string, string&gt;</code></td>
+<td>Additional engine-specific configuration.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>ExecutionSpec</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>image</code></td>
+<td><code>string</code></td>
+<td>Container image to run.</td>
+</tr>
+<tr>
+<td><code>command</code></td>
+<td><code>repeated string</code></td>
+<td>Entrypoint command and arguments.</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td><code>map&lt;string, string&gt;</code></td>
+<td>Environment variables.</td>
+</tr>
+<tr>
+<td><code>secret_env</code></td>
+<td><code>map&lt;string, string&gt;</code></td>
+<td>Environment variable names mapped to secret references. Resolved by the <code>SecretsBackend</code>.</td>
+</tr>
+<tr>
+<td><code>resource_requests</code></td>
+<td><code>Resources</code></td>
+<td>Minimum CPU and memory.</td>
+</tr>
+<tr>
+<td><code>resource_limits</code></td>
+<td><code>Resources</code></td>
+<td>Maximum CPU and memory.</td>
+</tr>
+<tr>
+<td><code>volumes</code></td>
+<td><code>repeated VolumeMount</code></td>
+<td>Volumes to mount into the container.</td>
+</tr>
+<tr>
+<td><code>active_deadline_seconds</code></td>
+<td><code>int32</code></td>
+<td>Maximum execution time before Kubernetes terminates the job.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>EngineConfig</code></strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>image</code></td>
+<td><code>string</code></td>
+<td>Container image.</td>
+</tr>
+<tr>
+<td><code>resource_requests</code></td>
+<td><code>Resources</code></td>
+<td>Minimum CPU and memory.</td>
+</tr>
+<tr>
+<td><code>resource_limits</code></td>
+<td><code>Resources</code></td>
+<td>Maximum CPU and memory.</td>
+</tr>
+<tr>
+<td><code>timeout_seconds</code></td>
+<td><code>int32</code></td>
+<td>Maximum execution duration.</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td><code>map&lt;string, string&gt;</code></td>
+<td>Additional environment variables.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sdk-generation">SDK generation<a class="headerlink" href="#sdk-generation" title="Permanent link">&para;</a></h2>
+<p>Stubs for all three supported languages can be regenerated from the proto
+sources at any time:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>sdk-gen
+</code></pre></div>
+<p>This runs <code>buf generate</code> with the appropriate templates for Go, Python, and
+TypeScript. Generated files are written to <code>sdk/go/</code>, <code>sdk/python/</code>, and
+<code>sdk/typescript/</code> respectively.</p>
+<p>See <a href="../../plugins/sdks/">SDKs</a> for how to use each SDK in a plugin
+implementation.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 Unitary AI — Apache 2.0 Licence
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/unitaryai/robodev" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
