@@ -13,11 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenCode CLI.
-RUN npm install -g opencode
+RUN npm install -g opencode-ai
 
-# Create non-root user.
-RUN groupadd --gid 1000 robodev \
-    && useradd --uid 1000 --gid robodev --create-home robodev
+# Create non-root user (GID/UID 10000 to avoid conflicts with node base image).
+RUN groupadd --gid 10000 robodev \
+    && useradd --uid 10000 --gid robodev --create-home robodev
 
 # Copy entrypoint.
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Codex CLI.
 RUN npm install -g @openai/codex
 
-# Create non-root user.
-RUN groupadd --gid 1000 robodev \
-    && useradd --uid 1000 --gid robodev --create-home robodev
+# Create non-root user (GID/UID 10000 to avoid conflicts with node base image).
+RUN groupadd --gid 10000 robodev \
+    && useradd --uid 10000 --gid robodev --create-home robodev
 
 # Copy entrypoint.
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh

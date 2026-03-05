@@ -29,9 +29,8 @@ jobs:
           - image: engine-opencode
             dockerfile: docker/engine-opencode/Dockerfile
             context: docker/engine-opencode
-          - image: engine-cline
-            dockerfile: docker/engine-cline/Dockerfile
-            context: docker/engine-cline
+          # engine-cline omitted: Cline has no headless CLI mode; the
+          # Dockerfile is a community contribution template only.
 
     steps:
       - uses: actions/checkout@v4
