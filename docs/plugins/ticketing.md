@@ -211,6 +211,81 @@ The GitHub personal access token (or GitHub App installation token) needs the fo
 
 For production deployments, prefer **GitHub App installation tokens** (1-hour expiry, scoped to specific repositories) over long-lived personal access tokens.
 
+## Built-in: Shortcut
+
+The Shortcut backend (`pkg/plugin/ticketing/shortcut/`) polls Shortcut stories via the Shortcut REST API v3.
+
+### Configuration
+
+```yaml
+config:
+  ticketing:
+    backend: shortcut
+    config:
+      token_secret: "robodev-shortcut-token"
+      workflow_state_name: "Ready for Development"
+      in_progress_state_name: "In Development"
+      completed_state_name: "Ready for Review"     # optional
+      owner_mention_name: "robodev"
+      exclude_labels:
+        - "robodev-failed"
+```
+
+For workspaces with multiple workflows, use the `workflows` array instead of the flat state name keys (see the [Configuration Reference](../getting-started/configuration.md#shortcut)).
+
+### Behaviour
+
+| Method | Shortcut Action |
+|---|---|
+| `PollReadyTickets` | Lists stories in the configured trigger state, optionally filtered by assignee |
+| `MarkInProgress` | Moves the story to `in_progress_state_name` |
+| `MarkComplete` | Posts a comment with the PR link, summary, cost, and token usage; moves the story to `completed_state_name` (or the first done-type state if not configured) |
+| `MarkFailed` | Posts a comment with the failure reason; adds the `robodev-failed` label |
+| `AddComment` | `POST /api/v3/stories/{id}/comments` |
+
+### Required Permissions
+
+The Shortcut API token needs member-level access. No special scopes are required beyond what the default member role provides — the token can read and update stories and post comments.
+
+---
+
+## Built-in: Linear
+
+The Linear backend (`pkg/plugin/ticketing/linear/`) polls Linear issues via the Linear GraphQL API.
+
+### Configuration
+
+```yaml
+config:
+  ticketing:
+    backend: linear
+    config:
+      token_secret: "robodev-linear-token"
+      team_id: "YOUR_TEAM_UUID"
+      state_filter: "Todo"
+      labels:
+        - "robodev"
+      exclude_labels:
+        - "in-progress"
+        - "robodev-failed"
+```
+
+### Behaviour
+
+| Method | Linear Action |
+|---|---|
+| `PollReadyTickets` | GraphQL `issues` query filtered by team, state name, and labels |
+| `MarkInProgress` | Adds the `in-progress` label to the issue |
+| `MarkComplete` | Posts a comment with the PR link and summary; transitions the issue to the completed state |
+| `MarkFailed` | Adds the `robodev-failed` label; posts a comment with the failure reason |
+| `AddComment` | `commentCreate` GraphQL mutation |
+
+### Required Permissions
+
+The Linear API key needs **read and write access** to issues and comments in the target team. Create a key under **Settings → API → Personal API keys**. For service accounts, use a team-scoped API key under **Settings → API → OAuth applications**.
+
+---
+
 ## Writing a Custom Ticketing Backend
 
 See the [Writing a Plugin](writing-a-plugin.md) guide for complete examples in Go, Python, and TypeScript. Key design considerations:

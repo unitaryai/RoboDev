@@ -48,6 +48,7 @@ nav:
       - "Quick Start: Kubernetes": getting-started/kubernetes.md
       - "Setup Guide: GitHub Issues + Slack": getting-started/github-issues-slack.md
       - "Setup Guide: Shortcut + Slack": getting-started/shortcut-slack.md
+      - "Setup Guide: Linear + Slack": getting-started/linear-slack.md
       - Configuration Reference: getting-started/configuration.md
       - Troubleshooting: getting-started/troubleshooting.md
   - Concepts:

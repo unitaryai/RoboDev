@@ -82,7 +82,7 @@ RoboDev goes beyond basic orchestration with integrated intelligence systems tha
 | **[Adaptive Watchdog](concepts/guardrails-overview.md#layer-8-adaptive-watchdog-calibration)** | **Active** | Learns what "normal" looks like per repo/engine/task type and adjusts anomaly thresholds |
 | **[Intelligent Routing](concepts/engines.md#intelligent-routing)** | **Active** | Routes tasks to the engine most likely to succeed based on historical data |
 | **[Cost Estimation](concepts/estimator.md)** | **Active** | Predicts cost and duration before launch — "Predicted: $12-18, 45-90 min" |
-| **[Competitive Execution](concepts/engines.md#competitive-execution--tournaments)** | **Active** | Runs multiple engines in parallel, judges results, selects the best solution |
+| **[Competitive Execution](concepts/engines.md#competitive-execution-tournaments)** | **Active** | Runs multiple engines in parallel, judges results, selects the best solution |
 
 ## Project Layout
 

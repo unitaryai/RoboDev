@@ -30,24 +30,103 @@ RoboDev is configured via a YAML file (`robodev-config.yaml`) which is mounted i
 | `competitive_execution` | Tournament-style parallel execution (disabled by default) |
 
 !!! note "Intelligence features"
-    The `prm` and `memory` subsystems are fully integrated into the controller and functional when enabled. The `diagnosis`, `routing`, `estimator`, and `competitive_execution` sections are scaffolded but not yet wired into the controller — they are all disabled by default and have no effect in the current release. See `docs/roadmap.md` Phase I for the integration plan.
+    All intelligence subsystems (`prm`, `memory`, `diagnosis`, `routing`, `estimator`, `competitive_execution`) are fully integrated into the controller and functional when enabled. They are all disabled by default and have no effect unless you add their configuration blocks.
 
 For the full set of fields and their defaults, see `charts/robodev/values.yaml` and the struct definitions in [`internal/config/config.go`](https://github.com/unitaryai/robodev/blob/main/internal/config/config.go).
 
 ## Ticketing
 
+The ticketing backend is the primary input source. The controller polls it every reconciliation cycle (default: 30 seconds).
+
+### GitHub Issues
+
 ```yaml
 ticketing:
-  backend: github          # "github", "gitlab", or a plugin name
+  backend: github
   config:
-    owner: "your-org"
-    repo: "your-repo"
-    labels:
-      - "robodev"
+    owner: "your-org"               # GitHub org or username
+    repo: "your-repo"               # Repository name
     token_secret: "robodev-github-token"
+    labels:
+      - "robodev"                   # Issues must have this label to be picked up
+    exclude_labels:
+      - "robodev-in-progress"       # Skip issues already in flight
+      - "robodev-failed"            # Skip issues that previously failed
 ```
 
-The ticketing backend is the primary input source. The controller polls it every reconciliation cycle (default: 30 seconds) for tickets matching the configured labels.
+| Field | Required | Description |
+|---|---|---|
+| `token_secret` | Yes | Kubernetes Secret name containing a GitHub token with `repo` + `issues` scopes |
+| `owner` | Yes | GitHub organisation or username |
+| `repo` | Yes | Repository name |
+| `labels` | No | Issues must carry at least one of these labels. Defaults to `["robodev"]` |
+| `exclude_labels` | No | Issues carrying any of these labels are skipped |
+
+### Shortcut
+
+```yaml
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: "robodev-shortcut-token"
+    workflow_state_name: "Ready for Development"   # trigger state — exact name
+    in_progress_state_name: "In Development"       # state set when agent starts
+    completed_state_name: "Ready for Review"       # state set on success (optional)
+    owner_mention_name: "robodev"                  # mention name of the RoboDev user
+    exclude_labels:
+      - "robodev-failed"
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `token_secret` | Yes | Kubernetes Secret name containing a Shortcut API token |
+| `workflow_state_name` | Yes | Exact name of the state that triggers pickup (e.g. `"Ready for Development"`) |
+| `in_progress_state_name` | No | State the story is moved to when the agent starts work |
+| `completed_state_name` | No | State the story is moved to on success. Defaults to the first done-type state in the workflow |
+| `owner_mention_name` | No | Only pick up stories assigned to this Shortcut user (e.g. `"robodev"`) |
+| `exclude_labels` | No | Stories with any of these labels are skipped |
+
+**Multi-workflow support** — if your workspace has several workflows with different state names, use the `workflows` array instead of the flat keys above:
+
+```yaml
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: "robodev-shortcut-token"
+    owner_mention_name: "robodev"
+    completed_state_name: "Ready for Review"
+    workflows:
+      - trigger_state: "Ready for Development"
+        in_progress_state: "In Development"
+      - trigger_state: "Agent Queue"
+        in_progress_state: "In Progress"
+```
+
+When `workflows` is set it supersedes `workflow_state_name` and `in_progress_state_name`.
+
+### Linear
+
+```yaml
+ticketing:
+  backend: linear
+  config:
+    token_secret: "robodev-linear-token"
+    team_id: "YOUR_TEAM_ID"          # Linear team UUID
+    state_filter: "Todo"             # only pick up issues in this state
+    labels:
+      - "robodev"
+    exclude_labels:
+      - "in-progress"
+      - "robodev-failed"
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `token_secret` | Yes | Kubernetes Secret name containing a Linear API key |
+| `team_id` | Yes | Linear team UUID (find it in Settings → API) |
+| `state_filter` | No | Only pick up issues in this workflow state name |
+| `labels` | No | Issues must carry at least one of these labels |
+| `exclude_labels` | No | Issues carrying any of these labels are skipped. Defaults to `["in-progress", "robodev-failed"]` |
 
 ## Engines
 

@@ -105,7 +105,10 @@ ticketing:
     token_secret: robodev-shortcut-token
     workflow_state_name: "Ready for Development"   # exact name from Step 3
     in_progress_state_name: "In Development"       # exact name from Step 3
+    completed_state_name: "Ready for Review"       # state set after agent succeeds (optional)
     owner_mention_name: "robodev"                  # mention name from Step 2
+    exclude_labels:
+      - "robodev-failed"                           # skip stories that previously failed
 
 notifications:
   channels:
@@ -139,6 +142,23 @@ guardrails:
 
 !!! tip "Polling vs. webhooks"
     With only polling configured, RoboDev checks Shortcut every 30 seconds. Adding the webhook (above) means work starts within a second or two of you moving a story. Both can run together — the webhook speeds things up and polling is the safety net.
+
+!!! tip "Multiple workflows"
+    If your workspace has several Shortcut workflows with different state names, replace `workflow_state_name` and `in_progress_state_name` with a `workflows` array:
+
+    ```yaml
+    ticketing:
+      backend: shortcut
+      config:
+        token_secret: robodev-shortcut-token
+        owner_mention_name: "robodev"
+        completed_state_name: "Ready for Review"
+        workflows:
+          - trigger_state: "Ready for Development"
+            in_progress_state: "In Development"
+          - trigger_state: "Agent Queue"
+            in_progress_state: "In Progress"
+    ```
 
 ---
 
