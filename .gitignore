@@ -51,3 +51,6 @@ tmp/
 
 # Local marketing / launch content (not for public repo)
 docs/marketing/
+
+# Local archive — pre-public cleanup, never committed
+archive/
