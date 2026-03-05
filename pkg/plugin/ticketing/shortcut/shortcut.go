@@ -676,6 +676,12 @@ func (b *ShortcutBackend) MarkComplete(ctx context.Context, ticketID string, res
 	if result.MergeRequestURL != "" {
 		comment += fmt.Sprintf("\n**Merge Request:** %s", result.MergeRequestURL)
 	}
+	if result.CostEstimateUSD > 0 {
+		comment += fmt.Sprintf("\n**Cost:** $%.4f", result.CostEstimateUSD)
+	}
+	if result.TokenUsage != nil {
+		comment += fmt.Sprintf("\n**Tokens:** %d in / %d out", result.TokenUsage.InputTokens, result.TokenUsage.OutputTokens)
+	}
 	if err := b.AddComment(ctx, ticketID, comment); err != nil {
 		return fmt.Errorf("adding completion comment: %w", err)
 	}

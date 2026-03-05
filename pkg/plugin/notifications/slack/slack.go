@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/unitaryai/robodev/pkg/engine"
 	"github.com/unitaryai/robodev/pkg/plugin/notifications"
@@ -172,12 +173,21 @@ func (s *SlackChannel) NotifyComplete(ctx context.Context, ticket ticketing.Tick
 		})
 	}
 
+	// Cost, token usage, and ticket link grouped into a single context block.
+	var metaFields []string
+	if result.CostEstimateUSD > 0 {
+		metaFields = append(metaFields, fmt.Sprintf("Cost: $%.4f", result.CostEstimateUSD))
+	}
+	if result.TokenUsage != nil {
+		metaFields = append(metaFields, fmt.Sprintf("Tokens: %d in / %d out", result.TokenUsage.InputTokens, result.TokenUsage.OutputTokens))
+	}
 	if ticket.ExternalURL != "" {
+		metaFields = append(metaFields, fmt.Sprintf("Ticket: <%s|%s>", ticket.ExternalURL, ticket.ID))
+	}
+	if len(metaFields) > 0 {
 		blocks = append(blocks, slackBlock{
-			Type: "context",
-			Elements: []slackText{
-				{Type: "mrkdwn", Text: fmt.Sprintf("Ticket: <%s|%s>", ticket.ExternalURL, ticket.ID)},
-			},
+			Type:     "context",
+			Elements: []slackText{{Type: "mrkdwn", Text: strings.Join(metaFields, "  ·  ")}},
 		})
 	}
 
