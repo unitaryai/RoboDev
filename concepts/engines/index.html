@@ -801,6 +801,78 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Competitive Execution / Tournaments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-tournaments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Tournaments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tournament-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tournament Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#judging-rubric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Judging Rubric
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-task-tournament-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Task Tournament Trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus Metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1919,6 +1991,78 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Competitive Execution / Tournaments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-tournaments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Tournaments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tournament-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tournament Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#judging-rubric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Judging Rubric
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-task-tournament-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Task Tournament Trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus Metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2129,7 +2273,110 @@
 </ol>
 <p>This will be transparent — Prometheus metrics will show which engine is being selected and why. Cold-start behaviour falls back to the static fallback chain until enough data accumulates (minimum 5 outcomes per engine).</p>
 <h2 id="competitive-execution-tournaments">Competitive Execution / Tournaments<a class="headerlink" href="#competitive-execution-tournaments" title="Permanent link">&para;</a></h2>
-<p>For high-value tasks, RoboDev will be able to launch multiple engines in parallel (a "tournament"), have a judge compare the results, and select the best solution. This uses genuinely different engines (Claude Code vs Aider vs Cline) running in isolated git worktrees.</p>
+<p>For high-value tasks, RoboDev can launch multiple engines in parallel — a <strong>tournament</strong> — have a judge LLM compare the results, and select the best solution. Each candidate runs in an isolated git worktree so they cannot interfere with each other.</p>
+<h3 id="when-to-use-tournaments">When to Use Tournaments<a class="headerlink" href="#when-to-use-tournaments" title="Permanent link">&para;</a></h3>
+<p>Tournaments are best suited for:</p>
+<ul>
+<li>High-stakes changes (large refactors, API redesigns, security fixes) where you want the best result, not just a passing one</li>
+<li>Tasks where different engines have meaningfully different strengths (e.g. Claude Code vs Aider on a Python-heavy repo)</li>
+<li>Situations where code quality or correctness matters more than cost</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Tournaments multiply cost</p>
+<p>A 2-candidate tournament with a judge run costs roughly 3× a single task. Use the cost estimator's approval gate (<code>max_predicted_cost_per_job</code>) to avoid surprises.</p>
+</div>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<p>Enable competitive execution in your Helm values (or <code>robodev-config.yaml</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">competitive_execution</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">default_candidates</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">          </span><span class="c1"># number of engines to run in parallel</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">judge_engine</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">claude-code</span><span class="w">      </span><span class="c1"># engine used to evaluate and pick the winner</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">early_termination_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.6</span><span class="w">  </span><span class="c1"># PRM score above which a candidate wins immediately</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">max_concurrent_tournaments</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w">  </span><span class="c1"># cap on parallel tournaments cluster-wide</span>
+</code></pre></div>
+<p>The <code>default_candidates</code> value determines how many engines are launched. RoboDev selects engines from the configured fallback chain in order — so with <code>default: claude-code</code> and <code>fallback_engines: [codex, aider]</code>, a 2-candidate tournament runs Claude Code and Codex.</p>
+<p>To specify engines explicitly for a tournament, use <code>candidate_engines</code> per task label (see <a href="#per-task-engine-override">Per-Task Engine Override</a>).</p>
+<h3 id="tournament-lifecycle">Tournament Lifecycle<a class="headerlink" href="#tournament-lifecycle" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph LR
+    A["Task arrives"] --&gt; B["Competing\n(all candidates running)"]
+    B --&gt;|"early termination\n(PRM score ≥ threshold)"| E["Winner selected"]
+    B --&gt;|"all candidates finish"| C["Judging\n(judge engine evaluates diffs)"]
+    C --&gt; E
+    B --&gt;|"infra failure"| D["Candidate eliminated"]
+    D --&gt;|"remaining candidates finish"| C</code></pre>
+<ol>
+<li><strong>Competing</strong> — all candidate engines run simultaneously in isolated worktrees. The controller watches each candidate's PRM scores as they stream in.</li>
+<li><strong>Early termination</strong> — if any candidate's PRM score exceeds <code>early_termination_threshold</code> (default 0.6), remaining candidates are cancelled immediately and that candidate wins. This avoids paying for redundant runs when one engine is clearly superior.</li>
+<li><strong>Judging</strong> — once all candidates have finished (or been eliminated), the judge engine receives a structured prompt with each candidate's diff, summary, cost, duration, and PRM scores. It responds with a <code>winner_index</code> and reasoning.</li>
+<li><strong>Winner selected</strong> — the winning candidate's changes are used to open the pull request. Losing candidates' worktrees are discarded.</li>
+</ol>
+<h3 id="judging-rubric">Judging Rubric<a class="headerlink" href="#judging-rubric" title="Permanent link">&para;</a></h3>
+<p>The judge evaluates candidates on five dimensions, in priority order:</p>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Correctness — does the solution address the task?</td>
+<td>Highest</td>
+</tr>
+<tr>
+<td>Code quality — clean, structured, maintainable</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Completeness — edge cases, tests included</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Efficiency — cost, tokens, duration</td>
+<td>Lower</td>
+</tr>
+<tr>
+<td>Safety — no vulnerabilities, follows best practices</td>
+<td>Always checked</td>
+</tr>
+</tbody>
+</table>
+<p>Correctness outweighs cost efficiency: the judge will prefer a correct solution that costs more over a cheaper incomplete one.</p>
+<h3 id="per-task-tournament-trigger">Per-Task Tournament Trigger<a class="headerlink" href="#per-task-tournament-trigger" title="Permanent link">&para;</a></h3>
+<p>You can trigger a tournament for a specific issue by adding the <code>tournament</code> label. The configured <code>default_candidates</code> and <code>candidate_engines</code> are used.</p>
+<h3 id="prometheus-metrics">Prometheus Metrics<a class="headerlink" href="#prometheus-metrics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>robodev_tournament_total</code></td>
+<td>Total tournaments started</td>
+</tr>
+<tr>
+<td><code>robodev_tournament_candidates_total</code></td>
+<td>Candidates completed, labelled by engine</td>
+</tr>
+<tr>
+<td><code>robodev_tournament_winner_engine_total</code></td>
+<td>Tournament wins by engine</td>
+</tr>
+<tr>
+<td><code>robodev_tournament_cost_total</code></td>
+<td>Histogram of total tournament cost (all candidates + judge) in USD</td>
+</tr>
+<tr>
+<td><code>robodev_tournament_duration_seconds</code></td>
+<td>Histogram of tournament duration from start to winner selection</td>
+</tr>
+</tbody>
+</table>
+<p>The winner engine metric is particularly useful for understanding which engine tends to produce the best results on your codebase over time.</p>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../plugins/engines/">Engine Reference</a> — full configuration details for each engine</li>
