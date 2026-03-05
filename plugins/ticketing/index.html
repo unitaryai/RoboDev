@@ -483,6 +483,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../getting-started/linear-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: Linear + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
@@ -1440,6 +1468,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-shortcut" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in: Shortcut
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Built-in: Shortcut">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-permissions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#built-in-linear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in: Linear
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Built-in: Linear">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-permissions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#writing-a-custom-ticketing-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2172,6 +2300,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-shortcut" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in: Shortcut
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Built-in: Shortcut">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-permissions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#built-in-linear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in: Linear
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Built-in: Linear">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-permissions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#writing-a-custom-ticketing-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2542,6 +2770,106 @@
 </tbody>
 </table>
 <p>For production deployments, prefer <strong>GitHub App installation tokens</strong> (1-hour expiry, scoped to specific repositories) over long-lived personal access tokens.</p>
+<h2 id="built-in-shortcut">Built-in: Shortcut<a class="headerlink" href="#built-in-shortcut" title="Permanent link">&para;</a></h2>
+<p>The Shortcut backend (<code>pkg/plugin/ticketing/shortcut/</code>) polls Shortcut stories via the Shortcut REST API v3.</p>
+<h3 id="configuration_1">Configuration<a class="headerlink" href="#configuration_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">ticketing</span><span class="p">:</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shortcut</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">      </span><span class="nt">token_secret</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;robodev-shortcut-token&quot;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">      </span><span class="nt">workflow_state_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Ready</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">Development&quot;</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">      </span><span class="nt">in_progress_state_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;In</span><span class="nv"> </span><span class="s">Development&quot;</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">      </span><span class="nt">completed_state_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Ready</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">Review&quot;</span><span class="w">     </span><span class="c1"># optional</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">      </span><span class="nt">owner_mention_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;robodev&quot;</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">      </span><span class="nt">exclude_labels</span><span class="p">:</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;robodev-failed&quot;</span>
+</code></pre></div>
+<p>For workspaces with multiple workflows, use the <code>workflows</code> array instead of the flat state name keys (see the <a href="../../getting-started/configuration/#shortcut">Configuration Reference</a>).</p>
+<h3 id="behaviour_1">Behaviour<a class="headerlink" href="#behaviour_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Shortcut Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PollReadyTickets</code></td>
+<td>Lists stories in the configured trigger state, optionally filtered by assignee</td>
+</tr>
+<tr>
+<td><code>MarkInProgress</code></td>
+<td>Moves the story to <code>in_progress_state_name</code></td>
+</tr>
+<tr>
+<td><code>MarkComplete</code></td>
+<td>Posts a comment with the PR link, summary, cost, and token usage; moves the story to <code>completed_state_name</code> (or the first done-type state if not configured)</td>
+</tr>
+<tr>
+<td><code>MarkFailed</code></td>
+<td>Posts a comment with the failure reason; adds the <code>robodev-failed</code> label</td>
+</tr>
+<tr>
+<td><code>AddComment</code></td>
+<td><code>POST /api/v3/stories/{id}/comments</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="required-permissions_1">Required Permissions<a class="headerlink" href="#required-permissions_1" title="Permanent link">&para;</a></h3>
+<p>The Shortcut API token needs member-level access. No special scopes are required beyond what the default member role provides — the token can read and update stories and post comments.</p>
+<hr />
+<h2 id="built-in-linear">Built-in: Linear<a class="headerlink" href="#built-in-linear" title="Permanent link">&para;</a></h2>
+<p>The Linear backend (<code>pkg/plugin/ticketing/linear/</code>) polls Linear issues via the Linear GraphQL API.</p>
+<h3 id="configuration_2">Configuration<a class="headerlink" href="#configuration_2" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">ticketing</span><span class="p">:</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linear</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">      </span><span class="nt">token_secret</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;robodev-linear-token&quot;</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">      </span><span class="nt">team_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;YOUR_TEAM_UUID&quot;</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">      </span><span class="nt">state_filter</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Todo&quot;</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">      </span><span class="nt">labels</span><span class="p">:</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;robodev&quot;</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">      </span><span class="nt">exclude_labels</span><span class="p">:</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;in-progress&quot;</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;robodev-failed&quot;</span>
+</code></pre></div>
+<h3 id="behaviour_2">Behaviour<a class="headerlink" href="#behaviour_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Linear Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PollReadyTickets</code></td>
+<td>GraphQL <code>issues</code> query filtered by team, state name, and labels</td>
+</tr>
+<tr>
+<td><code>MarkInProgress</code></td>
+<td>Adds the <code>in-progress</code> label to the issue</td>
+</tr>
+<tr>
+<td><code>MarkComplete</code></td>
+<td>Posts a comment with the PR link and summary; transitions the issue to the completed state</td>
+</tr>
+<tr>
+<td><code>MarkFailed</code></td>
+<td>Adds the <code>robodev-failed</code> label; posts a comment with the failure reason</td>
+</tr>
+<tr>
+<td><code>AddComment</code></td>
+<td><code>commentCreate</code> GraphQL mutation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="required-permissions_2">Required Permissions<a class="headerlink" href="#required-permissions_2" title="Permanent link">&para;</a></h3>
+<p>The Linear API key needs <strong>read and write access</strong> to issues and comments in the target team. Create a key under <strong>Settings → API → Personal API keys</strong>. For service accounts, use a team-scoped API key under <strong>Settings → API → OAuth applications</strong>.</p>
+<hr />
 <h2 id="writing-a-custom-ticketing-backend">Writing a Custom Ticketing Backend<a class="headerlink" href="#writing-a-custom-ticketing-backend" title="Permanent link">&para;</a></h2>
 <p>See the <a href="../writing-a-plugin/">Writing a Plugin</a> guide for complete examples in Go, Python, and TypeScript. Key design considerations:</p>
 <h3 id="idempotency">Idempotency<a class="headerlink" href="#idempotency" title="Permanent link">&para;</a></h3>
@@ -2597,14 +2925,14 @@
 </ul>
 <h2 id="protobuf-definition">Protobuf Definition<a class="headerlink" href="#protobuf-definition" title="Permanent link">&para;</a></h2>
 <p>The complete protobuf service is defined in <code>proto/ticketing.proto</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">service</span><span class="w"> </span><span class="n">TicketingBackend</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">Handshake</span><span class="p">(</span><span class="n">HandshakeRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">HandshakeResponse</span><span class="p">);</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">PollReadyTickets</span><span class="p">(</span><span class="n">PollReadyTicketsRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">PollReadyTicketsResponse</span><span class="p">);</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkInProgress</span><span class="p">(</span><span class="n">MarkInProgressRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkInProgressResponse</span><span class="p">);</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkComplete</span><span class="p">(</span><span class="n">MarkCompleteRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkCompleteResponse</span><span class="p">);</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkFailed</span><span class="p">(</span><span class="n">MarkFailedRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkFailedResponse</span><span class="p">);</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">AddComment</span><span class="p">(</span><span class="n">AddCommentRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">AddCommentResponse</span><span class="p">);</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">service</span><span class="w"> </span><span class="n">TicketingBackend</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">Handshake</span><span class="p">(</span><span class="n">HandshakeRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">HandshakeResponse</span><span class="p">);</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">PollReadyTickets</span><span class="p">(</span><span class="n">PollReadyTicketsRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">PollReadyTicketsResponse</span><span class="p">);</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkInProgress</span><span class="p">(</span><span class="n">MarkInProgressRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkInProgressResponse</span><span class="p">);</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkComplete</span><span class="p">(</span><span class="n">MarkCompleteRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkCompleteResponse</span><span class="p">);</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkFailed</span><span class="p">(</span><span class="n">MarkFailedRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkFailedResponse</span><span class="p">);</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">AddComment</span><span class="p">(</span><span class="n">AddCommentRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">AddCommentResponse</span><span class="p">);</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">}</span>
 </code></pre></div>
 <p>See <code>proto/common.proto</code> for the shared <code>Ticket</code>, <code>TaskResult</code>, and <code>HandshakeRequest</code>/<code>HandshakeResponse</code> message definitions.</p>
 
