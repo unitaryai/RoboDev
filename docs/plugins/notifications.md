@@ -164,7 +164,7 @@ config:
 | Event | Slack Message |
 |---|---|
 | `NotifyStart` | Agent started working on: **{title}** using `{engine}` |
-| `NotifyComplete` (success) | Completed **{title}** — [View PR]({url}). Cost: ${cost}. Summary: {summary} |
+| `NotifyComplete` (success) | Completed **{title}** — [View PR](`{url}`). Cost: ${cost}. Summary: {summary} |
 | `NotifyComplete` (failure) | Failed on **{title}**: {summary} |
 | `Notify` | Free-form text with ticket context |
 
