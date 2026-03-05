@@ -1,0 +1,5 @@
+# chart-releaser configuration.
+# Writes the Helm repository index to charts/index.yaml on the gh-pages
+# branch so the repo is served at https://unitaryai.github.io/RoboDev/charts.
+pages-index-path: charts/index.yaml
+charts-repo-url: https://unitaryai.github.io/RoboDev/charts
