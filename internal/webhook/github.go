@@ -95,6 +95,31 @@ func (s *Server) handleGitHub(w http.ResponseWriter, r *http.Request) {
 		labels = append(labels, l.Name)
 	}
 
+	// If trigger labels are configured, only forward issues that carry at least
+	// one of them. This mirrors the polling backend's label-gating behaviour.
+	if len(s.githubTriggerLabels) > 0 {
+		found := false
+		for _, want := range s.githubTriggerLabels {
+			for _, got := range labels {
+				if got == want {
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			s.logger.Debug("ignoring github issue: no trigger label",
+				slog.Int("issue", payload.Issue.Number),
+				slog.String("action", payload.Action),
+			)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+
 	ticket := ticketing.Ticket{
 		ID:          strconv.Itoa(payload.Issue.Number),
 		Title:       payload.Issue.Title,

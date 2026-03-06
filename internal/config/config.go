@@ -125,7 +125,8 @@ type WebhookConfig struct {
 
 // WebhookSourceConfig holds the shared secret for a webhook source.
 type WebhookSourceConfig struct {
-	Secret string `yaml:"secret"` // HMAC secret or validation token
+	Secret        string   `yaml:"secret"`                   // HMAC secret or validation token
+	TriggerLabels []string `yaml:"trigger_labels,omitempty"` // only forward issues carrying at least one of these labels
 }
 
 // GenericWebhookConfig holds settings for the generic webhook handler.

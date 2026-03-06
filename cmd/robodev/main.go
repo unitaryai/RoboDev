@@ -472,17 +472,23 @@ func main() {
 	// --- Intelligent routing ---
 	if cfg.Routing.Enabled {
 		fingerprintStore := routing.NewMemoryFingerprintStore()
-		var availableEngines []string
-		for name := range map[string]bool{
+		// Only advertise engines that are genuinely configured. Ranging over a
+		// map[string]bool and ignoring the value would include every key
+		// regardless of whether the engine is actually enabled.
+		configuredEngines := map[string]bool{
 			"claude-code": cfg.Engines.ClaudeCode != nil || cfg.Engines.Default == "claude-code",
 			"opencode":    cfg.Engines.OpenCode != nil,
 			"cline":       cfg.Engines.Cline != nil,
 			"aider":       cfg.Engines.Aider != nil,
 			"codex":       cfg.Engines.Codex != nil,
-		} {
-			availableEngines = append(availableEngines, name)
 		}
-		// Always include the default engine.
+		var availableEngines []string
+		for name, enabled := range configuredEngines {
+			if enabled {
+				availableEngines = append(availableEngines, name)
+			}
+		}
+		// Always include the default engine even if it was not matched above.
 		if cfg.Engines.Default != "" {
 			found := false
 			for _, e := range availableEngines {
@@ -677,6 +683,9 @@ func main() {
 		var whOpts []webhook.Option
 		if cfg.Webhook.GitHub != nil {
 			whOpts = append(whOpts, webhook.WithSecret("github", cfg.Webhook.GitHub.Secret))
+			if len(cfg.Webhook.GitHub.TriggerLabels) > 0 {
+				whOpts = append(whOpts, webhook.WithGitHubTriggerLabels(cfg.Webhook.GitHub.TriggerLabels))
+			}
 		}
 		if cfg.Webhook.GitLab != nil {
 			whOpts = append(whOpts, webhook.WithSecret("gitlab", cfg.Webhook.GitLab.Secret))
@@ -981,11 +990,14 @@ type webhookAdapter struct {
 }
 
 // HandleWebhookEvent feeds parsed webhook tickets into the controller.
+// An error is returned if any ticket fails to process so that the webhook
+// server responds with a non-2xx status and the sender can retry.
 func (a *webhookAdapter) HandleWebhookEvent(ctx context.Context, source string, tickets []ticketing.Ticket) error {
 	a.logger.Info("processing webhook event",
 		"source", source,
 		"ticket_count", len(tickets),
 	)
+	var firstErr error
 	for i := range tickets {
 		if err := a.reconciler.ProcessTicket(ctx, tickets[i]); err != nil {
 			a.logger.Error("failed to process webhook ticket",
@@ -993,10 +1005,12 @@ func (a *webhookAdapter) HandleWebhookEvent(ctx context.Context, source string, 
 				"ticket_id", tickets[i].ID,
 				"error", err,
 			)
-			// Continue processing remaining tickets.
+			if firstErr == nil {
+				firstErr = err
+			}
 		}
 	}
-	return nil
+	return firstErr
 }
 
 // initLinearBackend creates and returns a Linear ticketing backend from the

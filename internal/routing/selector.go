@@ -95,6 +95,13 @@ func (s *IntelligentSelector) SelectEngines(ticket ticketing.Ticket) []string {
 		s.logger.Debug("insufficient fingerprint data, using fallback selector",
 			"min_samples", minSamples,
 		)
+		if s.fallback == nil {
+			// No fallback configured — return available engines in their
+			// current (arbitrary) order as a best-effort response.
+			result := make([]string, len(s.availableEngines))
+			copy(result, s.availableEngines)
+			return result
+		}
 		return s.fallback.SelectEngines(ticket)
 	}
 

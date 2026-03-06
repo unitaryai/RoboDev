@@ -128,8 +128,8 @@ execution:
   backend: kubernetes
 
 guardrails:
-  max_cost_per_task_usd: 5.00
-  max_duration_minutes: 60
+  max_cost_per_job: 5.00
+  max_job_duration_minutes: 60
 ```
 
 !!! tip "State filter"

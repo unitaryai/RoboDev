@@ -115,48 +115,53 @@ func (s *Server) handleSlack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for RoboDev approval callback actions. Actions with IDs
-	// matching "robodev_approve_*" or "robodev_reject_*" are approval
-	// responses — log them and extract the task run ID for future
-	// resolution wiring. Full approval resolution is not yet implemented.
+	// Separate approval/rejection callbacks from other interactions.
+	// Approval callbacks (robodev_approve_* / robodev_reject_*) must NOT be
+	// forwarded to ProcessTicket — doing so would create a spurious task run
+	// with the action ID as the ticket ID. Full approval resolution requires a
+	// dedicated approval backend and is not yet implemented; until then these
+	// callbacks are acknowledged and logged only.
+	var nonApprovalActions []struct {
+		ActionID string `json:"action_id"`
+		Value    string `json:"value"`
+	}
 	for _, action := range payload.Actions {
-		if strings.HasPrefix(action.ActionID, "robodev_approve_") {
+		switch {
+		case strings.HasPrefix(action.ActionID, "robodev_approve_"):
 			taskRunID := strings.TrimPrefix(action.ActionID, "robodev_approve_")
-			s.logger.Info("received approval callback",
+			s.logger.Info("received approval callback — approval resolution not yet implemented",
 				slog.String("task_run_id", taskRunID),
 				slog.String("action", "approve"),
 				slog.String("user", payload.User.Username),
-				slog.String("value", action.Value),
 			)
-		} else if strings.HasPrefix(action.ActionID, "robodev_reject_") {
+		case strings.HasPrefix(action.ActionID, "robodev_reject_"):
 			taskRunID := strings.TrimPrefix(action.ActionID, "robodev_reject_")
-			s.logger.Info("received rejection callback",
+			s.logger.Info("received rejection callback — approval resolution not yet implemented",
 				slog.String("task_run_id", taskRunID),
 				slog.String("action", "reject"),
 				slog.String("user", payload.User.Username),
-				slog.String("value", action.Value),
 			)
+		default:
+			nonApprovalActions = append(nonApprovalActions, action)
 		}
 	}
 
-	// Build a minimal ticket from the interaction. The approval backend
-	// typically handles the full callback flow; here we create a ticket
-	// stub so the event handler can route it.
-	var tickets []ticketing.Ticket
-	if len(payload.Actions) > 0 {
-		for _, action := range payload.Actions {
+	// Only forward non-approval Slack interactions (e.g. slash commands,
+	// other button actions) to the event handler.
+	if len(nonApprovalActions) > 0 {
+		tickets := make([]ticketing.Ticket, 0, len(nonApprovalActions))
+		for _, action := range nonApprovalActions {
 			tickets = append(tickets, ticketing.Ticket{
 				ID:         action.ActionID,
 				Title:      action.Value,
 				TicketType: "slack_interaction",
 			})
 		}
-	}
-
-	if err := s.handler.HandleWebhookEvent(r.Context(), "slack", tickets); err != nil {
-		s.logger.Error("failed to handle slack webhook event", slog.String("error", err.Error()))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
+		if err := s.handler.HandleWebhookEvent(r.Context(), "slack", tickets); err != nil {
+			s.logger.Error("failed to handle slack webhook event", slog.String("error", err.Error()))
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	s.logger.Info("processed slack webhook",

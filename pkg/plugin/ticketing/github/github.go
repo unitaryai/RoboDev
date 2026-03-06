@@ -28,12 +28,15 @@ const (
 var _ ticketing.Backend = (*GitHubBackend)(nil)
 
 // ghIssue is the subset of the GitHub Issue response we parse.
+// The PullRequest field is present (non-nil) when the item returned by the
+// /issues endpoint is actually a pull request; we use it to skip PRs.
 type ghIssue struct {
-	Number  int       `json:"number"`
-	Title   string    `json:"title"`
-	Body    string    `json:"body"`
-	HTMLURL string    `json:"html_url"`
-	Labels  []ghLabel `json:"labels"`
+	Number      int              `json:"number"`
+	Title       string           `json:"title"`
+	Body        string           `json:"body"`
+	HTMLURL     string           `json:"html_url"`
+	Labels      []ghLabel        `json:"labels"`
+	PullRequest *json.RawMessage `json:"pull_request,omitempty"`
 }
 
 // ghLabel is the subset of a GitHub label response we parse.
@@ -161,6 +164,15 @@ func (b *GitHubBackend) PollReadyTickets(ctx context.Context) ([]ticketing.Ticke
 
 	tickets := make([]ticketing.Ticket, 0, len(issues))
 	for _, issue := range issues {
+		// The /issues endpoint returns both issues and pull requests.
+		// Skip pull requests — they are identified by a non-nil pull_request field.
+		if issue.PullRequest != nil {
+			b.logger.Debug("skipping pull request returned by issues endpoint",
+				"number", issue.Number,
+			)
+			continue
+		}
+
 		if hasExcludedLabel(issue.Labels, excludeSet) {
 			continue
 		}

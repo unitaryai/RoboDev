@@ -134,8 +134,8 @@ webhook:
     secret: "choose-a-random-secret-string"   # used to verify Shortcut payloads
 
 guardrails:
-  max_cost_per_task_usd: 5.00
-  max_duration_minutes: 60
+  max_cost_per_job: 5.00
+  max_job_duration_minutes: 60
   allowed_repos:
     - "github.com/your-org/your-repo"
 ```

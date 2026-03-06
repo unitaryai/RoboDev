@@ -43,7 +43,7 @@ estimator:
   max_predicted_cost_per_job: 10.00   # USD — block and require approval above this
 ```
 
-This is distinct from `max_cost_per_task_usd` in the guard rails, which is a hard runtime ceiling enforced by the watchdog. The estimator gate fires *before* the job starts; the guard rail fires *during* execution.
+This is distinct from `max_cost_per_job` in the guard rails, which is a hard runtime ceiling enforced by the watchdog. The estimator gate fires *before* the job starts; the guard rail fires *during* execution.
 
 ## Cold-Start Defaults
 

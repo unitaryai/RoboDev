@@ -390,6 +390,46 @@ func TestGitHubBackend_PollReadyTickets_FilterCombinations(t *testing.T) {
 	}
 }
 
+func TestGitHubBackend_PollReadyTickets_SkipsPullRequests(t *testing.T) {
+	// The /issues endpoint returns both issues and pull requests. Pull requests
+	// have a non-nil pull_request field; they must be filtered out.
+	raw := json.RawMessage(`{"url":"https://github.com/o/r/pull/5"}`)
+	issues := []ghIssue{
+		{
+			Number:  5,
+			Title:   "Improve tests",
+			Body:    "Add more coverage",
+			HTMLURL: "https://github.com/o/r/pull/5",
+			Labels:  []ghLabel{{Name: "robodev"}},
+			// PullRequest non-nil → must be skipped.
+			PullRequest: &raw,
+		},
+		{
+			Number:  6,
+			Title:   "Fix crash",
+			Body:    "Body",
+			HTMLURL: "https://github.com/o/r/issues/6",
+			Labels:  []ghLabel{{Name: "robodev"}},
+		},
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(issues)
+	}))
+	defer srv.Close()
+
+	b := NewGitHubBackend("o", "r", []string{"robodev"}, "tok", testLogger(),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+
+	tickets, err := b.PollReadyTickets(context.Background())
+	require.NoError(t, err)
+	require.Len(t, tickets, 1, "pull request must be excluded")
+	assert.Equal(t, "6", tickets[0].ID)
+}
+
 func TestGitHubBackend_WithBaseURL(t *testing.T) {
 	b := NewGitHubBackend("o", "r", nil, "tok", testLogger(), WithBaseURL("https://ghe.example.com/api/v3/"))
 	assert.Equal(t, "https://ghe.example.com/api/v3", b.baseURL)

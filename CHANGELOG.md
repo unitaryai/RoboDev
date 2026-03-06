@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Security / Correctness
+
+- **Slack approval callbacks no longer misrouted as task runs.** `robodev_approve_*` and `robodev_reject_*` button callbacks are now acknowledged and logged without being forwarded to `ProcessTicket`. Forwarding them previously caused a spurious TaskRun to be created with the action ID as the ticket ID.
+
+- **GitHub polling no longer picks up pull requests.** The `/issues` endpoint returns both issues and pull requests. Items with a non-nil `pull_request` field are now filtered out before the polling backend emits tickets, preventing RoboDev from treating a labelled PR as a task.
+
+- **GitHub webhook now enforces trigger-label contract.** A new `trigger_labels` field on `webhook.github` allows the webhook receiver to mirror the label-gating behaviour of the polling backend. Without it, any newly-opened issue could trigger execution regardless of its labels. Configure it to match the `labels` list on your polling ticketing backend.
+
+- **Webhook adapter propagates processing errors.** `HandleWebhookEvent` now returns the first error encountered rather than always returning `nil`. This causes the webhook server to respond with a non-2xx status so senders (GitHub, GitLab) will retry the delivery.
+
+- **Code review gate is now actually a gate.** When `code_review.enabled: true` and the review backend returns `passed: false`, the TaskRun is now transitioned to `Failed` and the ticket is marked failed. Previously the controller logged the outcome and then unconditionally succeeded the run.
+
+- **Intelligent routing no longer panics on cold start.** `IntelligentSelector.SelectEngines` previously called `s.fallback.SelectEngines` with a nil receiver when fingerprint data was insufficient. A nil-fallback guard now returns the available engine list in order instead of panicking.
+
+- **Routing advertises only configured engines.** The `availableEngines` list in the routing initialisation was built by ranging over a `map[string]bool` without checking the boolean value, so unconfigured engine names were always included. Only engines whose configuration is non-nil (or whose name matches `engines.default`) are now advertised.
+
+#### Documentation
+
+- Corrected wrong config keys in README and getting-started guides: `max_cost_per_task_usd` → `max_cost_per_job`, `max_duration_minutes` → `max_job_duration_minutes`.
+
 ---
 
 ## [0.2.0] — 2026-03-05

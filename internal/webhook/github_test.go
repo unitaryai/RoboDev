@@ -215,6 +215,79 @@ func TestHandleGitHub_HandlerError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }
 
+func TestHandleGitHub_TriggerLabelGating(t *testing.T) {
+	secret := "test-secret"
+
+	tests := []struct {
+		name          string
+		issueLabels   []ghLabel
+		triggerLabels []string
+		wantCalls     int
+	}{
+		{
+			name:          "issue with trigger label is forwarded",
+			issueLabels:   []ghLabel{{Name: "robodev"}, {Name: "bug"}},
+			triggerLabels: []string{"robodev"},
+			wantCalls:     1,
+		},
+		{
+			name:          "issue without trigger label is dropped",
+			issueLabels:   []ghLabel{{Name: "bug"}},
+			triggerLabels: []string{"robodev"},
+			wantCalls:     0,
+		},
+		{
+			name:          "no trigger labels configured — all issues forwarded",
+			issueLabels:   []ghLabel{{Name: "bug"}},
+			triggerLabels: nil,
+			wantCalls:     1,
+		},
+		{
+			name:          "multiple trigger labels — any match is sufficient",
+			issueLabels:   []ghLabel{{Name: "enhancement"}},
+			triggerLabels: []string{"robodev", "enhancement"},
+			wantCalls:     1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockEventHandler{}
+
+			opts := []Option{WithSecret("github", secret)}
+			if len(tc.triggerLabels) > 0 {
+				opts = append(opts, WithGitHubTriggerLabels(tc.triggerLabels))
+			}
+			srv := NewServer(testLogger(), mock, opts...)
+
+			payload := ghWebhookPayload{
+				Action: "opened",
+				Issue: ghIssue{
+					Number:  1,
+					Title:   "Test issue",
+					HTMLURL: "https://github.com/o/r/issues/1",
+					Labels:  tc.issueLabels,
+				},
+				Repo: ghRepo{FullName: "o/r", HTMLURL: "https://github.com/o/r"},
+			}
+
+			body, err := json.Marshal(payload)
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodPost, "/webhooks/github", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-GitHub-Event", "issues")
+			req.Header.Set("X-Hub-Signature-256", computeGitHubSignature(body, secret))
+
+			rec := httptest.NewRecorder()
+			srv.ServeHTTP(rec, req)
+
+			assert.Equal(t, http.StatusOK, rec.Code)
+			assert.Len(t, mock.calls, tc.wantCalls)
+		})
+	}
+}
+
 func TestValidateGitHubSignature(t *testing.T) {
 	body := []byte(`{"test": true}`)
 	secret := "my-secret"

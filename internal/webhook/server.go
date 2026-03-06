@@ -27,6 +27,12 @@ type Server struct {
 	// acknowledged but not forwarded to the controller, preventing log noise
 	// from unrelated story edits.
 	shortcutTargetStateID int64
+
+	// githubTriggerLabels, when non-empty, restricts GitHub webhook processing
+	// to issues that carry at least one of these labels. This mirrors the
+	// label-gating behaviour of the polling backend and prevents any newly
+	// opened issue from triggering execution regardless of its labels.
+	githubTriggerLabels []string
 }
 
 // Option is a functional option for configuring a Server.
@@ -54,6 +60,16 @@ func WithGenericConfig(cfg *GenericConfig) Option {
 func WithShortcutTargetStateID(id int64) Option {
 	return func(s *Server) {
 		s.shortcutTargetStateID = id
+	}
+}
+
+// WithGitHubTriggerLabels restricts GitHub webhook handling to issues that
+// carry at least one of the given labels. When not set (or empty), all
+// opened/labelled issues are forwarded, which bypasses the trigger-label
+// contract enforced by the polling backend.
+func WithGitHubTriggerLabels(labels []string) Option {
+	return func(s *Server) {
+		s.githubTriggerLabels = labels
 	}
 }
 

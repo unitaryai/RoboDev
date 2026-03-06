@@ -811,7 +811,9 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 		return
 	}
 
-	// Optional code review gate — only runs when explicitly enabled.
+	// Optional code review gate — only runs when explicitly enabled. When the
+	// review backend signals that the diff did not pass, the task run is failed
+	// so the ticket is not closed without a passing review.
 	if r.config.CodeReview.Enabled && r.reviewBackend != nil {
 		timeoutMinutes := r.config.CodeReview.TimeoutMinutes
 		if timeoutMinutes <= 0 {
@@ -831,6 +833,26 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 				"passed", gateResult.Passed,
 				"summary", gateResult.Summary,
 			)
+			if !gateResult.Passed {
+				r.mu.Lock()
+				_ = tr.Transition(taskrun.StateFailed)
+				r.mu.Unlock()
+				if err := r.taskRunStore.Save(ctx, tr); err != nil {
+					r.logger.ErrorContext(ctx, "failed to save task run after review gate failure",
+						"task_run_id", tr.ID,
+						"error", err,
+					)
+				}
+				metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateFailed)).Inc()
+				r.logger.WarnContext(ctx, "task run failed: code review gate did not pass",
+					"task_run_id", tr.ID,
+					"summary", gateResult.Summary,
+				)
+				if r.ticketing != nil {
+					_ = r.ticketing.MarkFailed(ctx, tr.TicketID, "code review gate did not pass: "+gateResult.Summary)
+				}
+				return
+			}
 		}
 	}
 

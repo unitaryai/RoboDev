@@ -75,8 +75,8 @@ engines:
       api_key_secret: robodev-anthropic-key
 
 guardrails:
-  max_cost_per_task_usd: 5.00
-  max_duration_minutes: 60
+  max_cost_per_job: 5.00
+  max_job_duration_minutes: 60
   allowed_repos:
     - "github.com/your-org/your-repo"
 ```

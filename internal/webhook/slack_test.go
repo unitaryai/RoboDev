@@ -138,6 +138,76 @@ func TestHandleSlack(t *testing.T) {
 	}
 }
 
+func TestHandleSlack_ApprovalCallbacks(t *testing.T) {
+	// Approval/rejection callbacks (robodev_approve_* / robodev_reject_*) must
+	// be acknowledged with 200 OK but must NOT be forwarded to the event handler
+	// as synthetic tickets — doing so would create a spurious task run.
+	secret := "test-secret"
+	now := time.Now()
+	tsStr := strconv.FormatInt(now.Unix(), 10)
+
+	makePayload := func(actionID, value string) slackInteractionPayload {
+		return slackInteractionPayload{
+			Type: "block_actions",
+			Actions: []struct {
+				ActionID string `json:"action_id"`
+				Value    string `json:"value"`
+			}{
+				{ActionID: actionID, Value: value},
+			},
+			User: struct {
+				ID       string `json:"id"`
+				Username string `json:"username"`
+			}{ID: "U1", Username: "alice"},
+		}
+	}
+
+	tests := []struct {
+		name      string
+		actionID  string
+		wantCalls int
+	}{
+		{
+			name:      "robodev_approve_ callback not forwarded",
+			actionID:  "robodev_approve_tr-42-1",
+			wantCalls: 0,
+		},
+		{
+			name:      "robodev_reject_ callback not forwarded",
+			actionID:  "robodev_reject_tr-42-1",
+			wantCalls: 0,
+		},
+		{
+			name:      "non-approval action is forwarded",
+			actionID:  "some_other_action",
+			wantCalls: 1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockEventHandler{}
+			srv := NewServer(testLogger(), mock, WithSecret("slack", secret))
+
+			payload := makePayload(tc.actionID, "clicked")
+			body, err := json.Marshal(payload)
+			require.NoError(t, err)
+			sig := computeSlackSignature(body, tsStr, secret)
+
+			req := httptest.NewRequest(http.MethodPost, "/webhooks/slack", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Slack-Request-Timestamp", tsStr)
+			req.Header.Set("X-Slack-Signature", sig)
+
+			rec := httptest.NewRecorder()
+			srv.ServeHTTP(rec, req)
+
+			assert.Equal(t, http.StatusOK, rec.Code)
+			assert.Len(t, mock.calls, tc.wantCalls)
+		})
+	}
+}
+
 func TestHandleSlack_MalformedJSON(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{}

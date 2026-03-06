@@ -94,14 +94,14 @@ execution:
   backend: kubernetes
 
 guardrails:
-  max_cost_per_task_usd: 5.00
-  max_duration_minutes: 60
+  max_cost_per_job: 5.00
+  max_job_duration_minutes: 60
   allowed_repos:
     - "github.com/your-org/your-repo"
 ```
 
 !!! tip "Guardrails"
-    The `max_cost_per_task_usd` and `max_duration_minutes` limits are safety nets. Start conservative and raise them once you are comfortable with how the agent behaves on your codebase.
+    The `max_cost_per_job` and `max_job_duration_minutes` limits are safety nets. Start conservative and raise them once you are comfortable with how the agent behaves on your codebase.
 
 ---
 
