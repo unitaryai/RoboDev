@@ -1743,6 +1743,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#approval-flow-end-to-end" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1815,7 +1826,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
+  <a href="#documentation_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Documentation
@@ -1954,7 +1965,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#documentation_1" class="md-nav__link">
+  <a href="#documentation_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Documentation
@@ -2731,6 +2742,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#approval-flow-end-to-end" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2803,7 +2825,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
+  <a href="#documentation_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Documentation
@@ -2942,7 +2964,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#documentation_1" class="md-nav__link">
+  <a href="#documentation_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Documentation
@@ -3683,6 +3705,10 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h4 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Skills and agent teams documented.</strong> The engine reference (<code>docs/plugins/engines.md</code>) now covers custom skills (inline and image-bundled), agent teams configuration (modes, default agents per task type), and all previously-undocumented Claude Code fields (<code>fallback_model</code>, <code>tool_whitelist</code>, <code>tool_blacklist</code>, <code>json_schema</code>, <code>no_session_persistence</code>, <code>append_system_prompt</code>). The configuration reference (<code>docs/getting-started/configuration.md</code>) includes expanded examples. The <code>setup-claude.sh</code> startup flow is also described.</li>
+</ul>
 <h4 id="approval-flow-end-to-end">Approval Flow End-to-End<a class="headerlink" href="#approval-flow-end-to-end" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong>Full approval flow wiring.</strong> Slack approval buttons (<code>robodev_approval_{taskRunID}_{i}</code>) are now routed through a new <code>ApprovalHandler</code> interface on the webhook server, which delegates to <code>Reconciler.ResolveApproval</code>. Pre-start approval launches the job; pre-merge approval completes the task. Rejections transition to Failed and mark the ticket.</li>
@@ -3738,7 +3764,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <p><strong>Removed unused <code>RequireHumanApprovalBeforeMR</code> config field.</strong> Approval uses <code>ApprovalGates</code> instead.</p>
 </li>
 </ul>
-<h4 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h4>
+<h4 id="documentation_1">Documentation<a class="headerlink" href="#documentation_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Corrected wrong config keys in README and getting-started guides: <code>max_cost_per_task_usd</code> → <code>max_cost_per_job</code>, <code>max_duration_minutes</code> → <code>max_job_duration_minutes</code>.</li>
 <li>Fixed <code>runAsUser: 1000</code> → <code>10000</code> in security docs.</li>
@@ -3784,7 +3810,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Added <code>workflow_dispatch</code> trigger to the CI workflow so it can be manually run
   against any branch without requiring a push event.</li>
 </ul>
-<h3 id="documentation_1">Documentation<a class="headerlink" href="#documentation_1" title="Permanent link">&para;</a></h3>
+<h3 id="documentation_2">Documentation<a class="headerlink" href="#documentation_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Configuration Reference</strong> — expanded ticketing section with full config reference
   for GitHub Issues, Shortcut, and Linear, including all keys and field tables.</li>
