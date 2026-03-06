@@ -2400,7 +2400,7 @@ consecutive ticks before action is taken, avoiding false positives.</p>
 with a restrictive <code>SecurityContext</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">securityContext</span><span class="p">:</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">readOnlyRootFilesystem</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">allowPrivilegeEscalation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">capabilities</span><span class="p">:</span>
@@ -2410,8 +2410,8 @@ with a restrictive <code>SecurityContext</code>:</p>
 </code></pre></div>
 <p>Key properties:</p>
 <ul>
-<li><strong>runAsNonRoot / runAsUser: 1000</strong> — containers never run as root. The agent
-  user (<code>robodev</code>, UID 1000) has no elevated privileges.</li>
+<li><strong>runAsNonRoot / runAsUser: 10000</strong> — containers never run as root. The agent
+  user (<code>robodev</code>, UID 10000) has no elevated privileges.</li>
 <li><strong>readOnlyRootFilesystem</strong> — prevents the agent from modifying the container
   filesystem outside of explicitly mounted writable volumes.</li>
 <li><strong>Drop ALL capabilities</strong> — removes every Linux capability, including
@@ -2569,7 +2569,7 @@ configuration and the <code>BLOCKED_FILE_PATTERNS</code> environment variable.</
 <p>The Claude Code engine image (<code>docker/engine-claude-code/Dockerfile</code>) uses
 <code>node:22-slim</code> as a base (required for the Claude Code CLI), installs only
 essential tools (<code>git</code>, <code>jq</code>, <code>gh</code>), and creates a dedicated non-root user
-(<code>robodev</code>, UID 1000).</p>
+(<code>robodev</code>, UID 10000).</p>
 <h3 id="image-signing-and-provenance">Image Signing and Provenance<a class="headerlink" href="#image-signing-and-provenance" title="Permanent link">&para;</a></h3>
 <p>For production deployments, the following practices are recommended:</p>
 <ul>

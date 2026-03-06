@@ -2152,6 +2152,10 @@
 </tbody>
 </table>
 <h2 id="2-engine-level-guards-claude-code-hooks">2. Engine-Level Guards (Claude Code Hooks)<a class="headerlink" href="#2-engine-level-guards-claude-code-hooks" title="Permanent link">&para;</a></h2>
+<div class="admonition info">
+<p class="admonition-title">Only applies to Claude Code</p>
+<p>Engine hooks are only available for the Claude Code engine. Other engines (Codex, Aider, OpenCode, Cline) rely on prompt-based rules which are advisory, not enforced.</p>
+</div>
 <p>Applied inside the execution container via Claude Code's hooks system. RoboDev generates a <code>settings.json</code> file mounted into the container:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;hooks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>

@@ -849,23 +849,6 @@
   
 </li>
         
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#coming-soon-two-additional-safety-layers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coming Soon: Two Additional Safety Layers
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Coming Soon: Two Additional Safety Layers">
-      <ul class="md-nav__list">
-        
           <li class="md-nav__item">
   <a href="#layer-7-real-time-agent-coaching-prm" class="md-nav__link">
     <span class="md-ellipsis">
@@ -876,6 +859,23 @@
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coming-soon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coming Soon
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Coming Soon">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#layer-8-adaptive-watchdog-calibration" class="md-nav__link">
@@ -1984,23 +1984,6 @@
   
 </li>
         
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#coming-soon-two-additional-safety-layers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coming Soon: Two Additional Safety Layers
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Coming Soon: Two Additional Safety Layers">
-      <ul class="md-nav__list">
-        
           <li class="md-nav__item">
   <a href="#layer-7-real-time-agent-coaching-prm" class="md-nav__link">
     <span class="md-ellipsis">
@@ -2011,6 +1994,23 @@
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coming-soon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coming Soon
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Coming Soon">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#layer-8-adaptive-watchdog-calibration" class="md-nav__link">
@@ -2234,13 +2234,13 @@
 <p class="admonition-title">Avoiding false positives</p>
 <p>All detection rules require the anomaly to persist for <code>min_consecutive_ticks</code> (default: 2) before action is taken. New TaskRuns also get a <code>research_grace_period</code> (default: 5 minutes) during which thrashing detection is relaxed, since agents often consume many tokens during initial code analysis.</p>
 </div>
-<h2 id="coming-soon-two-additional-safety-layers">Coming Soon: Two Additional Safety Layers<a class="headerlink" href="#coming-soon-two-additional-safety-layers" title="Permanent link">&para;</a></h2>
-<blockquote>
-<p><strong>Status:</strong> Scaffolding complete, integration pending. See <code>docs/roadmap.md</code> Phase I.</p>
-</blockquote>
 <h3 id="layer-7-real-time-agent-coaching-prm">Layer 7: Real-Time Agent Coaching (PRM)<a class="headerlink" href="#layer-7-real-time-agent-coaching-prm" title="Permanent link">&para;</a></h3>
 <p><strong>When:</strong> Continuously, while the agent is running (alongside the watchdog).
 <strong>What:</strong> Evaluates agent productivity at each tool call and intervenes with guidance before problems escalate.</p>
+<div class="admonition info">
+<p class="admonition-title">Only applies to Claude Code</p>
+<p>The PRM operates on the NDJSON event stream which is only available from the Claude Code engine. Other engines are not scored by the PRM.</p>
+</div>
 <p>The Process Reward Model (PRM) operates on the NDJSON event stream from Claude Code. It scores each evaluation window of tool calls on a 1-10 scale, tracks the score trajectory over time, and decides interventions:</p>
 <ul>
 <li><strong>Score ≥ 7:</strong> Agent is productive, continue.</li>
@@ -2248,6 +2248,10 @@
 <li><strong>Score ≤ 3 with sustained decline:</strong> Escalate to the watchdog for termination.</li>
 </ul>
 <p>Unlike the watchdog (which detects anomalies in raw telemetry), the PRM evaluates <em>productivity patterns</em> — whether the agent is making meaningful progress toward the goal, not just whether it's alive.</p>
+<h2 id="coming-soon">Coming Soon<a class="headerlink" href="#coming-soon" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Status:</strong> Scaffolding complete, integration pending. See <code>docs/roadmap.md</code> Phase I.</p>
+</blockquote>
 <h3 id="layer-8-adaptive-watchdog-calibration">Layer 8: Adaptive Watchdog Calibration<a class="headerlink" href="#layer-8-adaptive-watchdog-calibration" title="Permanent link">&para;</a></h3>
 <p><strong>When:</strong> Applied automatically once enough historical data accumulates.
 <strong>What:</strong> Replaces static watchdog thresholds with adaptive per-(repo, engine, task_type) thresholds.</p>

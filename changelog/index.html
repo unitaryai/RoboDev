@@ -1731,6 +1731,67 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#approval-flow-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approval Flow End-to-End
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#intelligent-routing-wired-into-engine-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intelligent Routing Wired into Engine Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-diff-for-code-review-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real Diff for Code Review Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-cost-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Cost Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1787,7 +1848,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -1904,7 +1965,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2108,7 +2169,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_2" class="md-nav__link">
+  <a href="#added_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2658,6 +2719,67 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#approval-flow-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approval Flow End-to-End
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#intelligent-routing-wired-into-engine-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intelligent Routing Wired into Engine Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-diff-for-code-review-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real Diff for Code Review Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-cost-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Cost Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2714,7 +2836,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2831,7 +2953,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3035,7 +3157,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_2" class="md-nav__link">
+  <a href="#added_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3560,17 +3682,37 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h4 id="approval-flow-end-to-end">Approval Flow End-to-End<a class="headerlink" href="#approval-flow-end-to-end" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Full approval flow wiring.</strong> Slack approval buttons (<code>robodev_approval_{taskRunID}_{i}</code>) are now routed through a new <code>ApprovalHandler</code> interface on the webhook server, which delegates to <code>Reconciler.ResolveApproval</code>. Pre-start approval launches the job; pre-merge approval completes the task. Rejections transition to Failed and mark the ticket.</li>
+<li><strong><code>RequestApproval</code> called at both gates.</strong> The controller now calls the approval backend's <code>RequestApproval</code> at both the pre-start and pre-merge gates so humans actually receive the notification.</li>
+<li><strong><code>NeedsHuman → Failed</code> state transition.</strong> The TaskRun state machine now allows rejection from the NeedsHuman state.</li>
+<li><strong>Watchdog monitors NeedsHuman task runs.</strong> The watchdog loop now iterates NeedsHuman runs (for unanswered-human timeout) and cancels pending approval requests on termination.</li>
+</ul>
+<h4 id="intelligent-routing-wired-into-engine-selection">Intelligent Routing Wired into Engine Selection<a class="headerlink" href="#intelligent-routing-wired-into-engine-selection" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>IntelligentSelector</code> is now the primary engine selector</strong> when routing is enabled. It uses the default engine selector as its fallback via a new <code>SetFallback</code> method, ensuring cold-start tasks still get a sensible engine order.</li>
+</ul>
+<h4 id="real-diff-for-code-review-gate">Real Diff for Code Review Gate<a class="headerlink" href="#real-diff-for-code-review-gate" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>GetDiff</code> added to <code>scm.Backend</code> interface.</strong> GitHub and GitLab SCM backends now implement <code>GetDiff</code> using their respective compare APIs. The review gate fetches the actual diff before calling <code>ReviewDiff</code>, instead of passing an empty string.</li>
+</ul>
+<h4 id="runtime-cost-enforcement">Runtime Cost Enforcement<a class="headerlink" href="#runtime-cost-enforcement" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>max_cost_per_job</code> watchdog rule.</strong> A new <code>checkTotalCost</code> rule in the watchdog terminates jobs whose cumulative cost exceeds <code>guardrails.max_cost_per_job</code>. Wired from the existing config field.</li>
+</ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <h4 id="security-correctness">Security / Correctness<a class="headerlink" href="#security-correctness" title="Permanent link">&para;</a></h4>
 <ul>
 <li>
-<p><strong>Slack approval callbacks no longer misrouted as task runs.</strong> <code>robodev_approve_*</code> and <code>robodev_reject_*</code> button callbacks are now acknowledged and logged without being forwarded to <code>ProcessTicket</code>. Forwarding them previously caused a spurious TaskRun to be created with the action ID as the ticket ID.</p>
+<p><strong>Slack approval action ID mismatch resolved.</strong> The webhook previously filtered <code>robodev_approve_*</code> / <code>robodev_reject_*</code> prefixes, which never matched the actual <code>robodev_approval_*</code> format generated by the Slack approval backend. Callbacks are now correctly detected, parsed, and routed.</p>
 </li>
 <li>
 <p><strong>GitHub polling no longer picks up pull requests.</strong> The <code>/issues</code> endpoint returns both issues and pull requests. Items with a non-nil <code>pull_request</code> field are now filtered out before the polling backend emits tickets, preventing RoboDev from treating a labelled PR as a task.</p>
 </li>
 <li>
-<p><strong>GitHub webhook now enforces trigger-label contract.</strong> A new <code>trigger_labels</code> field on <code>webhook.github</code> allows the webhook receiver to mirror the label-gating behaviour of the polling backend. Without it, any newly-opened issue could trigger execution regardless of its labels. Configure it to match the <code>labels</code> list on your polling ticketing backend.</p>
+<p><strong>Webhook trigger labels auto-derived from ticketing config.</strong> When <code>webhook.github.trigger_labels</code> is not explicitly set, the webhook now falls back to the <code>labels</code> list from the GitHub ticketing backend config, preventing unfiltered issue processing in webhook-only deployments.</p>
 </li>
 <li>
 <p><strong>Webhook adapter propagates processing errors.</strong> <code>HandleWebhookEvent</code> now returns the first error encountered rather than always returning <code>nil</code>. This causes the webhook server to respond with a non-2xx status so senders (GitHub, GitLab) will retry the delivery.</p>
@@ -3584,14 +3726,25 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>
 <p><strong>Routing advertises only configured engines.</strong> The <code>availableEngines</code> list in the routing initialisation was built by ranging over a <code>map[string]bool</code> without checking the boolean value, so unconfigured engine names were always included. Only engines whose configuration is non-nil (or whose name matches <code>engines.default</code>) are now advertised.</p>
 </li>
+<li>
+<p><strong>Label removal is now URL-safe.</strong> <code>removeLabel</code> in the GitHub ticketing backend now uses <code>url.PathEscape</code> on the label name, preventing broken DELETE calls for labels with spaces or special characters.</p>
+</li>
+<li>
+<p><strong>Removed unused <code>RequireHumanApprovalBeforeMR</code> config field.</strong> Approval uses <code>ApprovalGates</code> instead.</p>
+</li>
 </ul>
 <h4 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Corrected wrong config keys in README and getting-started guides: <code>max_cost_per_task_usd</code> → <code>max_cost_per_job</code>, <code>max_duration_minutes</code> → <code>max_job_duration_minutes</code>.</li>
+<li>Fixed <code>runAsUser: 1000</code> → <code>10000</code> in security docs.</li>
+<li>Changed "Seven layered" → "Six layered" in README; removed prompt injection from layers list (it is a threat, not a layer).</li>
+<li>Moved PRM from "Coming Soon" to implemented in guardrails overview.</li>
+<li>Added note that engine hooks only apply to Claude Code.</li>
+<li>Added note that only the <code>memory</code> TaskRun store backend is currently supported.</li>
 </ul>
 <hr />
 <h2 id="020-2026-03-05">[0.2.0] — 2026-03-05<a class="headerlink" href="#020-2026-03-05" title="Permanent link">&para;</a></h2>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <h4 id="helm-chart-persistence">Helm Chart Persistence<a class="headerlink" href="#helm-chart-persistence" title="Permanent link">&para;</a></h4>
 <ul>
 <li>New <code>persistence</code> values block — when <code>persistence.enabled: true</code>, a PVC is
@@ -3641,7 +3794,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Fixed broken anchor link in <code>index.md</code> pointing to the Competitive Execution section.</li>
 </ul>
 <hr />
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <h4 id="prmr-comment-response-item-20">PR/MR Comment Response (Item 20)<a class="headerlink" href="#prmr-comment-response-item-20" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong><code>pkg/plugin/scm</code></strong> — <code>ReviewComment</code> type; <code>ListReviewComments</code>,
@@ -3952,7 +4105,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Update Docker Compose quickstart and Documentation Site status in <code>docs/roadmap.md</code> to reflect shipped work</li>
 <li>Sync all 13 items in <code>docs/improvements-plan.md</code> with actual implementation status (12 items were marked "Planned" despite being implemented)</li>
 </ul>
-<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
 <h4 id="dspy-inspired-llm-abstraction-internalllm">DSPy-Inspired LLM Abstraction (<code>internal/llm/</code>)<a class="headerlink" href="#dspy-inspired-llm-abstraction-internalllm" title="Permanent link">&para;</a></h4>
 <ul>
 <li>New <code>internal/llm/</code> package providing a typed, composable LLM abstraction inspired by DSPy</li>
