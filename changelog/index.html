@@ -1743,6 +1743,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#configurable-max-turns-for-claude-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable Max Turns for Claude Code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configmap-backed-skills" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2797,6 +2808,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#configurable-max-turns-for-claude-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable Max Turns for Claude Code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configmap-backed-skills" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3815,6 +3837,10 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h4 id="configurable-max-turns-for-claude-code">Configurable Max Turns for Claude Code<a class="headerlink" href="#configurable-max-turns-for-claude-code" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>max_turns</code> is now configurable</strong> for the Claude Code engine. Set <code>engines.claude_code.max_turns</code> in your config to override the default of 50 turns. Increase this for tasks that require more steps, such as large refactors or multi-file changes. The value is passed directly to Claude Code's <code>--max-turns</code> flag.</li>
+</ul>
 <h4 id="configmap-backed-skills">ConfigMap-Backed Skills<a class="headerlink" href="#configmap-backed-skills" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong>Skills can now be loaded from Kubernetes ConfigMaps.</strong> Set <code>configmap</code> (and optionally <code>key</code>) on a skill config entry instead of <code>inline</code> or <code>path</code>. The ConfigMap is volume-mounted into the agent container and copied to <code>~/.claude/skills/</code> at startup. This avoids bloating the controller config with large Markdown files and allows teams to manage skills independently.</li>
