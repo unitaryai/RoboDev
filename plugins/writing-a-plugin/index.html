@@ -2440,10 +2440,10 @@
 </ul>
 <h3 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Permanent link">&para;</a></h3>
 <ol>
-<li><strong>Startup</strong> -- The <code>Host</code> spawns each plugin binary via <code>exec.Command</code> and establishes a gRPC connection.</li>
-<li><strong>Handshake</strong> -- The controller sends its expected <code>interface_version</code>. If the plugin responds with an incompatible version, loading is refused.</li>
+<li><strong>Version check</strong> -- Before spawning the subprocess, the <code>Host</code> validates the plugin's declared <code>interface_version</code> (from config) against the controller's expected version for that plugin type. If they do not match, loading is refused immediately with a structured error. This avoids spawning a subprocess that cannot satisfy the controller's contract.</li>
+<li><strong>Startup</strong> -- The <code>Host</code> spawns each plugin binary via <code>exec.Command</code> and establishes a gRPC connection with a transport-level handshake (magic cookie verification via hashicorp/go-plugin).</li>
 <li><strong>Health monitoring</strong> -- The <code>Host</code> tracks health status. Unresponsive plugins are marked unhealthy.</li>
-<li><strong>Restart with backoff</strong> -- Failed plugins are restarted up to <code>max_plugin_restarts</code> times (default: 3) with configurable backoff (default: 1s, 5s, 30s). After the maximum, the plugin is permanently unhealthy.</li>
+<li><strong>Restart with backoff</strong> -- Failed plugins are restarted up to <code>max_plugin_restarts</code> times (default: 3) with configurable backoff (default: 1s, 5s, 30s). After the maximum, the plugin is permanently unhealthy. Version mismatches are <strong>not</strong> retried, since restarting cannot resolve an incompatibility.</li>
 <li><strong>Shutdown</strong> -- <code>Host.Shutdown()</code> kills all plugin subprocesses.</li>
 </ol>
 <p>The controller verifies plugin identity using a magic cookie:</p>
@@ -2519,7 +2519,7 @@
 <h3 id="step-3-include-the-handshake-rpc">Step 3: Include the Handshake RPC<a class="headerlink" href="#step-3-include-the-handshake-rpc" title="Permanent link">&para;</a></h3>
 <p>Every plugin <strong>must</strong> implement <code>Handshake</code>. Your <code>HandshakeResponse</code> must include:</p>
 <ul>
-<li><code>interface_version</code> -- currently <code>1</code> for all interfaces.</li>
+<li><code>interface_version</code> -- the version your plugin implements. Must match the controller's expected version for that interface type (see <a href="#interface-versioning">Interface Versioning</a> below).</li>
 <li><code>plugin_name</code> -- e.g. <code>"jira"</code>, <code>"slack"</code>.</li>
 <li><code>plugin_version</code> -- semver of your binary, e.g. <code>"1.2.0"</code>.</li>
 </ul>
@@ -2680,7 +2680,49 @@
 <li><strong>Minor releases</strong> may add optional fields to messages but do not bump <code>interface_version</code>.</li>
 <li><strong>Major bumps</strong> to <code>interface_version</code> indicate breaking changes (renamed RPCs, removed fields, changed semantics). Plugins must be updated.</li>
 </ul>
-<p>The current <code>interface_version</code> for all six interfaces is <strong>1</strong>, defined as a constant in each Go package (e.g. <code>ticketing.InterfaceVersion = 1</code>).</p>
+<p>The current <code>interface_version</code> for each interface is defined as a constant in the corresponding Go package:</p>
+<table>
+<thead>
+<tr>
+<th>Interface</th>
+<th>Version</th>
+<th>Constant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ticketing</td>
+<td>1</td>
+<td><code>ticketing.InterfaceVersion</code></td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td>1</td>
+<td><code>notifications.InterfaceVersion</code></td>
+</tr>
+<tr>
+<td>Approval</td>
+<td>1</td>
+<td><code>approval.InterfaceVersion</code></td>
+</tr>
+<tr>
+<td>Secrets</td>
+<td>1</td>
+<td><code>secrets.InterfaceVersion</code></td>
+</tr>
+<tr>
+<td>Review</td>
+<td>1</td>
+<td><code>review.InterfaceVersion</code></td>
+</tr>
+<tr>
+<td>SCM</td>
+<td>2</td>
+<td><code>scm.InterfaceVersion</code></td>
+</tr>
+</tbody>
+</table>
+<p>SCM was bumped to 2 when <code>ListReviewComments</code>, <code>ReplyToComment</code>, <code>ResolveThread</code>, and <code>GetDiff</code> were added.</p>
 
 
 

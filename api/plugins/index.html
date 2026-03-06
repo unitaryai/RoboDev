@@ -2615,7 +2615,7 @@ any functional calls.</p>
 <p>If the plugin's <code>interface_version</code> does not match what the controller expects,
 the controller refuses to load the plugin, logs a structured error, and marks it
 permanently unhealthy. Restarting cannot resolve a version mismatch.</p>
-<p>The current <code>interface_version</code> for all services is <strong>1</strong>.</p>
+<p>The current <code>interface_version</code> for most services is <strong>1</strong>. SCM is version <strong>2</strong> (bumped when <code>ListReviewComments</code>, <code>ReplyToComment</code>, <code>ResolveThread</code>, and <code>GetDiff</code> were added).</p>
 <hr />
 <h2 id="shared-message-types-protocommonproto">Shared message types (<code>proto/common.proto</code>)<a class="headerlink" href="#shared-message-types-protocommonproto" title="Permanent link">&para;</a></h2>
 <p>The following types are defined in <code>proto/common.proto</code> and referenced by
@@ -3284,6 +3284,7 @@ changes without coupling to a specific provider.</p>
 <th>Request</th>
 <th>Response</th>
 <th>Description</th>
+<th>Since</th>
 </tr>
 </thead>
 <tbody>
@@ -3292,24 +3293,56 @@ changes without coupling to a specific provider.</p>
 <td><code>HandshakeRequest</code></td>
 <td><code>HandshakeResponse</code></td>
 <td>Version negotiation at startup.</td>
+<td>v1</td>
 </tr>
 <tr>
 <td><code>CreateBranch</code></td>
 <td><code>CreateBranchRequest</code></td>
 <td><code>CreateBranchResponse</code></td>
 <td>Creates a new git branch in the remote repository.</td>
+<td>v1</td>
 </tr>
 <tr>
 <td><code>CreatePullRequest</code></td>
 <td><code>CreatePullRequestRequest</code></td>
 <td><code>CreatePullRequestResponse</code></td>
 <td>Opens a pull request (GitHub) or merge request (GitLab) for the agent's changes.</td>
+<td>v1</td>
 </tr>
 <tr>
 <td><code>GetPullRequestStatus</code></td>
 <td><code>GetPullRequestStatusRequest</code></td>
 <td><code>GetPullRequestStatusResponse</code></td>
 <td>Retrieves the current state of a pull/merge request, including CI and review status.</td>
+<td>v1</td>
+</tr>
+<tr>
+<td><code>ListReviewComments</code></td>
+<td><code>ListReviewCommentsRequest</code></td>
+<td><code>ListReviewCommentsResponse</code></td>
+<td>Returns all review and general comments on a pull/merge request.</td>
+<td>v2</td>
+</tr>
+<tr>
+<td><code>ReplyToComment</code></td>
+<td><code>ReplyToCommentRequest</code></td>
+<td><code>ReplyToCommentResponse</code></td>
+<td>Posts a reply to an existing comment.</td>
+<td>v2</td>
+</tr>
+<tr>
+<td><code>ResolveThread</code></td>
+<td><code>ResolveThreadRequest</code></td>
+<td><code>ResolveThreadResponse</code></td>
+<td>Marks a review thread as resolved. No-op where unsupported (e.g. GitHub REST).</td>
+<td>v2</td>
+</tr>
+<tr>
+<td><code>GetDiff</code></td>
+<td><code>GetDiffRequest</code></td>
+<td><code>GetDiffResponse</code></td>
+<td>Returns the unified diff between two branches for code review.</td>
+<td>v2</td>
 </tr>
 </tbody>
 </table>

@@ -1775,6 +1775,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#protoplugin-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proto/Plugin Consistency
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2824,6 +2835,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#protoplugin-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proto/Plugin Consistency
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3816,6 +3838,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h4 id="configmap-volume-support">ConfigMap Volume Support<a class="headerlink" href="#configmap-volume-support" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong><code>engine.VolumeMount</code> now supports ConfigMap sources.</strong> New <code>ConfigMapName</code>, <code>ConfigMapKey</code>, and <code>SubPath</code> fields allow the jobbuilder to emit ConfigMap volume sources instead of emptyDir. This is the foundation for ConfigMap-backed skills and sub-agents.</li>
+</ul>
+<h4 id="protoplugin-consistency">Proto/Plugin Consistency<a class="headerlink" href="#protoplugin-consistency" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>proto/scm.proto</code> updated to match Go interface.</strong> Added <code>ListReviewComments</code>, <code>ReplyToComment</code>, <code>ResolveThread</code>, and <code>GetDiff</code> RPCs with their request/response message types. Third-party SCM plugins written against the protobuf API can now implement the full v2 contract.</li>
+<li><strong>Plugin host now validates interface versions at load time.</strong> <code>LoadPlugin</code> checks the plugin's declared <code>interface_version</code> against the controller's expected version before spawning the subprocess. Mismatched plugins are rejected immediately with a structured error instead of silently loading.</li>
 </ul>
 <h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h3>
 <ul>
