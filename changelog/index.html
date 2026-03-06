@@ -3696,11 +3696,16 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h4 id="real-diff-for-code-review-gate">Real Diff for Code Review Gate<a class="headerlink" href="#real-diff-for-code-review-gate" title="Permanent link">&para;</a></h4>
 <ul>
-<li><strong><code>GetDiff</code> added to <code>scm.Backend</code> interface.</strong> GitHub and GitLab SCM backends now implement <code>GetDiff</code> using their respective compare APIs. The review gate fetches the actual diff before calling <code>ReviewDiff</code>, instead of passing an empty string.</li>
+<li><strong><code>GetDiff</code> added to <code>scm.Backend</code> interface.</strong> GitHub and GitLab SCM backends now implement <code>GetDiff</code> using their respective compare APIs. The <code>baseBranch</code> parameter is resolved automatically: GitHub uses <code>HEAD</code> (the repo's default branch) when empty; GitLab fetches the project's <code>default_branch</code> from the API. The review gate fetches the actual diff before calling <code>ReviewDiff</code>, instead of passing an empty string.</li>
 </ul>
 <h4 id="runtime-cost-enforcement">Runtime Cost Enforcement<a class="headerlink" href="#runtime-cost-enforcement" title="Permanent link">&para;</a></h4>
 <ul>
-<li><strong><code>max_cost_per_job</code> watchdog rule.</strong> A new <code>checkTotalCost</code> rule in the watchdog terminates jobs whose cumulative cost exceeds <code>guardrails.max_cost_per_job</code>. Wired from the existing config field.</li>
+<li>
+<p><strong><code>max_cost_per_job</code> watchdog rule.</strong> A new <code>checkTotalCost</code> rule in the watchdog terminates jobs whose cumulative cost exceeds <code>guardrails.max_cost_per_job</code>. Cost data is fed from the live stream: <code>CostEvent.CostUSD</code> is propagated to <code>TaskRun.CostUSD</code> via <code>ConsumeStreamEvent</code>, and <code>buildHeartbeat</code> uses it for each watchdog tick. Falls back to the result-level cost for agents that do not emit live cost events.</p>
+</li>
+<li>
+<p><strong>Slack approval callback failures now return 500.</strong> When <code>ResolveApproval</code> fails, the webhook returns a non-2xx status so Slack retries the delivery instead of silently losing the callback.</p>
+</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <h4 id="security-correctness">Security / Correctness<a class="headerlink" href="#security-correctness" title="Permanent link">&para;</a></h4>
@@ -3712,7 +3717,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <p><strong>GitHub polling no longer picks up pull requests.</strong> The <code>/issues</code> endpoint returns both issues and pull requests. Items with a non-nil <code>pull_request</code> field are now filtered out before the polling backend emits tickets, preventing RoboDev from treating a labelled PR as a task.</p>
 </li>
 <li>
-<p><strong>Webhook trigger labels auto-derived from ticketing config.</strong> When <code>webhook.github.trigger_labels</code> is not explicitly set, the webhook now falls back to the <code>labels</code> list from the GitHub ticketing backend config, preventing unfiltered issue processing in webhook-only deployments.</p>
+<p><strong>Webhook trigger labels auto-derived from ticketing config.</strong> When <code>webhook.github.trigger_labels</code> is not explicitly set and <code>ticketing.backend</code> is <code>"github"</code>, the webhook now falls back to the <code>labels</code> list from the GitHub ticketing backend config. Deployments that do not use the GitHub polling backend must set <code>trigger_labels</code> explicitly if label gating is desired.</p>
 </li>
 <li>
 <p><strong>Webhook adapter propagates processing errors.</strong> <code>HandleWebhookEvent</code> now returns the first error encountered rather than always returning <code>nil</code>. This causes the webhook server to respond with a non-2xx status so senders (GitHub, GitLab) will retry the delivery.</p>
