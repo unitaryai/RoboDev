@@ -84,11 +84,14 @@ tenancy:
           repo: "alpha-org/repos"
 ```
 
-Each tenant receives:
+When namespace-per-tenant isolation is implemented, each tenant will receive:
 - Dedicated namespace with its own RBAC, NetworkPolicies, and ResourceQuotas
 - Separate Kubernetes Secrets (no cross-tenant secret access)
 - Independent job limits and cost budgets
 - Isolated Karpenter NodePool (optional, for compute isolation)
+
+!!! note "Tenancy runtime isolation is on the roadmap"
+    The `tenancy` config block is parsed and stored but has no runtime effect today. All jobs currently run in the controller's own namespace regardless of tenant configuration.
 
 ## Observability
 
