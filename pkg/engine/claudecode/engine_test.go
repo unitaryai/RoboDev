@@ -780,6 +780,51 @@ func TestBuildPrompt(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "base prompt prescribes deterministic branch name and push instruction",
+			task: engine.Task{
+				ID:       "task-6",
+				TicketID: "TICKET-99",
+				Title:    "Add feature",
+				RepoURL:  "https://github.com/org/repo",
+			},
+			contains: []string{
+				"robodev/TICKET-99",
+				"git checkout -b robodev/TICKET-99",
+				"git push origin robodev/TICKET-99",
+				"Commit and push your changes to that branch frequently",
+				"\"branch_name\": \"robodev/TICKET-99\"",
+			},
+		},
+		{
+			name: "continuation section present when PriorBranchName is set",
+			task: engine.Task{
+				ID:              "task-7",
+				TicketID:        "TICKET-99",
+				Title:           "Add feature",
+				RepoURL:         "https://github.com/org/repo",
+				PriorBranchName: "robodev/TICKET-99",
+			},
+			contains: []string{
+				"## Continuation",
+				"robodev/TICKET-99",
+				"git clone --branch robodev/TICKET-99 --depth=50 https://github.com/org/repo /workspace/repo",
+				"git log --oneline -20",
+				"Do not redo work that is already committed.",
+			},
+		},
+		{
+			name: "no continuation section when PriorBranchName is empty",
+			task: engine.Task{
+				ID:      "task-8",
+				TicketID: "TICKET-88",
+				Title:   "Add feature",
+				RepoURL: "https://github.com/org/repo",
+			},
+			contains: []string{
+				"git clone --depth=1 https://github.com/org/repo /workspace/repo",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -798,6 +843,18 @@ func TestBuildPrompt(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildPrompt_NoContinuationSectionWhenEmpty(t *testing.T) {
+	e := New()
+	prompt, err := e.BuildPrompt(engine.Task{
+		ID:      "task-1",
+		TicketID: "TICKET-1",
+		Title:   "Fix bug",
+		RepoURL: "https://github.com/org/repo",
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, prompt, "## Continuation")
 }
 
 func TestGenerateHooksConfig(t *testing.T) {

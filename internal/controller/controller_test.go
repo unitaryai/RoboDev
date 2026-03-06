@@ -882,6 +882,134 @@ func TestResolveApproval_Rejection(t *testing.T) {
 	assert.Contains(t, tb.markedFailed, "TICKET-REJ")
 }
 
+// capturingEngine wraps mockEngine and captures the last task passed to
+// BuildExecutionSpec, enabling assertion on PriorBranchName in retry tests.
+type capturingEngine struct {
+	mockEngine
+	lastTask engine.Task
+}
+
+func (c *capturingEngine) BuildExecutionSpec(task engine.Task, cfg engine.EngineConfig) (*engine.ExecutionSpec, error) {
+	c.lastTask = task
+	return c.mockEngine.BuildExecutionSpec(task, cfg)
+}
+
+func TestLaunchRetryJob_SetsProirBranchFromResult(t *testing.T) {
+	k8s := fake.NewSimpleClientset()
+	eng := &capturingEngine{mockEngine: mockEngine{name: "claude-code"}}
+	jb := &mockJobBuilder{}
+
+	tr := taskrun.New("tr-1", "key-1", "TICKET-1", "claude-code")
+	tr.CurrentEngine = "claude-code"
+	_ = tr.Transition(taskrun.StateRunning)
+	_ = tr.Transition(taskrun.StateFailed)
+	_ = tr.Transition(taskrun.StateRetrying)
+	tr.RetryCount = 1
+	tr.Result = &engine.TaskResult{
+		Success:    false,
+		BranchName: "robodev/TICKET-1",
+	}
+
+	ticket := ticketing.Ticket{
+		ID:      "TICKET-1",
+		Title:   "Fix something",
+		RepoURL: "https://github.com/org/repo",
+	}
+
+	r := &Reconciler{
+		config:        testConfig(),
+		logger:        testLogger(),
+		k8sClient:     k8s,
+		engines:       map[string]engine.ExecutionEngine{"claude-code": eng},
+		jobBuilder:    jb,
+		taskRuns:      map[string]*taskrun.TaskRun{"key-1": tr},
+		ticketCache:   map[string]ticketing.Ticket{"TICKET-1": ticket},
+		taskRunStore:  taskrun.NewMemoryStore(),
+		namespace:     "test-ns",
+		streamReaders: make(map[string]context.CancelFunc),
+	}
+
+	ctx := context.Background()
+	r.launchRetryJob(ctx, tr, "")
+
+	assert.Equal(t, "robodev/TICKET-1", eng.lastTask.PriorBranchName)
+}
+
+func TestLaunchRetryJob_FallbackBranchWhenNoResult(t *testing.T) {
+	k8s := fake.NewSimpleClientset()
+	eng := &capturingEngine{mockEngine: mockEngine{name: "claude-code"}}
+	jb := &mockJobBuilder{}
+
+	tr := taskrun.New("tr-2", "key-2", "TICKET-42", "claude-code")
+	tr.CurrentEngine = "claude-code"
+	_ = tr.Transition(taskrun.StateRunning)
+	_ = tr.Transition(taskrun.StateFailed)
+	_ = tr.Transition(taskrun.StateRetrying)
+	tr.RetryCount = 1
+	// No Result set — simulates pod killed before on-complete.sh ran.
+
+	ticket := ticketing.Ticket{
+		ID:      "TICKET-42",
+		Title:   "Add feature",
+		RepoURL: "https://github.com/org/repo",
+	}
+
+	r := &Reconciler{
+		config:        testConfig(),
+		logger:        testLogger(),
+		k8sClient:     k8s,
+		engines:       map[string]engine.ExecutionEngine{"claude-code": eng},
+		jobBuilder:    jb,
+		taskRuns:      map[string]*taskrun.TaskRun{"key-2": tr},
+		ticketCache:   map[string]ticketing.Ticket{"TICKET-42": ticket},
+		taskRunStore:  taskrun.NewMemoryStore(),
+		namespace:     "test-ns",
+		streamReaders: make(map[string]context.CancelFunc),
+	}
+
+	ctx := context.Background()
+	r.launchRetryJob(ctx, tr, "")
+
+	assert.Equal(t, "robodev/TICKET-42", eng.lastTask.PriorBranchName)
+}
+
+func TestLaunchRetryJob_NoPriorBranchOnFirstRun(t *testing.T) {
+	k8s := fake.NewSimpleClientset()
+	eng := &capturingEngine{mockEngine: mockEngine{name: "claude-code"}}
+	jb := &mockJobBuilder{}
+
+	tr := taskrun.New("tr-3", "key-3", "TICKET-7", "claude-code")
+	tr.CurrentEngine = "claude-code"
+	_ = tr.Transition(taskrun.StateRunning)
+	_ = tr.Transition(taskrun.StateFailed)
+	_ = tr.Transition(taskrun.StateRetrying)
+	// RetryCount is 0 — first attempt failed with no result written.
+
+	ticket := ticketing.Ticket{
+		ID:      "TICKET-7",
+		Title:   "Fix tests",
+		RepoURL: "https://github.com/org/repo",
+	}
+
+	r := &Reconciler{
+		config:        testConfig(),
+		logger:        testLogger(),
+		k8sClient:     k8s,
+		engines:       map[string]engine.ExecutionEngine{"claude-code": eng},
+		jobBuilder:    jb,
+		taskRuns:      map[string]*taskrun.TaskRun{"key-3": tr},
+		ticketCache:   map[string]ticketing.Ticket{"TICKET-7": ticket},
+		taskRunStore:  taskrun.NewMemoryStore(),
+		namespace:     "test-ns",
+		streamReaders: make(map[string]context.CancelFunc),
+	}
+
+	ctx := context.Background()
+	r.launchRetryJob(ctx, tr, "")
+
+	assert.Empty(t, eng.lastTask.PriorBranchName)
+}
+
 func TestResolveApproval_PreStartApproval(t *testing.T) {
 	cfg := testConfig()
 	k8s := fake.NewSimpleClientset()

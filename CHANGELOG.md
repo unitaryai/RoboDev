@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Session Continuation After Max Turns
+
+- **Retry jobs now continue from prior work rather than starting from scratch.** When a Claude Code agent hits `--max-turns` and the pod exits, the next retry agent clones the branch that was pushed during the previous session instead of re-cloning from the default branch.
+- **Deterministic branch naming.** The base prompt now instructs the agent to create and push to `robodev/<ticket-id>` throughout execution, committing frequently rather than waiting until the end. This branch name is predictable even if `result.json` was never written (e.g. pod killed before the stop hook ran).
+- **`Task.PriorBranchName` field.** The `engine.Task` struct has a new `PriorBranchName` field. When set, `BuildPrompt` emits a `## Continuation` section that clones that branch with `--depth=50` and asks the agent to review prior commits before continuing.
+- **`launchRetryJob` branch propagation.** The controller now sets `PriorBranchName` from `tr.Result.BranchName` when available, or falls back to `robodev/<ticketID>` for retries where the pod was killed before writing `result.json`.
+
 #### Configurable Max Turns for Claude Code
 
 - **`max_turns` is now configurable** for the Claude Code engine. Set `engines.claude_code.max_turns` in your config to override the default of 50 turns. Increase this for tasks that require more steps, such as large refactors or multi-file changes. The value is passed directly to Claude Code's `--max-turns` flag.

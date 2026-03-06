@@ -356,6 +356,29 @@ func (e *ClaudeCodeEngine) BuildPrompt(task engine.Task) (string, error) {
 		b.WriteString("\n\n")
 	}
 
+	if task.PriorBranchName != "" {
+		b.WriteString("## Continuation\n\n")
+		b.WriteString("A previous agent session worked on this task but was interrupted before\n")
+		b.WriteString("completing it (max turns reached or premature exit). Prior work was pushed\n")
+		b.WriteString("to branch `")
+		b.WriteString(task.PriorBranchName)
+		b.WriteString("`.\n\n")
+		b.WriteString("Start by cloning that branch to recover the previous progress:\n")
+		b.WriteString("   ```\n")
+		b.WriteString("   git clone --branch ")
+		b.WriteString(task.PriorBranchName)
+		b.WriteString(" --depth=50 ")
+		b.WriteString(task.RepoURL)
+		b.WriteString(" /workspace/repo\n")
+		b.WriteString("   ```\n\n")
+		b.WriteString("Then run:\n")
+		b.WriteString("   ```\n")
+		b.WriteString("   git log --oneline -20\n")
+		b.WriteString("   ```\n\n")
+		b.WriteString("to see what was already completed, and continue from where the prior\n")
+		b.WriteString("agent left off. Do not redo work that is already committed.\n\n")
+	}
+
 	if len(task.Labels) > 0 {
 		b.WriteString("## Labels\n\n")
 		b.WriteString(strings.Join(task.Labels, ", "))
@@ -377,6 +400,8 @@ func (e *ClaudeCodeEngine) BuildPrompt(task engine.Task) (string, error) {
 	b.WriteString("## Instructions\n\n")
 
 	if task.RepoURL != "" {
+		branchName := "robodev/" + task.TicketID
+
 		b.WriteString("1. Configure git globally:\n")
 		b.WriteString("   ```\n")
 		b.WriteString("   git config --global user.name \"RoboDev\"\n")
@@ -392,15 +417,33 @@ func (e *ClaudeCodeEngine) BuildPrompt(task engine.Task) (string, error) {
 		b.WriteString("     echo \"https://x-access-token:${GITHUB_TOKEN}@github.com\" >> ~/.git-credentials\n")
 		b.WriteString("   fi\n")
 		b.WriteString("   ```\n\n")
-		b.WriteString("2. Clone the repository to /workspace/repo:\n")
+
+		if task.PriorBranchName == "" {
+			b.WriteString("2. Clone the repository to /workspace/repo:\n")
+			b.WriteString("   ```\n")
+			b.WriteString("   git clone --depth=1 ")
+			b.WriteString(task.RepoURL)
+			b.WriteString(" /workspace/repo\n")
+			b.WriteString("   ```\n\n")
+		}
+
+		b.WriteString("3. Create a branch for your changes (use the same branch on every retry so work is not lost):\n")
 		b.WriteString("   ```\n")
-		b.WriteString("   git clone --depth=1 ")
-		b.WriteString(task.RepoURL)
-		b.WriteString(" /workspace/repo\n")
+		b.WriteString("   git checkout -b ")
+		b.WriteString(branchName)
+		b.WriteString("\n")
 		b.WriteString("   ```\n\n")
-		b.WriteString("3. Work inside /workspace/repo to complete the task.\n\n")
-		b.WriteString("4. When finished, write /workspace/result.json containing:\n")
-		b.WriteString("   `{\"success\": true, \"summary\": \"<description of what was done>\"}`\n")
+		b.WriteString("4. Commit and push your changes to that branch frequently — do not wait until you are finished:\n")
+		b.WriteString("   ```\n")
+		b.WriteString("   git add -A && git commit -m \"wip: <short description>\"\n")
+		b.WriteString("   git push origin ")
+		b.WriteString(branchName)
+		b.WriteString("\n")
+		b.WriteString("   ```\n\n")
+		b.WriteString("5. When the full task is complete, write /workspace/result.json containing:\n")
+		b.WriteString("   `{\"success\": true, \"summary\": \"<description of what was done>\", \"branch_name\": \"")
+		b.WriteString(branchName)
+		b.WriteString("\"}`\n")
 	} else {
 		b.WriteString("Complete the task described above. Work in the /workspace directory.\n")
 		b.WriteString("Write a result.json file to /workspace/result.json when finished.\n")

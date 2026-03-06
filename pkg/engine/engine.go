@@ -56,6 +56,11 @@ type Task struct {
 	// MemoryContext is pre-formatted prior knowledge from episodic memory,
 	// injected into the prompt when memory is enabled.
 	MemoryContext string `json:"memory_context,omitempty"`
+	// PriorBranchName, when non-empty, tells the engine that a previous
+	// attempt already pushed work to this branch. The prompt should
+	// instruct the agent to clone/checkout that branch and continue from
+	// where the prior run left off.
+	PriorBranchName string `json:"prior_branch_name,omitempty"`
 }
 
 // EngineConfig holds engine-specific configuration.

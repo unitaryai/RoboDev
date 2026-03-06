@@ -2188,6 +2188,16 @@ func (r *Reconciler) launchRetryJob(ctx context.Context, tr *taskrun.TaskRun, pr
 	}
 	task.Description = desc
 
+	// If the previous attempt pushed to a branch, pass it so the retry
+	// agent can clone that branch and continue from the prior work.
+	if tr.Result != nil && tr.Result.BranchName != "" {
+		task.PriorBranchName = tr.Result.BranchName
+	} else if tr.RetryCount > 0 {
+		// Fall back to the predictable naming convention even if result.json
+		// was not written (e.g. pod killed before stop hook ran).
+		task.PriorBranchName = "robodev/" + tr.TicketID
+	}
+
 	engineCfg := engine.EngineConfig{
 		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
 		Image:          r.config.Engines.ImageFor(tr.CurrentEngine),
