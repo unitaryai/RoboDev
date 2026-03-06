@@ -1727,6 +1727,51 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="[Unreleased]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fixed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#security-correctness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security / Correctness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1792,7 +1837,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -1848,7 +1893,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
+  <a href="#documentation_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Documentation
@@ -2052,7 +2097,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -2609,6 +2654,51 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="[Unreleased]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fixed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#security-correctness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security / Correctness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2674,7 +2764,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -2730,7 +2820,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
+  <a href="#documentation_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Documentation
@@ -2934,7 +3024,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -3470,6 +3560,35 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h4 id="security-correctness">Security / Correctness<a class="headerlink" href="#security-correctness" title="Permanent link">&para;</a></h4>
+<ul>
+<li>
+<p><strong>Slack approval callbacks no longer misrouted as task runs.</strong> <code>robodev_approve_*</code> and <code>robodev_reject_*</code> button callbacks are now acknowledged and logged without being forwarded to <code>ProcessTicket</code>. Forwarding them previously caused a spurious TaskRun to be created with the action ID as the ticket ID.</p>
+</li>
+<li>
+<p><strong>GitHub polling no longer picks up pull requests.</strong> The <code>/issues</code> endpoint returns both issues and pull requests. Items with a non-nil <code>pull_request</code> field are now filtered out before the polling backend emits tickets, preventing RoboDev from treating a labelled PR as a task.</p>
+</li>
+<li>
+<p><strong>GitHub webhook now enforces trigger-label contract.</strong> A new <code>trigger_labels</code> field on <code>webhook.github</code> allows the webhook receiver to mirror the label-gating behaviour of the polling backend. Without it, any newly-opened issue could trigger execution regardless of its labels. Configure it to match the <code>labels</code> list on your polling ticketing backend.</p>
+</li>
+<li>
+<p><strong>Webhook adapter propagates processing errors.</strong> <code>HandleWebhookEvent</code> now returns the first error encountered rather than always returning <code>nil</code>. This causes the webhook server to respond with a non-2xx status so senders (GitHub, GitLab) will retry the delivery.</p>
+</li>
+<li>
+<p><strong>Code review gate is now actually a gate.</strong> When <code>code_review.enabled: true</code> and the review backend returns <code>passed: false</code>, the TaskRun is now transitioned to <code>Failed</code> and the ticket is marked failed. Previously the controller logged the outcome and then unconditionally succeeded the run.</p>
+</li>
+<li>
+<p><strong>Intelligent routing no longer panics on cold start.</strong> <code>IntelligentSelector.SelectEngines</code> previously called <code>s.fallback.SelectEngines</code> with a nil receiver when fingerprint data was insufficient. A nil-fallback guard now returns the available engine list in order instead of panicking.</p>
+</li>
+<li>
+<p><strong>Routing advertises only configured engines.</strong> The <code>availableEngines</code> list in the routing initialisation was built by ranging over a <code>map[string]bool</code> without checking the boolean value, so unconfigured engine names were always included. Only engines whose configuration is non-nil (or whose name matches <code>engines.default</code>) are now advertised.</p>
+</li>
+</ul>
+<h4 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Corrected wrong config keys in README and getting-started guides: <code>max_cost_per_task_usd</code> → <code>max_cost_per_job</code>, <code>max_duration_minutes</code> → <code>max_job_duration_minutes</code>.</li>
+</ul>
 <hr />
 <h2 id="020-2026-03-05">[0.2.0] — 2026-03-05<a class="headerlink" href="#020-2026-03-05" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
@@ -3495,7 +3614,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   transitions stories to that named state (e.g. <code>"Ready for Review"</code>) rather than
   always using the first done-type state in the workflow.</li>
 </ul>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <h4 id="helm-chart-rbac">Helm Chart RBAC<a class="headerlink" href="#helm-chart-rbac" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Added <code>pods/exec</code> with <code>create</code> verb to the controller <code>ClusterRole</code>. Previously the
@@ -3507,7 +3626,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Added <code>workflow_dispatch</code> trigger to the CI workflow so it can be manually run
   against any branch without requiring a push event.</li>
 </ul>
-<h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
+<h3 id="documentation_1">Documentation<a class="headerlink" href="#documentation_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Configuration Reference</strong> — expanded ticketing section with full config reference
   for GitHub Issues, Shortcut, and Linear, including all keys and field tables.</li>
@@ -3825,7 +3944,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><code>"shortcut"</code> case added to the ticketing backend selection block — previously only <code>"github"</code> was wired in</li>
 <li>Webhook server automatically configured with <code>WithShortcutTargetStateID</code> when the Shortcut backend is active, so only story transitions to the trigger state generate webhook events</li>
 </ul>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Add environment variable stripping to Codex, Cline, and OpenCode engine entrypoints (previously only Claude Code had it)</li>
 <li>Fix mermaid diagram in <code>docs/concepts/prm.md</code> that failed to render on GitHub (replaced <code>≥</code>/<code>&lt;</code> with safe alternatives)</li>
