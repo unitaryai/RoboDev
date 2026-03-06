@@ -121,7 +121,7 @@ with a restrictive `SecurityContext`:
 ```yaml
 securityContext:
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 10000
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   capabilities:
@@ -132,8 +132,8 @@ securityContext:
 
 Key properties:
 
-- **runAsNonRoot / runAsUser: 1000** — containers never run as root. The agent
-  user (`robodev`, UID 1000) has no elevated privileges.
+- **runAsNonRoot / runAsUser: 10000** — containers never run as root. The agent
+  user (`robodev`, UID 10000) has no elevated privileges.
 - **readOnlyRootFilesystem** — prevents the agent from modifying the container
   filesystem outside of explicitly mounted writable volumes.
 - **Drop ALL capabilities** — removes every Linux capability, including
@@ -284,7 +284,7 @@ The controller (`docker/controller/Dockerfile`) uses a **multi-stage build**:
 The Claude Code engine image (`docker/engine-claude-code/Dockerfile`) uses
 `node:22-slim` as a base (required for the Claude Code CLI), installs only
 essential tools (`git`, `jq`, `gh`), and creates a dedicated non-root user
-(`robodev`, UID 1000).
+(`robodev`, UID 10000).
 
 ### Image Signing and Provenance
 

@@ -33,7 +33,7 @@ const (
 var validTransitions = map[State][]State{
 	StateQueued:     {StateRunning, StateNeedsHuman},
 	StateRunning:    {StateNeedsHuman, StateSucceeded, StateFailed, StateTimedOut},
-	StateNeedsHuman: {StateRunning},
+	StateNeedsHuman: {StateRunning, StateFailed},
 	StateFailed:     {StateRetrying},
 	StateRetrying:   {StateRunning},
 }
@@ -79,6 +79,11 @@ type TaskRun struct {
 	TournamentID              string             `json:"tournament_id,omitempty"`
 	CandidateIndex            int                `json:"candidate_index,omitempty"`
 	TournamentState           string             `json:"tournament_state,omitempty"`
+
+	// ApprovalGateType records which approval gate this TaskRun is held at
+	// ("pre_start" or "pre_merge"), used by ResolveApproval to dispatch
+	// the correct resolution logic.
+	ApprovalGateType string `json:"approval_gate_type,omitempty"`
 
 	// Review follow-up fields — populated for TaskRuns created in response
 	// to review comments on a PR/MR opened by a previous RoboDev task.

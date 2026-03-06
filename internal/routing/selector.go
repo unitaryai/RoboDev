@@ -23,11 +23,11 @@ type FallbackSelector interface {
 // using epsilon-greedy exploration to balance exploitation of the best-known
 // engine with discovery of new engine capabilities.
 type IntelligentSelector struct {
-	store           FingerprintStore
-	fallback        FallbackSelector
-	cfg             *config.RoutingConfig
-	logger          *slog.Logger
-	rng             *rand.Rand
+	store            FingerprintStore
+	fallback         FallbackSelector
+	cfg              *config.RoutingConfig
+	logger           *slog.Logger
+	rng              *rand.Rand
 	availableEngines []string
 }
 
@@ -139,6 +139,14 @@ func (s *IntelligentSelector) SelectEngines(ticket ticketing.Ticket) []string {
 	)
 
 	return result
+}
+
+// SetFallback updates the fallback selector used when insufficient fingerprint
+// data is available. This allows the fallback to be set after construction,
+// which is necessary when the default engine selector is built inside the
+// reconciler constructor.
+func (s *IntelligentSelector) SetFallback(fb FallbackSelector) {
+	s.fallback = fb
 }
 
 // RecordOutcome updates the fingerprint store with a completed task outcome.

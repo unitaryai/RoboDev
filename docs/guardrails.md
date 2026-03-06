@@ -68,6 +68,9 @@ guardrails:
 
 ## 2. Engine-Level Guards (Claude Code Hooks)
 
+!!! info "Only applies to Claude Code"
+    Engine hooks are only available for the Claude Code engine. Other engines (Codex, Aider, OpenCode, Cline) rely on prompt-based rules which are advisory, not enforced.
+
 Applied inside the execution container via Claude Code's hooks system. RoboDev generates a `settings.json` file mounted into the container:
 
 ```json

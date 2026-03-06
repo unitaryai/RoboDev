@@ -199,8 +199,8 @@ func (b *GitHubSCMBackend) InterfaceVersion() int {
 
 // ghReviewComment is the subset of a GitHub pull request review comment we parse.
 type ghReviewComment struct {
-	ID          int    `json:"id"`
-	InReplyToID *int   `json:"in_reply_to_id,omitempty"`
+	ID          int  `json:"id"`
+	InReplyToID *int `json:"in_reply_to_id,omitempty"`
 	User        struct {
 		Login string `json:"login"`
 	} `json:"user"`
@@ -277,11 +277,11 @@ func (b *GitHubSCMBackend) ListReviewComments(ctx context.Context, prURL string)
 		created, _ := time.Parse(time.RFC3339, ic.CreatedAt)
 		id := strconv.Itoa(ic.ID)
 		all = append(all, scm.ReviewComment{
-			ID:      id,
+			ID:       id,
 			ThreadID: id,
-			Author:  ic.User.Login,
-			Body:    ic.Body,
-			Created: created,
+			Author:   ic.User.Login,
+			Body:     ic.Body,
+			Created:  created,
 		})
 	}
 
@@ -320,6 +320,41 @@ func (b *GitHubSCMBackend) ReplyToComment(ctx context.Context, prURL string, com
 // resolving conversation threads; callers should use the GraphQL API for that.
 func (b *GitHubSCMBackend) ResolveThread(_ context.Context, _ string, _ string) error {
 	return nil
+}
+
+// GetDiff returns the unified diff between the repository's default branch
+// and the named branch using the GitHub compare API.
+func (b *GitHubSCMBackend) GetDiff(ctx context.Context, repoURL string, branchName string) (string, error) {
+	owner, repo, err := parseOwnerRepo(repoURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing repository URL: %w", err)
+	}
+
+	// Use the compare endpoint with diff media type.
+	compareURL := fmt.Sprintf("%s/repos/%s/%s/compare/main...%s", b.baseURL, owner, repo, branchName)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, compareURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("creating compare request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+b.token)
+	req.Header.Set("Accept", "application/vnd.github.v3.diff")
+
+	resp, err := b.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("executing compare request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status %d from compare endpoint", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading compare response: %w", err)
+	}
+
+	return string(data), nil
 }
 
 // prFromGH converts a GitHub PR response to the scm.PullRequest type.

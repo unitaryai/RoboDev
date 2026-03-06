@@ -371,6 +371,86 @@ func TestCheck_TelemetryFailure(t *testing.T) {
 	assert.Equal(t, ActionWarn, action)
 }
 
+func TestCheckTotalCost(t *testing.T) {
+	tests := []struct {
+		name        string
+		maxCost     float64
+		currentCost float64
+		wantReason  bool
+		wantAction  Action
+	}{
+		{
+			name:        "disabled when max is zero",
+			maxCost:     0,
+			currentCost: 100.0,
+			wantReason:  false,
+		},
+		{
+			name:        "below limit no action",
+			maxCost:     10.0,
+			currentCost: 5.0,
+			wantReason:  false,
+		},
+		{
+			name:        "at limit no action",
+			maxCost:     10.0,
+			currentCost: 10.0,
+			wantReason:  false,
+		},
+		{
+			name:        "above limit terminates",
+			maxCost:     10.0,
+			currentCost: 10.01,
+			wantReason:  true,
+			wantAction:  ActionTerminate,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := New(DefaultConfig(), testLogger())
+			hb := &Heartbeat{
+				CostEstimateUSD: tc.currentCost,
+			}
+			reason, action := w.checkTotalCost(hb, tc.maxCost)
+			if tc.wantReason {
+				require.NotNil(t, reason)
+				assert.Equal(t, "total_cost", reason.ReasonCode)
+				assert.Equal(t, tc.wantAction, action)
+			} else {
+				assert.Nil(t, reason)
+			}
+		})
+	}
+}
+
+func TestCheck_TotalCostTermination(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Rules.MaxCostPerJob = 5.0
+	cfg.MinConsecutiveTicks = 1
+
+	w := New(cfg, testLogger())
+
+	tr := &taskrun.TaskRun{
+		ID:        "tr-cost-1",
+		State:     taskrun.StateRunning,
+		CreatedAt: time.Now().Add(-10 * time.Minute),
+	}
+
+	current := &Heartbeat{
+		Seq:             1,
+		Timestamp:       time.Now(),
+		CostEstimateUSD: 6.0,
+		ToolCallsTotal:  10,
+	}
+
+	reason, action, err := w.Check(tr, current, nil)
+	require.NoError(t, err)
+	require.NotNil(t, reason)
+	assert.Equal(t, "total_cost", reason.ReasonCode)
+	assert.Equal(t, ActionTerminate, action)
+}
+
 func TestStart_CancelsOnContext(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.CheckIntervalSeconds = 1 // fast interval for test

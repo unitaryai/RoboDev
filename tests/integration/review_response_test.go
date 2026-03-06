@@ -32,8 +32,8 @@ type mockSCMBackend struct {
 	prState        string // "open", "merged", "closed"
 	reviewComments []scm.ReviewComment
 
-	replyToCommentCalls  []replyCall
-	resolveThreadCalls   []resolveCall
+	replyToCommentCalls []replyCall
+	resolveThreadCalls  []resolveCall
 }
 
 type replyCall struct {
@@ -90,6 +90,10 @@ func (m *mockSCMBackend) ResolveThread(_ context.Context, prURL, threadID string
 	defer m.mu.Unlock()
 	m.resolveThreadCalls = append(m.resolveThreadCalls, resolveCall{prURL: prURL, threadID: threadID})
 	return nil
+}
+
+func (m *mockSCMBackend) GetDiff(_ context.Context, _, _ string) (string, error) {
+	return "", nil
 }
 
 // reviewPollerCfg returns a test ReviewResponseConfig.

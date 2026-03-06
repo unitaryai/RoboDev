@@ -435,6 +435,7 @@ func main() {
 					MaxUSDPer10Minutes: cfg.ProgressWatchdog.CostVelocityMaxPer10Min,
 					Action:             watchdog.ActionWarn,
 				},
+				MaxCostPerJob:                 cfg.GuardRails.MaxCostPerJob,
 				UnansweredHumanTimeoutMinutes: cfg.ProgressWatchdog.UnansweredHumanTimeoutMin,
 				UnansweredHumanAction:         watchdog.ActionTerminateAndNotify,
 			},
@@ -683,8 +684,15 @@ func main() {
 		var whOpts []webhook.Option
 		if cfg.Webhook.GitHub != nil {
 			whOpts = append(whOpts, webhook.WithSecret("github", cfg.Webhook.GitHub.Secret))
-			if len(cfg.Webhook.GitHub.TriggerLabels) > 0 {
-				whOpts = append(whOpts, webhook.WithGitHubTriggerLabels(cfg.Webhook.GitHub.TriggerLabels))
+			triggerLabels := cfg.Webhook.GitHub.TriggerLabels
+			if len(triggerLabels) == 0 && cfg.Ticketing.Backend == "github" {
+				if labels, err := configStringSlice(cfg.Ticketing.Config, "labels"); err == nil && len(labels) > 0 {
+					triggerLabels = labels
+					logger.Info("webhook trigger labels derived from ticketing config", "labels", triggerLabels)
+				}
+			}
+			if len(triggerLabels) > 0 {
+				whOpts = append(whOpts, webhook.WithGitHubTriggerLabels(triggerLabels))
 			}
 		}
 		if cfg.Webhook.GitLab != nil {
@@ -699,6 +707,9 @@ func main() {
 		if scBackend != nil && scBackend.WorkflowStateID() != 0 {
 			whOpts = append(whOpts, webhook.WithShortcutTargetStateID(scBackend.WorkflowStateID()))
 		}
+
+		approvalHandler := &approvalAdapter{reconciler: reconciler, logger: logger}
+		whOpts = append(whOpts, webhook.WithApprovalHandler(approvalHandler))
 
 		whHandler := &webhookAdapter{reconciler: reconciler, logger: logger}
 		webhookSrv = webhook.NewServer(logger, whHandler, whOpts...)
@@ -1011,6 +1022,19 @@ func (a *webhookAdapter) HandleWebhookEvent(ctx context.Context, source string, 
 		}
 	}
 	return firstErr
+}
+
+// approvalAdapter wraps the controller's Reconciler to satisfy the
+// webhook.ApprovalHandler interface, bridging approval callbacks from
+// webhooks into the controller's approval resolution logic.
+type approvalAdapter struct {
+	reconciler *controller.Reconciler
+	logger     *slog.Logger
+}
+
+// HandleApprovalCallback delegates to the controller's ResolveApproval method.
+func (a *approvalAdapter) HandleApprovalCallback(ctx context.Context, taskRunID string, approved bool, responder string) error {
+	return a.reconciler.ResolveApproval(ctx, taskRunID, approved, responder)
 }
 
 // initLinearBackend creates and returns a Linear ticketing backend from the

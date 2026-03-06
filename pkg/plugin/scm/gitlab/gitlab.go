@@ -191,7 +191,7 @@ type glNote struct {
 	Author struct {
 		Username string `json:"username"`
 	} `json:"author"`
-	Body         string `json:"body"`
+	Body         string      `json:"body"`
 	Position     *glPosition `json:"position,omitempty"`
 	DiscussionID string      `json:"discussion_id,omitempty"`
 	CreatedAt    string      `json:"created_at"`
@@ -306,6 +306,43 @@ func (b *GitLabSCMBackend) ResolveThread(ctx context.Context, prURL string, thre
 		b.baseURL, encodedPath, mrIID, threadID)
 
 	return b.doPut(ctx, apiURL, map[string]bool{"resolved": true})
+}
+
+// GetDiff returns the unified diff between the repository's default branch
+// and the named branch using the GitLab compare API.
+func (b *GitLabSCMBackend) GetDiff(ctx context.Context, repoURL string, branchName string) (string, error) {
+	projectPath, err := parseProjectPath(repoURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing repository URL: %w", err)
+	}
+
+	encodedPath := url.PathEscape(projectPath)
+	compareURL := fmt.Sprintf("%s/projects/%s/repository/compare?from=main&to=%s",
+		b.baseURL, encodedPath, url.QueryEscape(branchName))
+
+	body, err := b.doGet(ctx, compareURL)
+	if err != nil {
+		return "", fmt.Errorf("fetching compare: %w", err)
+	}
+	defer body.Close()
+
+	var result struct {
+		Diffs []struct {
+			OldPath string `json:"old_path"`
+			NewPath string `json:"new_path"`
+			Diff    string `json:"diff"`
+		} `json:"diffs"`
+	}
+	if err := json.NewDecoder(body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decoding compare response: %w", err)
+	}
+
+	var buf strings.Builder
+	for _, d := range result.Diffs {
+		fmt.Fprintf(&buf, "--- a/%s\n+++ b/%s\n%s\n", d.OldPath, d.NewPath, d.Diff)
+	}
+
+	return buf.String(), nil
 }
 
 // doPut performs a PUT request with a JSON body, discarding the response.

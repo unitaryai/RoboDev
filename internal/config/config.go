@@ -12,32 +12,32 @@ import (
 // Config is the top-level configuration for the RoboDev controller,
 // loaded from robodev-config.yaml.
 type Config struct {
-	Ticketing        TicketingConfig      `yaml:"ticketing"`
-	Notifications    NotificationsConfig  `yaml:"notifications"`
-	Secrets          SecretsConfig        `yaml:"secrets"`
-	Engines          EnginesConfig        `yaml:"engines"`
-	Execution        ExecutionConfig      `yaml:"execution"`
-	GuardRails       GuardRailsConfig     `yaml:"guardrails"`
-	PluginHealth     PluginHealthConfig   `yaml:"plugin_health"`
-	QualityGate      QualityGateConfig    `yaml:"quality_gate"`
-	Tenancy          TenancyConfig        `yaml:"tenancy"`
-	Approval         ApprovalConfig       `yaml:"approval"`
-	Review           ReviewConfig         `yaml:"review"`
-	CodeReview       CodeReviewConfig     `yaml:"code_review"`
-	SCM              SCMConfig            `yaml:"scm"`
-	ProgressWatchdog WatchdogConfig       `yaml:"progress_watchdog"`
-	Webhook          WebhookConfig        `yaml:"webhook"`
-	SecretResolver   SecretResolverConfig `yaml:"secret_resolver"`
-	Streaming        StreamingConfig      `yaml:"streaming"`
-	TaskRunStore     TaskRunStoreConfig   `yaml:"taskrun_store"`
-	Routing          RoutingConfig        `yaml:"routing"`
-	Diagnosis        DiagnosisConfig      `yaml:"diagnosis"`
-	PRM              PRMConfig            `yaml:"prm"`
-	Memory           MemoryConfig         `yaml:"memory"`
-	Estimator             EstimatorConfig             `yaml:"estimator"`
-	CompetitiveExecution  CompetitiveExecutionConfig  `yaml:"competitive_execution"`
-	Audit                 AuditConfig                 `yaml:"audit"`
-	ReviewResponse        ReviewResponseConfig        `yaml:"review_response"`
+	Ticketing            TicketingConfig            `yaml:"ticketing"`
+	Notifications        NotificationsConfig        `yaml:"notifications"`
+	Secrets              SecretsConfig              `yaml:"secrets"`
+	Engines              EnginesConfig              `yaml:"engines"`
+	Execution            ExecutionConfig            `yaml:"execution"`
+	GuardRails           GuardRailsConfig           `yaml:"guardrails"`
+	PluginHealth         PluginHealthConfig         `yaml:"plugin_health"`
+	QualityGate          QualityGateConfig          `yaml:"quality_gate"`
+	Tenancy              TenancyConfig              `yaml:"tenancy"`
+	Approval             ApprovalConfig             `yaml:"approval"`
+	Review               ReviewConfig               `yaml:"review"`
+	CodeReview           CodeReviewConfig           `yaml:"code_review"`
+	SCM                  SCMConfig                  `yaml:"scm"`
+	ProgressWatchdog     WatchdogConfig             `yaml:"progress_watchdog"`
+	Webhook              WebhookConfig              `yaml:"webhook"`
+	SecretResolver       SecretResolverConfig       `yaml:"secret_resolver"`
+	Streaming            StreamingConfig            `yaml:"streaming"`
+	TaskRunStore         TaskRunStoreConfig         `yaml:"taskrun_store"`
+	Routing              RoutingConfig              `yaml:"routing"`
+	Diagnosis            DiagnosisConfig            `yaml:"diagnosis"`
+	PRM                  PRMConfig                  `yaml:"prm"`
+	Memory               MemoryConfig               `yaml:"memory"`
+	Estimator            EstimatorConfig            `yaml:"estimator"`
+	CompetitiveExecution CompetitiveExecutionConfig `yaml:"competitive_execution"`
+	Audit                AuditConfig                `yaml:"audit"`
+	ReviewResponse       ReviewResponseConfig       `yaml:"review_response"`
 }
 
 // ReviewResponseConfig configures the PR/MR review comment response subsystem.
@@ -66,11 +66,11 @@ type ReviewResponseConfig struct {
 
 // CompetitiveExecutionConfig configures competitive execution with tournament selection.
 type CompetitiveExecutionConfig struct {
-	Enabled                  bool    `yaml:"enabled"`
-	DefaultCandidates        int     `yaml:"default_candidates"`
-	JudgeEngine              string  `yaml:"judge_engine"`
+	Enabled                   bool    `yaml:"enabled"`
+	DefaultCandidates         int     `yaml:"default_candidates"`
+	JudgeEngine               string  `yaml:"judge_engine"`
 	EarlyTerminationThreshold float64 `yaml:"early_termination_threshold"`
-	MaxConcurrentTournaments int     `yaml:"max_concurrent_tournaments"`
+	MaxConcurrentTournaments  int     `yaml:"max_concurrent_tournaments"`
 }
 
 // PRMConfig configures the Process Reward Model for real-time agent coaching.
@@ -320,16 +320,15 @@ type AgentDef struct {
 
 // GuardRailsConfig configures controller-level safety boundaries.
 type GuardRailsConfig struct {
-	MaxCostPerJob                float64                      `yaml:"max_cost_per_job"`
-	MaxConcurrentJobs            int                          `yaml:"max_concurrent_jobs"`
-	MaxJobDurationMinutes        int                          `yaml:"max_job_duration_minutes"`
-	AllowedRepos                 []string                     `yaml:"allowed_repos"`
-	BlockedFilePatterns          []string                     `yaml:"blocked_file_patterns"`
-	RequireHumanApprovalBeforeMR bool                         `yaml:"require_human_approval_before_mr"`
-	AllowedTaskTypes             []string                     `yaml:"allowed_task_types"`
-	TaskProfiles                 map[string]TaskProfileConfig `yaml:"task_profiles,omitempty"`
-	ApprovalGates                []string                     `yaml:"approval_gates,omitempty"`
-	ApprovalCostThresholdUSD     float64                      `yaml:"approval_cost_threshold_usd,omitempty"`
+	MaxCostPerJob            float64                      `yaml:"max_cost_per_job"`
+	MaxConcurrentJobs        int                          `yaml:"max_concurrent_jobs"`
+	MaxJobDurationMinutes    int                          `yaml:"max_job_duration_minutes"`
+	AllowedRepos             []string                     `yaml:"allowed_repos"`
+	BlockedFilePatterns      []string                     `yaml:"blocked_file_patterns"`
+	AllowedTaskTypes         []string                     `yaml:"allowed_task_types"`
+	TaskProfiles             map[string]TaskProfileConfig `yaml:"task_profiles,omitempty"`
+	ApprovalGates            []string                     `yaml:"approval_gates,omitempty"`
+	ApprovalCostThresholdUSD float64                      `yaml:"approval_cost_threshold_usd,omitempty"`
 }
 
 // TaskRunStoreConfig configures the persistent TaskRun store backend.
@@ -449,25 +448,25 @@ type CodeReviewConfig struct {
 
 // WatchdogConfig configures the progress watchdog.
 type WatchdogConfig struct {
-	Enabled                    bool                          `yaml:"enabled"`
-	CheckIntervalSeconds       int                           `yaml:"check_interval_seconds"`
-	MinConsecutiveTicks        int                           `yaml:"min_consecutive_ticks"`
-	ResearchGracePeriodMinutes int                           `yaml:"research_grace_period_minutes"`
-	LoopDetectionThreshold     int                           `yaml:"loop_detection_threshold"`
-	ThrashingTokenThreshold    int                           `yaml:"thrashing_token_threshold"`
-	StallIdleSeconds           int                           `yaml:"stall_idle_seconds"`
-	CostVelocityMaxPer10Min    float64                       `yaml:"cost_velocity_max_per_10_min"`
-	UnansweredHumanTimeoutMin  int                           `yaml:"unanswered_human_timeout_minutes"`
-	AdaptiveCalibration        AdaptiveCalibrationConfig     `yaml:"adaptive_calibration"`
+	Enabled                    bool                      `yaml:"enabled"`
+	CheckIntervalSeconds       int                       `yaml:"check_interval_seconds"`
+	MinConsecutiveTicks        int                       `yaml:"min_consecutive_ticks"`
+	ResearchGracePeriodMinutes int                       `yaml:"research_grace_period_minutes"`
+	LoopDetectionThreshold     int                       `yaml:"loop_detection_threshold"`
+	ThrashingTokenThreshold    int                       `yaml:"thrashing_token_threshold"`
+	StallIdleSeconds           int                       `yaml:"stall_idle_seconds"`
+	CostVelocityMaxPer10Min    float64                   `yaml:"cost_velocity_max_per_10_min"`
+	UnansweredHumanTimeoutMin  int                       `yaml:"unanswered_human_timeout_minutes"`
+	AdaptiveCalibration        AdaptiveCalibrationConfig `yaml:"adaptive_calibration"`
 }
 
 // AdaptiveCalibrationConfig configures the watchdog's adaptive threshold
 // calibration system that learns from historical TaskRun observations.
 type AdaptiveCalibrationConfig struct {
 	Enabled             bool   `yaml:"enabled"`
-	MinSampleCount      int    `yaml:"min_sample_count"`       // minimum observations before overriding static defaults (default 10)
-	PercentileThreshold string `yaml:"percentile_threshold"`   // "p50", "p90", or "p99" (default "p90")
-	ColdStartFallback   bool   `yaml:"cold_start_fallback"`    // use static defaults when insufficient data (default true)
+	MinSampleCount      int    `yaml:"min_sample_count"`     // minimum observations before overriding static defaults (default 10)
+	PercentileThreshold string `yaml:"percentile_threshold"` // "p50", "p90", or "p99" (default "p90")
+	ColdStartFallback   bool   `yaml:"cold_start_fallback"`  // use static defaults when insufficient data (default true)
 	// StorePath is the path for the SQLite-backed calibration profile store.
 	// When empty, an in-memory store is used.
 	StorePath string `yaml:"store_path,omitempty"`
@@ -476,9 +475,9 @@ type AdaptiveCalibrationConfig struct {
 // DiagnosisConfig configures the causal diagnosis subsystem for
 // self-healing retry with failure classification.
 type DiagnosisConfig struct {
-	Enabled              bool `yaml:"enabled"`
-	MaxDiagnosesPerTask  int  `yaml:"max_diagnoses_per_task"`  // maximum diagnoses before terminal failure (default 3)
-	EnableEngineSwitch   bool `yaml:"enable_engine_switch"`    // allow diagnosis to recommend engine switches
+	Enabled             bool `yaml:"enabled"`
+	MaxDiagnosesPerTask int  `yaml:"max_diagnoses_per_task"` // maximum diagnoses before terminal failure (default 3)
+	EnableEngineSwitch  bool `yaml:"enable_engine_switch"`   // allow diagnosis to recommend engine switches
 	// UseLLMClassification enables LLM-backed failure classification with rule-based fallback.
 	UseLLMClassification bool `yaml:"use_llm_classification"`
 }
@@ -486,10 +485,10 @@ type DiagnosisConfig struct {
 // EstimatorConfig configures the predictive cost and duration estimation
 // subsystem.
 type EstimatorConfig struct {
-	Enabled                  bool                      `yaml:"enabled"`
-	MaxPredictedCostPerJob   float64                   `yaml:"max_predicted_cost_per_job"` // auto-reject above this (USD)
-	DefaultCostPerEngine     map[string]CostRange      `yaml:"default_cost_per_engine"`
-	DefaultDurationPerEngine map[string]DurationRange  `yaml:"default_duration_per_engine"`
+	Enabled                  bool                     `yaml:"enabled"`
+	MaxPredictedCostPerJob   float64                  `yaml:"max_predicted_cost_per_job"` // auto-reject above this (USD)
+	DefaultCostPerEngine     map[string]CostRange     `yaml:"default_cost_per_engine"`
+	DefaultDurationPerEngine map[string]DurationRange `yaml:"default_duration_per_engine"`
 	// StoragePath is the path for the SQLite-backed outcome store.
 	// When empty, an in-memory store is used.
 	StoragePath string `yaml:"storage_path,omitempty"`
@@ -534,7 +533,7 @@ type AuditConfig struct {
 
 // TranscriptConfig configures where task transcripts are stored.
 type TranscriptConfig struct {
-	Backend string `yaml:"backend"`         // "local" | "s3" | "gcs" | "disabled"
+	Backend string `yaml:"backend"`          // "local" | "s3" | "gcs" | "disabled"
 	Path    string `yaml:"path,omitempty"`   // directory for the local backend
 	Bucket  string `yaml:"bucket,omitempty"` // bucket name for s3/gcs
 	Prefix  string `yaml:"prefix,omitempty"` // key prefix for s3/gcs

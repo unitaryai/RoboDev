@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,7 +26,7 @@ func TestHandleSlack(t *testing.T) {
 			ActionID string `json:"action_id"`
 			Value    string `json:"value"`
 		}{
-			{ActionID: "robodev_approval_run1_0", Value: "approve"},
+			{ActionID: "some_action", Value: "test"},
 		},
 		User: struct {
 			ID       string `json:"id"`
@@ -130,18 +131,34 @@ func TestHandleSlack(t *testing.T) {
 				call := mock.calls[0]
 				assert.Equal(t, "slack", call.source)
 				require.Len(t, call.tickets, 1)
-				assert.Equal(t, "robodev_approval_run1_0", call.tickets[0].ID)
-				assert.Equal(t, "approve", call.tickets[0].Title)
+				assert.Equal(t, "some_action", call.tickets[0].ID)
+				assert.Equal(t, "test", call.tickets[0].Title)
 				assert.Equal(t, "slack_interaction", call.tickets[0].TicketType)
 			}
 		})
 	}
 }
 
+// mockApprovalHandler records approval callback calls for testing.
+type mockApprovalHandler struct {
+	calls []approvalCall
+}
+
+type approvalCall struct {
+	taskRunID string
+	approved  bool
+	responder string
+}
+
+func (m *mockApprovalHandler) HandleApprovalCallback(_ context.Context, taskRunID string, approved bool, responder string) error {
+	m.calls = append(m.calls, approvalCall{taskRunID: taskRunID, approved: approved, responder: responder})
+	return nil
+}
+
 func TestHandleSlack_ApprovalCallbacks(t *testing.T) {
-	// Approval/rejection callbacks (robodev_approve_* / robodev_reject_*) must
-	// be acknowledged with 200 OK but must NOT be forwarded to the event handler
-	// as synthetic tickets — doing so would create a spurious task run.
+	// Approval callbacks (robodev_approval_*) must be acknowledged with 200 OK
+	// but must NOT be forwarded to the event handler as synthetic tickets.
+	// When an ApprovalHandler is configured, it receives the callback instead.
 	secret := "test-secret"
 	now := time.Now()
 	tsStr := strconv.FormatInt(now.Unix(), 10)
@@ -163,33 +180,57 @@ func TestHandleSlack_ApprovalCallbacks(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		actionID  string
-		wantCalls int
+		name              string
+		actionID          string
+		value             string
+		wantEventCalls    int
+		wantApprovalCalls int
+		wantApproved      bool
+		wantTaskRunID     string
 	}{
 		{
-			name:      "robodev_approve_ callback not forwarded",
-			actionID:  "robodev_approve_tr-42-1",
-			wantCalls: 0,
+			name:              "approval callback routed to handler",
+			actionID:          "robodev_approval_tr-42-1_0",
+			value:             "approve",
+			wantEventCalls:    0,
+			wantApprovalCalls: 1,
+			wantApproved:      true,
+			wantTaskRunID:     "tr-42-1",
 		},
 		{
-			name:      "robodev_reject_ callback not forwarded",
-			actionID:  "robodev_reject_tr-42-1",
-			wantCalls: 0,
+			name:              "rejection callback routed to handler",
+			actionID:          "robodev_approval_tr-42-1_0",
+			value:             "reject",
+			wantEventCalls:    0,
+			wantApprovalCalls: 1,
+			wantApproved:      false,
+			wantTaskRunID:     "tr-42-1",
 		},
 		{
-			name:      "non-approval action is forwarded",
-			actionID:  "some_other_action",
-			wantCalls: 1,
+			name:              "deny value treated as rejection",
+			actionID:          "robodev_approval_tr-99_0",
+			value:             "deny",
+			wantEventCalls:    0,
+			wantApprovalCalls: 1,
+			wantApproved:      false,
+			wantTaskRunID:     "tr-99",
+		},
+		{
+			name:              "non-approval action is forwarded",
+			actionID:          "some_other_action",
+			value:             "clicked",
+			wantEventCalls:    1,
+			wantApprovalCalls: 0,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockEventHandler{}
-			srv := NewServer(testLogger(), mock, WithSecret("slack", secret))
+			ah := &mockApprovalHandler{}
+			srv := NewServer(testLogger(), mock, WithSecret("slack", secret), WithApprovalHandler(ah))
 
-			payload := makePayload(tc.actionID, "clicked")
+			payload := makePayload(tc.actionID, tc.value)
 			body, err := json.Marshal(payload)
 			require.NoError(t, err)
 			sig := computeSlackSignature(body, tsStr, secret)
@@ -203,9 +244,56 @@ func TestHandleSlack_ApprovalCallbacks(t *testing.T) {
 			srv.ServeHTTP(rec, req)
 
 			assert.Equal(t, http.StatusOK, rec.Code)
-			assert.Len(t, mock.calls, tc.wantCalls)
+			assert.Len(t, mock.calls, tc.wantEventCalls)
+			assert.Len(t, ah.calls, tc.wantApprovalCalls)
+
+			if tc.wantApprovalCalls > 0 {
+				assert.Equal(t, tc.wantTaskRunID, ah.calls[0].taskRunID)
+				assert.Equal(t, tc.wantApproved, ah.calls[0].approved)
+				assert.Equal(t, "alice", ah.calls[0].responder)
+			}
 		})
 	}
+}
+
+func TestHandleSlack_ApprovalCallbackWithoutHandler(t *testing.T) {
+	// When no ApprovalHandler is configured, approval callbacks are
+	// acknowledged but not forwarded to the event handler.
+	secret := "test-secret"
+	now := time.Now()
+	tsStr := strconv.FormatInt(now.Unix(), 10)
+
+	mock := &mockEventHandler{}
+	srv := NewServer(testLogger(), mock, WithSecret("slack", secret))
+
+	payload := slackInteractionPayload{
+		Type: "block_actions",
+		Actions: []struct {
+			ActionID string `json:"action_id"`
+			Value    string `json:"value"`
+		}{
+			{ActionID: "robodev_approval_tr-1_0", Value: "approve"},
+		},
+		User: struct {
+			ID       string `json:"id"`
+			Username string `json:"username"`
+		}{ID: "U1", Username: "bob"},
+	}
+
+	body, err := json.Marshal(payload)
+	require.NoError(t, err)
+	sig := computeSlackSignature(body, tsStr, secret)
+
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/slack", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Slack-Request-Timestamp", tsStr)
+	req.Header.Set("X-Slack-Signature", sig)
+
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Empty(t, mock.calls)
 }
 
 func TestHandleSlack_MalformedJSON(t *testing.T) {

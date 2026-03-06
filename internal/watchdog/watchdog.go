@@ -91,6 +91,7 @@ type RulesConfig struct {
 	StallDetection                StallDetectionConfig     `yaml:"stall_detection"`
 	CostVelocity                  CostVelocityConfig       `yaml:"cost_velocity"`
 	TelemetryFailure              TelemetryFailureConfig   `yaml:"telemetry_failure"`
+	MaxCostPerJob                 float64                  `yaml:"max_cost_per_job"`
 	UnansweredHumanTimeoutMinutes int                      `yaml:"unanswered_human_timeout_minutes"`
 	UnansweredHumanAction         Action                   `yaml:"unanswered_human_action"`
 }
@@ -173,12 +174,12 @@ type CalibrationOverrideHook func()
 // Watchdog monitors active TaskRuns for anomalous behaviour and recommends
 // corrective actions when agents are stalled, looping, or unproductive.
 type Watchdog struct {
-	config                    Config
-	logger                    *slog.Logger
-	ticks                     map[string]*tickState // keyed by TaskRun ID
-	calibrator                *Calibrator
-	profileResolver           *ProfileResolver
-	calibrationOverrideHook   CalibrationOverrideHook
+	config                  Config
+	logger                  *slog.Logger
+	ticks                   map[string]*tickState // keyed by TaskRun ID
+	calibrator              *Calibrator
+	profileResolver         *ProfileResolver
+	calibrationOverrideHook CalibrationOverrideHook
 }
 
 // New creates a new Watchdog with the given configuration and logger.
@@ -339,6 +340,11 @@ func (w *Watchdog) evaluateRunningRules(
 		if reason, action := w.checkTelemetryFailure(current, previous, rules.TelemetryFailure); reason != nil {
 			return reason, action
 		}
+	}
+
+	// Total cost check: cumulative spending beyond budget.
+	if reason, action := w.checkTotalCost(current, rules.MaxCostPerJob); reason != nil {
+		return reason, action
 	}
 
 	return nil, ""
@@ -580,6 +586,24 @@ func (w *Watchdog) checkTelemetryFailure(
 			CostEstimateUSD: current.CostEstimateUSD,
 			Message:         "heartbeat sequence number has not advanced",
 		}, cfg.Action
+	}
+
+	return nil, ""
+}
+
+// checkTotalCost detects when cumulative job cost exceeds the configured maximum.
+func (w *Watchdog) checkTotalCost(current *Heartbeat, maxCost float64) (*Reason, Action) {
+	if maxCost <= 0 {
+		return nil, ""
+	}
+
+	if current.CostEstimateUSD > maxCost {
+		return &Reason{
+			ReasonCode:      "total_cost",
+			TokensConsumed:  current.TokensConsumed,
+			CostEstimateUSD: current.CostEstimateUSD,
+			Message:         "cumulative job cost exceeds configured maximum",
+		}, ActionTerminate
 	}
 
 	return nil, ""

@@ -116,32 +116,42 @@ func (s *Server) handleSlack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Separate approval/rejection callbacks from other interactions.
-	// Approval callbacks (robodev_approve_* / robodev_reject_*) must NOT be
-	// forwarded to ProcessTicket — doing so would create a spurious task run
-	// with the action ID as the ticket ID. Full approval resolution requires a
-	// dedicated approval backend and is not yet implemented; until then these
-	// callbacks are acknowledged and logged only.
+	// Approval callbacks use action IDs like robodev_approval_{taskRunID}_{i}.
+	// These must NOT be forwarded to ProcessTicket — doing so would create a
+	// spurious task run. Instead they are routed to the ApprovalHandler when
+	// configured, or acknowledged and logged otherwise.
 	var nonApprovalActions []struct {
 		ActionID string `json:"action_id"`
 		Value    string `json:"value"`
 	}
 	for _, action := range payload.Actions {
-		switch {
-		case strings.HasPrefix(action.ActionID, "robodev_approve_"):
-			taskRunID := strings.TrimPrefix(action.ActionID, "robodev_approve_")
-			s.logger.Info("received approval callback — approval resolution not yet implemented",
-				slog.String("task_run_id", taskRunID),
-				slog.String("action", "approve"),
-				slog.String("user", payload.User.Username),
-			)
-		case strings.HasPrefix(action.ActionID, "robodev_reject_"):
-			taskRunID := strings.TrimPrefix(action.ActionID, "robodev_reject_")
-			s.logger.Info("received rejection callback — approval resolution not yet implemented",
-				slog.String("task_run_id", taskRunID),
-				slog.String("action", "reject"),
-				slog.String("user", payload.User.Username),
-			)
-		default:
+		if strings.HasPrefix(action.ActionID, "robodev_approval_") {
+			// Extract taskRunID: split on "_" and rejoin segments [2..len-1].
+			parts := strings.Split(action.ActionID, "_")
+			var taskRunID string
+			if len(parts) > 3 {
+				taskRunID = strings.Join(parts[2:len(parts)-1], "_")
+			} else if len(parts) == 3 {
+				taskRunID = parts[2]
+			}
+
+			approved := action.Value != "reject" && action.Value != "deny"
+
+			if s.approvalHandler != nil {
+				if err := s.approvalHandler.HandleApprovalCallback(r.Context(), taskRunID, approved, payload.User.Username); err != nil {
+					s.logger.Error("approval handler failed",
+						slog.String("task_run_id", taskRunID),
+						slog.String("error", err.Error()),
+					)
+				}
+			} else {
+				s.logger.Info("received approval callback but no handler configured",
+					slog.String("task_run_id", taskRunID),
+					slog.Bool("approved", approved),
+					slog.String("user", payload.User.Username),
+				)
+			}
+		} else {
 			nonApprovalActions = append(nonApprovalActions, action)
 		}
 	}

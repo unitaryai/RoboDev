@@ -135,14 +135,13 @@ graph TD
 !!! tip "Avoiding false positives"
     All detection rules require the anomaly to persist for `min_consecutive_ticks` (default: 2) before action is taken. New TaskRuns also get a `research_grace_period` (default: 5 minutes) during which thrashing detection is relaxed, since agents often consume many tokens during initial code analysis.
 
-## Coming Soon: Two Additional Safety Layers
-
-> **Status:** Scaffolding complete, integration pending. See `docs/roadmap.md` Phase I.
-
 ### Layer 7: Real-Time Agent Coaching (PRM)
 
 **When:** Continuously, while the agent is running (alongside the watchdog).
 **What:** Evaluates agent productivity at each tool call and intervenes with guidance before problems escalate.
+
+!!! info "Only applies to Claude Code"
+    The PRM operates on the NDJSON event stream which is only available from the Claude Code engine. Other engines are not scored by the PRM.
 
 The Process Reward Model (PRM) operates on the NDJSON event stream from Claude Code. It scores each evaluation window of tool calls on a 1-10 scale, tracks the score trajectory over time, and decides interventions:
 
@@ -151,6 +150,10 @@ The Process Reward Model (PRM) operates on the NDJSON event stream from Claude C
 - **Score ≤ 3 with sustained decline:** Escalate to the watchdog for termination.
 
 Unlike the watchdog (which detects anomalies in raw telemetry), the PRM evaluates *productivity patterns* — whether the agent is making meaningful progress toward the goal, not just whether it's alive.
+
+## Coming Soon
+
+> **Status:** Scaffolding complete, integration pending. See `docs/roadmap.md` Phase I.
 
 ### Layer 8: Adaptive Watchdog Calibration
 

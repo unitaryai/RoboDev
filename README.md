@@ -36,7 +36,7 @@ An adaptive **watchdog** detects repetitive tool-call loops, cost-velocity spike
 - **Plugin architecture** — Ticketing, notifications, secrets, SCM, and review backends are all swappable; write plugins in any language with gRPC support
 - **Human-in-the-loop** — Approval gates at `pre_start` and `pre_merge` hold execution until a human approves via Slack
 - **Task-scoped secrets** — Declarative secret references resolved via Kubernetes Secrets or HashiCorp Vault with per-tenant policy and structured audit logging
-- **Defence in depth** — Seven layered safety boundaries: controller guard rails, engine hooks, prompt injection, quality gate, adaptive watchdog, NetworkPolicies, and secret resolution policy
+- **Defence in depth** — Six layered safety boundaries: controller guard rails, engine hooks, quality gate, adaptive watchdog, NetworkPolicies, and secret resolution policy
 - **Kubernetes-native** — Isolated agent pods with non-root, read-only-FS, dropped-all-capabilities security contexts; optional gVisor/Kata Containers sandboxing
 - **Enterprise-ready** — Multi-tenancy, cost budgets per task, Prometheus metrics, and Grafana dashboards
 

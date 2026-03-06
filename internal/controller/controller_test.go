@@ -834,3 +834,96 @@ func TestHandleJobFailedWithMemory(t *testing.T) {
 	assert.Greater(t, graph.NodeCount(), 0,
 		"memory should have extracted at least one node from failed task")
 }
+
+func TestResolveApproval_UnknownTaskRun(t *testing.T) {
+	r := &Reconciler{
+		logger:   testLogger(),
+		taskRuns: map[string]*taskrun.TaskRun{},
+	}
+
+	err := r.ResolveApproval(context.Background(), "nonexistent", true, "alice")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestResolveApproval_WrongState(t *testing.T) {
+	tr := taskrun.New("tr-1", "key-1", "TICKET-1", "claude-code")
+	_ = tr.Transition(taskrun.StateRunning)
+
+	r := &Reconciler{
+		logger:   testLogger(),
+		taskRuns: map[string]*taskrun.TaskRun{"key-1": tr},
+	}
+
+	err := r.ResolveApproval(context.Background(), "tr-1", true, "alice")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not NeedsHuman")
+}
+
+func TestResolveApproval_Rejection(t *testing.T) {
+	tr := taskrun.New("tr-rej", "key-rej", "TICKET-REJ", "claude-code")
+	_ = tr.Transition(taskrun.StateNeedsHuman)
+	tr.ApprovalGateType = "pre_start"
+
+	tb := newMockTicketing(nil)
+	store := taskrun.NewMemoryStore()
+
+	r := &Reconciler{
+		config:       testConfig(),
+		logger:       testLogger(),
+		ticketing:    tb,
+		taskRuns:     map[string]*taskrun.TaskRun{"key-rej": tr},
+		taskRunStore: store,
+	}
+
+	err := r.ResolveApproval(context.Background(), "tr-rej", false, "bob")
+	require.NoError(t, err)
+	assert.Equal(t, taskrun.StateFailed, tr.State)
+	assert.Contains(t, tb.markedFailed, "TICKET-REJ")
+}
+
+func TestResolveApproval_PreStartApproval(t *testing.T) {
+	cfg := testConfig()
+	k8s := fake.NewSimpleClientset()
+	tb := newMockTicketing(nil)
+	eng := &mockEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	store := taskrun.NewMemoryStore()
+
+	tr := taskrun.New("tr-approve", "key-approve", "TICKET-APPROVE", "claude-code")
+	_ = tr.Transition(taskrun.StateNeedsHuman)
+	tr.ApprovalGateType = "pre_start"
+
+	ticket := ticketing.Ticket{
+		ID:          "TICKET-APPROVE",
+		Title:       "Fix something",
+		Description: "Details here",
+	}
+
+	r := &Reconciler{
+		config:        cfg,
+		logger:        testLogger(),
+		k8sClient:     k8s,
+		ticketing:     tb,
+		engines:       map[string]engine.ExecutionEngine{"claude-code": eng},
+		jobBuilder:    jb,
+		taskRuns:      map[string]*taskrun.TaskRun{"key-approve": tr},
+		engineChains:  map[string][]string{"key-approve": {"claude-code"}},
+		ticketCache:   map[string]ticketing.Ticket{"TICKET-APPROVE": ticket},
+		taskRunStore:  store,
+		namespace:     "test-ns",
+		streamReaders: make(map[string]context.CancelFunc),
+	}
+
+	ctx := context.Background()
+	err := r.ResolveApproval(ctx, "tr-approve", true, "alice")
+	require.NoError(t, err)
+	assert.Equal(t, taskrun.StateRunning, tr.State)
+	assert.NotEmpty(t, tr.JobName)
+	assert.Contains(t, tb.markedProgress, "TICKET-APPROVE")
+
+	// Verify the K8s Job was created.
+	jobs, err := k8s.BatchV1().Jobs("test-ns").List(ctx, metav1.ListOptions{})
+	require.NoError(t, err)
+	assert.Len(t, jobs.Items, 1)
+}

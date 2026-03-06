@@ -282,8 +282,8 @@ func (b *GitHubBackend) addLabels(ctx context.Context, ticketID string, labels [
 
 // removeLabel removes a single label from an issue.
 func (b *GitHubBackend) removeLabel(ctx context.Context, ticketID string, label string) error {
-	url := fmt.Sprintf("%s/repos/%s/%s/issues/%s/labels/%s", b.baseURL, b.owner, b.repo, ticketID, label)
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	reqURL := fmt.Sprintf("%s/repos/%s/%s/issues/%s/labels/%s", b.baseURL, b.owner, b.repo, ticketID, url.PathEscape(label))
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("creating delete request: %w", err)
 	}

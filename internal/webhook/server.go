@@ -7,6 +7,13 @@ import (
 	"net/http"
 )
 
+// ApprovalHandler handles approval/rejection callbacks from interactive
+// webhook sources (e.g. Slack buttons). The webhook server routes approval
+// actions to this handler instead of forwarding them as tickets.
+type ApprovalHandler interface {
+	HandleApprovalCallback(ctx context.Context, taskRunID string, approved bool, responder string) error
+}
+
 // Server is the HTTP webhook receiver. It registers route handlers for each
 // supported webhook source and delegates parsed events to an EventHandler.
 type Server struct {
@@ -20,6 +27,11 @@ type Server struct {
 
 	// genericConfig holds the configuration for the generic webhook handler.
 	genericConfig *GenericConfig
+
+	// approvalHandler, when set, receives approval/rejection callbacks from
+	// interactive webhook sources (e.g. Slack buttons) instead of forwarding
+	// them as tickets.
+	approvalHandler ApprovalHandler
 
 	// shortcutTargetStateID, when non-zero, restricts Shortcut webhook
 	// processing to story_update events where the workflow state changed to
@@ -60,6 +72,15 @@ func WithGenericConfig(cfg *GenericConfig) Option {
 func WithShortcutTargetStateID(id int64) Option {
 	return func(s *Server) {
 		s.shortcutTargetStateID = id
+	}
+}
+
+// WithApprovalHandler sets the handler for approval/rejection callbacks.
+// When set, approval actions from Slack (robodev_approval_*) are routed to
+// this handler instead of being logged and discarded.
+func WithApprovalHandler(h ApprovalHandler) Option {
+	return func(s *Server) {
+		s.approvalHandler = h
 	}
 }
 

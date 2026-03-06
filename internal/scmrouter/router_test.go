@@ -47,6 +47,10 @@ func (s *stubBackend) ResolveThread(_ context.Context, _, _ string) error {
 	panic("stubBackend.ResolveThread not implemented")
 }
 
+func (s *stubBackend) GetDiff(_ context.Context, _, _ string) (string, error) {
+	panic("stubBackend.GetDiff not implemented")
+}
+
 func TestRouter_For(t *testing.T) {
 	githubBackend := &stubBackend{name: "github"}
 	gitlabBackend := &stubBackend{name: "gitlab"}

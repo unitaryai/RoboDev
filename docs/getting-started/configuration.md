@@ -330,6 +330,9 @@ taskrun_store:
     path: "/data/taskruns.db"
 ```
 
+!!! note "Current limitation"
+    Only the `memory` backend is currently implemented. The `sqlite` and `postgres` backends are planned but not yet available.
+
 ## Tenancy
 
 ```yaml

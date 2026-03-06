@@ -67,7 +67,6 @@ guardrails:
   blocked_file_patterns:
     - "*.env"
     - "secrets/**"
-  require_human_approval_before_mr: true
   allowed_task_types:
     - dependency-update
     - bug-fix
@@ -102,7 +101,6 @@ plugin_health:
 					MaxJobDurationMinutes:        120,
 					AllowedRepos:                 []string{"github.com/example/repo"},
 					BlockedFilePatterns:          []string{"*.env", "secrets/**"},
-					RequireHumanApprovalBeforeMR: true,
 					AllowedTaskTypes:             []string{"dependency-update", "bug-fix"},
 				},
 				PluginHealth: PluginHealthConfig{

@@ -326,6 +326,10 @@ func NewReconciler(cfg *config.Config, logger *slog.Logger, opts ...ReconcilerOp
 	if r.engineSelector == nil {
 		r.engineSelector = NewDefaultEngineSelector(cfg, r.engines)
 	}
+	if r.intelligentSelector != nil {
+		r.intelligentSelector.SetFallback(r.engineSelector)
+		r.engineSelector = r.intelligentSelector
+	}
 	if r.taskRunStore == nil {
 		r.taskRunStore = taskrun.NewMemoryStore()
 	}
@@ -530,6 +534,7 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 			return fmt.Errorf("transitioning task run to needs human: %w", err)
 		}
 		tr.HumanQuestion = "approve task start?"
+		tr.ApprovalGateType = "pre_start"
 
 		r.mu.Lock()
 		r.taskRuns[idempotencyKey] = tr
@@ -544,6 +549,14 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 		}
 
 		metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateNeedsHuman)).Inc()
+
+		if r.approvalBackend != nil {
+			if err := r.approvalBackend.RequestApproval(ctx, tr.HumanQuestion, ticket, tr.ID, []string{"approve", "reject"}); err != nil {
+				r.logger.ErrorContext(ctx, "failed to send approval request", "task_run_id", tr.ID, "error", err)
+			}
+		} else {
+			r.logger.WarnContext(ctx, "approval gate active but no approval backend configured; task will wait indefinitely", "task_run_id", tr.ID)
+		}
 
 		r.logger.InfoContext(ctx, "task run held for pre-start approval",
 			"ticket_id", ticket.ID,
@@ -795,6 +808,7 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 			return
 		}
 		tr.HumanQuestion = "approve merge of completed task?"
+		tr.ApprovalGateType = "pre_merge"
 		r.mu.Unlock()
 
 		if err := r.taskRunStore.Save(ctx, tr); err != nil {
@@ -802,6 +816,17 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 				"task_run_id", tr.ID,
 				"error", err,
 			)
+		}
+
+		if r.approvalBackend != nil {
+			r.mu.RLock()
+			cachedTicketForApproval := r.ticketCache[tr.TicketID]
+			r.mu.RUnlock()
+			if err := r.approvalBackend.RequestApproval(ctx, tr.HumanQuestion, cachedTicketForApproval, tr.ID, []string{"approve", "reject"}); err != nil {
+				r.logger.ErrorContext(ctx, "failed to send pre-merge approval request", "task_run_id", tr.ID, "error", err)
+			}
+		} else {
+			r.logger.WarnContext(ctx, "pre-merge approval gate active but no approval backend configured; task will wait indefinitely", "task_run_id", tr.ID)
 		}
 
 		r.logger.InfoContext(ctx, "task run held for pre-merge approval",
@@ -821,7 +846,18 @@ func (r *Reconciler) handleJobComplete(ctx context.Context, tr *taskrun.TaskRun)
 		}
 		reviewCtx, reviewCancel := context.WithTimeout(ctx, time.Duration(timeoutMinutes)*time.Minute)
 		defer reviewCancel()
-		gateResult, reviewErr := r.reviewBackend.ReviewDiff(reviewCtx, tr.ID, "")
+		var diff string
+		if tr.Result != nil && tr.Result.BranchName != "" {
+			scmBackend, scmErr := r.scmFor(r.ticketCacheRepoURL(tr.TicketID))
+			if scmErr == nil {
+				if d, fetchErr := scmBackend.GetDiff(reviewCtx, r.ticketCacheRepoURL(tr.TicketID), tr.Result.BranchName); fetchErr == nil {
+					diff = d
+				} else {
+					r.logger.WarnContext(ctx, "failed to fetch diff for review gate", "error", fetchErr)
+				}
+			}
+		}
+		gateResult, reviewErr := r.reviewBackend.ReviewDiff(reviewCtx, tr.ID, diff)
 		if reviewErr != nil {
 			r.logger.WarnContext(ctx, "code review failed, continuing without review",
 				"task_run_id", tr.ID,
@@ -1177,6 +1213,16 @@ func (r *Reconciler) scmFor(url string) (scm.Backend, error) {
 	return nil, fmt.Errorf("no SCM backend configured")
 }
 
+// ticketCacheRepoURL returns the cached RepoURL for the given ticket ID.
+func (r *Reconciler) ticketCacheRepoURL(ticketID string) string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if t, ok := r.ticketCache[ticketID]; ok {
+		return t.RepoURL
+	}
+	return ""
+}
+
 // handleJobFailed processes a failed job, attempting engine fallback or
 // retrying with the same engine if allowed.
 func (r *Reconciler) handleJobFailed(ctx context.Context, tr *taskrun.TaskRun, reason string) {
@@ -1460,6 +1506,268 @@ func (r *Reconciler) GetTaskRun(idempotencyKey string) (*taskrun.TaskRun, bool) 
 	defer r.mu.RUnlock()
 	tr, ok := r.taskRuns[idempotencyKey]
 	return tr, ok
+}
+
+// ResolveApproval processes an approval or rejection callback for the given
+// task run. It transitions the TaskRun based on the gate type and approval
+// decision, launching a job on pre-start approval or completing the task on
+// pre-merge approval.
+func (r *Reconciler) ResolveApproval(ctx context.Context, taskRunID string, approved bool, responder string) error {
+	r.mu.Lock()
+	var target *taskrun.TaskRun
+	for _, tr := range r.taskRuns {
+		if tr.ID == taskRunID {
+			target = tr
+			break
+		}
+	}
+	r.mu.Unlock()
+
+	if target == nil {
+		return fmt.Errorf("task run %q not found", taskRunID)
+	}
+
+	if target.State != taskrun.StateNeedsHuman {
+		return fmt.Errorf("task run %q is in state %q, not NeedsHuman", taskRunID, target.State)
+	}
+
+	if !approved {
+		r.mu.Lock()
+		if err := target.Transition(taskrun.StateFailed); err != nil {
+			r.mu.Unlock()
+			return fmt.Errorf("transitioning task run to failed: %w", err)
+		}
+		r.mu.Unlock()
+
+		if err := r.taskRunStore.Save(ctx, target); err != nil {
+			r.logger.ErrorContext(ctx, "failed to save task run after rejection",
+				"task_run_id", taskRunID,
+				"error", err,
+			)
+		}
+
+		metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateFailed)).Inc()
+
+		if r.ticketing != nil {
+			_ = r.ticketing.MarkFailed(ctx, target.TicketID, "rejected by "+responder)
+		}
+
+		r.logger.InfoContext(ctx, "task run rejected",
+			"task_run_id", taskRunID,
+			"responder", responder,
+		)
+		return nil
+	}
+
+	switch target.ApprovalGateType {
+	case "pre_start":
+		return r.resolvePreStartApproval(ctx, target)
+	case "pre_merge":
+		return r.resolvePreMergeApproval(ctx, target)
+	default:
+		return fmt.Errorf("unknown approval gate type %q for task run %q", target.ApprovalGateType, taskRunID)
+	}
+}
+
+// resolvePreStartApproval launches the job for a task run that was held at the
+// pre-start approval gate.
+func (r *Reconciler) resolvePreStartApproval(ctx context.Context, tr *taskrun.TaskRun) error {
+	r.mu.RLock()
+	engineChain := r.engineChains[tr.IdempotencyKey]
+	cachedTicket, hasTicket := r.ticketCache[tr.TicketID]
+	r.mu.RUnlock()
+
+	if !hasTicket {
+		return fmt.Errorf("ticket %q not found in cache", tr.TicketID)
+	}
+
+	engineName := tr.Engine
+	eng, ok := r.engines[engineName]
+	if !ok {
+		return fmt.Errorf("engine %q not registered", engineName)
+	}
+
+	// Transition NeedsHuman → Running.
+	r.mu.Lock()
+	if err := tr.Transition(taskrun.StateRunning); err != nil {
+		r.mu.Unlock()
+		return fmt.Errorf("transitioning task run to running: %w", err)
+	}
+	r.mu.Unlock()
+
+	// Query episodic memory for prior knowledge relevant to this task.
+	var memoryContext string
+	if r.memoryQuery != nil {
+		mc, qErr := r.memoryQuery.QueryForTask(ctx, cachedTicket.Description, cachedTicket.RepoURL, engineName, "")
+		if qErr != nil {
+			r.logger.WarnContext(ctx, "memory query failed, continuing without prior knowledge",
+				"ticket_id", cachedTicket.ID,
+				"error", qErr,
+			)
+		} else if mc != nil && mc.FormattedSection != "" {
+			memoryContext = mc.FormattedSection
+		}
+	}
+
+	task := engine.Task{
+		ID:            cachedTicket.ID,
+		TicketID:      cachedTicket.ID,
+		Title:         cachedTicket.Title,
+		Description:   cachedTicket.Description,
+		RepoURL:       cachedTicket.RepoURL,
+		Labels:        cachedTicket.Labels,
+		MemoryContext: memoryContext,
+	}
+
+	engineCfg := engine.EngineConfig{
+		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
+		Image:          r.config.Engines.ImageFor(engineName),
+		SecretKeyRefs:  r.agentSecretKeyRefs(),
+		Env:            r.slackEnv(),
+	}
+
+	spec, err := eng.BuildExecutionSpec(task, engineCfg)
+	if err != nil {
+		return fmt.Errorf("building execution spec: %w", err)
+	}
+
+	if r.jobBuilder == nil {
+		return fmt.Errorf("no job builder configured")
+	}
+
+	job, err := r.jobBuilder.Build(tr.ID, engineName, spec)
+	if err != nil {
+		return fmt.Errorf("building k8s job: %w", err)
+	}
+
+	if r.k8sClient != nil {
+		_, err = r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("creating k8s job: %w", err)
+		}
+	}
+
+	tr.JobName = job.Name
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run after pre-start approval",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Inc()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
+
+	if err := r.ticketing.MarkInProgress(ctx, cachedTicket.ID); err != nil {
+		r.logger.ErrorContext(ctx, "failed to mark ticket in progress after approval",
+			"ticket_id", cachedTicket.ID,
+			"error", err,
+		)
+	}
+
+	for _, n := range r.notifiers {
+		if err := n.NotifyStart(ctx, cachedTicket); err != nil {
+			r.logger.ErrorContext(ctx, "notification failed",
+				"channel", n.Name(),
+				"error", err,
+			)
+		}
+	}
+
+	if engineName == "claude-code" {
+		r.startStreamReader(ctx, tr)
+	}
+
+	_ = engineChain // used during initial selection, preserved for fallback
+
+	r.logger.InfoContext(ctx, "pre-start approval granted, job launched",
+		"task_run_id", tr.ID,
+		"engine", engineName,
+		"job", job.Name,
+	)
+	return nil
+}
+
+// resolvePreMergeApproval completes a task run that was held at the pre-merge
+// approval gate.
+func (r *Reconciler) resolvePreMergeApproval(ctx context.Context, tr *taskrun.TaskRun) error {
+	r.mu.Lock()
+	if err := tr.Transition(taskrun.StateSucceeded); err != nil {
+		r.mu.Unlock()
+		return fmt.Errorf("transitioning task run to succeeded: %w", err)
+	}
+	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run after pre-merge approval",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Dec()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateSucceeded)).Inc()
+	metrics.TaskRunDurationSeconds.WithLabelValues(tr.Engine).Observe(
+		time.Since(tr.CreatedAt).Seconds(),
+	)
+
+	r.mu.RLock()
+	result := engine.TaskResult{Success: true, Summary: "task completed successfully"}
+	if tr.Result != nil {
+		result = *tr.Result
+	}
+	cachedTicket, hasTicket := r.ticketCache[tr.TicketID]
+	r.mu.RUnlock()
+	tr.Result = &result
+
+	if r.ticketing != nil {
+		if err := r.ticketing.MarkComplete(ctx, tr.TicketID, result); err != nil {
+			r.logger.ErrorContext(ctx, "failed to mark ticket complete",
+				"ticket_id", tr.TicketID,
+				"error", err,
+			)
+		}
+	}
+
+	if hasTicket {
+		for _, n := range r.notifiers {
+			if err := n.NotifyComplete(ctx, cachedTicket, result); err != nil {
+				r.logger.ErrorContext(ctx, "completion notification failed",
+					"ticket_id", tr.TicketID,
+					"error", err,
+				)
+			}
+		}
+	}
+
+	if r.memoryExtractor != nil {
+		go r.extractMemory(ctx, tr)
+	}
+
+	if r.reviewPoller != nil && result.MergeRequestURL != "" {
+		r.mu.RLock()
+		cachedT, hasCachedT := r.ticketCache[tr.TicketID]
+		r.mu.RUnlock()
+		if hasCachedT {
+			r.reviewPoller.Register(
+				result.MergeRequestURL,
+				tr.TicketID,
+				cachedT.Title,
+				cachedT.Description,
+				cachedT.RepoURL,
+			)
+		}
+	}
+
+	r.recordTaskOutcome(ctx, tr, true)
+	r.cleanupHeartbeat(tr.ID)
+
+	r.logger.InfoContext(ctx, "pre-merge approval granted, task run succeeded",
+		"task_run_id", tr.ID,
+		"ticket_id", tr.TicketID,
+	)
+	return nil
 }
 
 // startStreamReader launches a background goroutine that reads NDJSON events
@@ -2061,7 +2369,7 @@ func (r *Reconciler) runWatchdogChecks(ctx context.Context) {
 	r.mu.RLock()
 	running := make([]*taskrun.TaskRun, 0, len(r.taskRuns))
 	for _, tr := range r.taskRuns {
-		if tr.State == taskrun.StateRunning {
+		if tr.State == taskrun.StateRunning || tr.State == taskrun.StateNeedsHuman {
 			running = append(running, tr)
 		}
 	}
@@ -2097,6 +2405,9 @@ func (r *Reconciler) runWatchdogCheck(ctx context.Context, tr *taskrun.TaskRun) 
 	switch action {
 	case watchdog.ActionTerminate, watchdog.ActionTerminateWithFeedback, watchdog.ActionTerminateAndNotify:
 		r.handleJobFailed(ctx, tr, wdReason.Message)
+		if r.approvalBackend != nil {
+			_ = r.approvalBackend.CancelPending(ctx, tr.ID)
+		}
 	default:
 		// ActionWarn — already logged above.
 	}
