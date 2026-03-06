@@ -21,7 +21,7 @@ Most agent orchestrators are job launchers — they dispatch a task and wait for
 | **Episodic memory** | A SQLite-backed knowledge graph accumulates facts, patterns, and engine profiles across tasks. Each new task receives relevant prior knowledge injected into its prompt. Confidence decays over time; stale knowledge is pruned automatically |
 | **Causal failure diagnosis** | Failed tasks are not just retried. The failure mode is classified — permission error, test failure, ambiguous spec, environment issue — and a targeted recovery strategy is generated before the next attempt |
 | **Intelligent engine routing** | Historical success rates, cost, and task-type affinity guide which engine handles each task. Poor-performing engines are penalised; good ones accumulate positive signal. The selection updates continuously |
-| **Predictive cost estimation** | Before a task launches, a k-NN model estimates cost and duration from similar historical outcomes. Operators can enforce pre-approval gates for tasks projected to exceed a threshold |
+| **Predictive cost estimation** | Before a task launches, a k-NN model estimates cost and duration from similar historical outcomes. Tasks projected to exceed `max_predicted_cost_per_job` are automatically rejected before the job starts |
 | **Competitive execution** | Multiple engines run the same task simultaneously. A judge engine evaluates all outputs and selects the best result — useful for critical tasks where quality matters more than cost |
 | **Review-response loop** | RoboDev monitors PRs it opens, classifies incoming review comments, and automatically spawns follow-up jobs to address actionable feedback — turning a single-pass agent into a review-responsive loop |
 
@@ -35,10 +35,10 @@ An adaptive **watchdog** detects repetitive tool-call loops, cost-velocity spike
 - **Event-driven ingestion** — Webhooks for GitHub, GitLab, Slack, Shortcut, and generic sources with HMAC signature validation
 - **Plugin architecture** — Ticketing, notifications, secrets, SCM, and review backends are all swappable; write plugins in any language with gRPC support
 - **Human-in-the-loop** — Approval gates at `pre_start` and `pre_merge` hold execution until a human approves via Slack
-- **Task-scoped secrets** — Declarative secret references resolved via Kubernetes Secrets or HashiCorp Vault with per-tenant policy and structured audit logging
+- **Secret resolution** — SCM and notification credentials resolved from Kubernetes Secrets or HashiCorp Vault and injected into agent pods; the `secretresolver` package provides the infrastructure for per-task references
 - **Defence in depth** — Six layered safety boundaries: controller guard rails, engine hooks, quality gate, adaptive watchdog, NetworkPolicies, and secret resolution policy
 - **Kubernetes-native** — Isolated agent pods with non-root, read-only-FS, dropped-all-capabilities security contexts; optional gVisor/Kata Containers sandboxing
-- **Enterprise-ready** — Multi-tenancy, cost budgets per task, Prometheus metrics, and Grafana dashboards
+- **Enterprise-ready** — Cost budgets per task, Prometheus metrics, and Grafana dashboards; multi-tenancy config schema is defined and planned for a future release
 
 ---
 
@@ -101,7 +101,7 @@ All external integrations are pluggable. Built-in plugins are compiled into the 
 | Review | CodeRabbit | Custom |
 | Engine | Claude Code, Codex, Aider, OpenCode | Custom |
 
-SDKs are provided for Python, Go, and TypeScript. See the [plugin docs](https://unitaryai.github.io/RoboDev/plugins/writing-a-plugin/) for details.
+SDK helper libraries for Python, Go, and TypeScript are in `sdk/`. Generated proto stubs are not checked in — run `make sdk-gen` to generate them from the proto definitions. See the [plugin docs](https://unitaryai.github.io/RoboDev/plugins/writing-a-plugin/) for details.
 
 ---
 

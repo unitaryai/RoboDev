@@ -33,17 +33,17 @@ Confidence increases with the number of matching historical outcomes, up to 1.0 
 
 Every task outcome — actual cost, actual duration, complexity score, engine used — is fed back into the store after completion, so predictions improve continuously as the system accumulates history.
 
-## Approval Gates
+## Auto-Rejection Threshold
 
-When `max_predicted_cost_per_job` is configured, tasks whose predicted cost exceeds the threshold are blocked from launching automatically. The controller records the prediction, emits a Prometheus metric, and does not start the job until a human approves it through the configured approval backend (e.g. Slack).
+When `max_predicted_cost_per_job` is configured, tasks whose predicted cost exceeds the threshold are automatically rejected before a job is created. The controller calls `MarkFailed` on the ticket, logs a warning, and emits a Prometheus metric. The ticket is not held for human approval — it is failed immediately.
 
 ```yaml
 estimator:
   enabled: true
-  max_predicted_cost_per_job: 10.00   # USD — block and require approval above this
+  max_predicted_cost_per_job: 10.00   # USD — auto-reject above this
 ```
 
-This is distinct from `max_cost_per_job` in the guard rails, which is a hard runtime ceiling enforced by the watchdog. The estimator gate fires *before* the job starts; the guard rail fires *during* execution.
+This is distinct from `max_cost_per_job` in the guard rails, which is a hard runtime ceiling enforced by the watchdog. The estimator threshold fires *before* the job starts; the guard rail fires *during* execution.
 
 ## Cold-Start Defaults
 
@@ -70,7 +70,7 @@ estimator:
 |---|---|
 | `robodev_estimator_predictions_total` | Total predictions issued |
 | `robodev_estimator_predicted_cost` | Histogram of midpoint predicted costs |
-| `robodev_estimator_auto_rejections_total` | Tasks blocked by the approval gate |
+| `robodev_estimator_auto_rejections_total` | Tasks auto-rejected for exceeding the cost threshold |
 
 ## Further Reading
 

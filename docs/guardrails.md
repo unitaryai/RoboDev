@@ -12,22 +12,16 @@ sequenceDiagram
     participant Ticket as Incoming Ticket
     participant L1 as 1. Controller Validation
     participant L2 as 2. Engine Hooks
-    participant L3 as 3. guardrails.md
-    participant L4 as 4. Task Profiles
-    participant L5 as 5. Quality Gate
-    participant L6 as 6. Watchdog
+    participant L3 as 3. Quality Gate
+    participant L4 as 4. Watchdog
 
     Ticket->>L1: Check allowed repos, task types, limits
     L1->>L2: Pass — launch agent
     Note over L2: Intercept tool calls<br/>in real time
-    L2->>L3: Agent reads repo rules
-    Note over L3: "Never modify CI files"
-    L3->>L4: Apply profile restrictions
-    Note over L4: docs tasks → only *.md
-    L4->>L5: Agent finishes
-    Note over L5: Scan for secrets,<br/>OWASP patterns
-    L5->>L6: Continuous monitoring
-    Note over L6: Detect loops, stalls,<br/>cost overruns
+    L2->>L3: Agent finishes
+    Note over L3: Scan for secrets,<br/>OWASP patterns
+    L3->>L4: Continuous monitoring
+    Note over L4: Detect loops, stalls,<br/>cost overruns
 ```
 
 ## 1. Controller-Level Guards
@@ -130,9 +124,12 @@ The `block-sensitive-files.sh` hook blocks writes to:
 
 Custom patterns can be added via the `BLOCKED_FILE_PATTERNS` environment variable.
 
-## 3. Custom Guard Rails via Markdown
+## 3. Custom Guard Rails via Markdown (Planned)
 
-Users can provide a `guardrails.md` file that is appended to every prompt sent to the execution engine:
+!!! note "Not yet wired"
+    The `guardrails.md` injection path is not currently wired in the controller. The `TaskProfileConfig` struct has a `Workflow` field and the promptbuilder package exists, but the controller builds execution specs directly from ticket fields rather than routing through the promptbuilder. This feature is on the roadmap.
+
+The intention is that users will provide a `guardrails.md` file (mounted from a ConfigMap) that the prompt builder appends to every agent prompt, giving the agent advisory rules such as:
 
 ```markdown
 # Guard Rails
@@ -140,20 +137,17 @@ Users can provide a `guardrails.md` file that is appended to every prompt sent t
 ## Never Do
 - Never modify CI/CD pipeline configuration files
 - Never change database migration files
-- Never alter authentication or authorisation logic
-- Never commit secrets, API keys, or credentials
 
 ## Always Do
 - Always run the full test suite before creating an MR
-- Always add tests for new functionality
-- Always follow the existing code style in the repository
 ```
 
-This file is mounted from a ConfigMap and injected by the prompt builder.
+## 4. Per-Task-Type Permission Profiles (Partially Implemented)
 
-## 4. Per-Task-Type Permission Profiles
+!!! note "Config schema only"
+    `task_profiles` is present in the config schema and values are stored, but per-task-type file pattern restrictions (`allowed_file_patterns`, `blocked_file_patterns`) are not enforced at runtime. The controller reads `AllowedTaskTypes` for validation but does not yet apply profile-level constraints to agent pods.
 
-Different task types carry different risk profiles:
+The `task_profiles` config structure is defined for future enforcement:
 
 ```yaml
 guardrails:

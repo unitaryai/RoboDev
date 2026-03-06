@@ -1,16 +1,17 @@
 # Plugin SDKs
 
-RoboDev provides generated client/server stubs for three languages. All SDKs
-are derived from the protobuf definitions in `proto/` — they are never edited
-by hand. The source of truth is always the `.proto` files.
+RoboDev provides SDK helper libraries and build tooling for three languages.
+The protobuf definitions in `proto/` are the source of truth. Generated stubs
+are **not checked into the repository** — you generate them locally with
+`make sdk-gen` before using the SDKs.
 
-## Available SDKs
+## What's in the repository
 
-| Language | Directory | Status |
+| Language | Directory | What's included |
 |---|---|---|
-| Go | `sdk/go/` | Stable |
-| Python | `sdk/python/` | Generated on demand |
-| TypeScript | `sdk/typescript/` | Generated on demand |
+| Go | `sdk/go/` | Helper scaffolding and examples; no generated stubs |
+| Python | `sdk/python/` | `plugin.py` base class helpers; proto stub dirs are empty until you run `make sdk-gen` |
+| TypeScript | `sdk/typescript/` | `plugin.ts` base class helpers; proto stub dirs are empty until you run `make sdk-gen` |
 
 ## Generating stubs
 

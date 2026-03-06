@@ -12,14 +12,14 @@ RoboDev is configured via a YAML file (`robodev-config.yaml`) which is mounted i
 | `secrets` | How the controller retrieves credentials (`k8s` for Kubernetes Secrets) |
 | `scm` | Source code management backend for cloning and opening PRs |
 | `guardrails` | Safety boundaries — cost limits, concurrency limits, blocked file patterns |
-| `tenancy` | Multi-tenancy mode (`shared` or `namespace-per-tenant`) |
+| `tenancy` | Multi-tenancy config schema (namespace-per-tenant runtime isolation is planned) |
 | `quality_gate` | Optional AI-powered review of agent output before merging |
 | `review` | Review backend configuration |
 | `progress_watchdog` | Detects stalled or looping agent jobs and intervenes |
 | `plugin_health` | Health monitoring and restart behaviour for gRPC plugins |
 | `execution` | Execution backend (`job`, `sandbox`, or `local`) |
 | `webhook` | Optional webhook receiver for instant ticket ingestion |
-| `secret_resolver` | Task-scoped secret resolution and policy enforcement |
+| `secret_resolver` | Secret resolution policy configuration (infrastructure in place; per-task ticket references not yet wired into the execution path) |
 | `streaming` | Real-time agent output streaming configuration |
 | `taskrun_store` | Persistent TaskRun store backend (`memory`, `sqlite`, `postgres`) |
 | `prm` | Process Reward Model for real-time agent coaching (disabled by default) |

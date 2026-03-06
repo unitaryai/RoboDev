@@ -2,17 +2,14 @@
 
 ## Overview
 
-RoboDev is designed for horizontal scaling on Kubernetes. The controller runs as a single-leader replica, whilst agent jobs scale independently via Karpenter node provisioning and configurable concurrency limits.
+RoboDev is designed for horizontal scaling on Kubernetes. The controller runs as a single replica, whilst agent jobs scale independently via Karpenter node provisioning and configurable concurrency limits.
 
 ## Controller High Availability
 
-The controller uses controller-runtime's built-in leader election via Kubernetes Lease objects. Multiple replicas can run simultaneously; only the leader processes tickets and creates jobs. Failover is automatic.
+!!! note "Planned feature"
+    Leader election (multiple controller replicas with automatic failover) is not yet implemented. The controller currently runs as a single replica. HA support via controller-runtime Kubernetes Lease objects is on the roadmap.
 
-```yaml
-# Enable leader election in Helm values
-leaderElection:
-  enabled: true
-```
+For now, run a single controller replica. Agent jobs are independent Kubernetes Jobs and are unaffected by a controller restart — in-flight jobs complete normally.
 
 ## Karpenter Integration
 

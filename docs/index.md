@@ -64,10 +64,10 @@ RoboDev watches your issue tracker for labelled tickets, validates them against 
 | **Multi-engine** | Claude Code, Codex, Aider, OpenCode — with automatic fallback chains |
 | **Defence in depth** | Six independent guard rail layers prevent unsafe agent behaviour |
 | **Plugin architecture** | Extend ticketing, notifications, secrets, SCM, approvals, and reviews via gRPC |
-| **Kubernetes-native** | Operator pattern with leader election, Karpenter integration, and KEDA scaling |
+| **Kubernetes-native** | Operator pattern with Karpenter integration and KEDA scaling; leader election is on the roadmap |
 | **Observable** | Prometheus metrics, structured JSON logging, Grafana dashboards |
-| **Multi-tenant** | Namespace-per-tenant isolation with dedicated RBAC, secrets, and quotas |
-| **Secure by default** | Distroless images, read-only filesystems, drop-all capabilities, network policies |
+| **Multi-tenant** | Multi-tenancy config schema is defined; namespace-per-tenant runtime isolation is planned for a future release |
+| **Security-capable** | Distroless images, read-only filesystems, drop-all capabilities; NetworkPolicies and gVisor sandboxing are available but disabled by default |
 
 ## Intelligent Agent Management
 
