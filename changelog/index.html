@@ -3696,7 +3696,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h4 id="real-diff-for-code-review-gate">Real Diff for Code Review Gate<a class="headerlink" href="#real-diff-for-code-review-gate" title="Permanent link">&para;</a></h4>
 <ul>
-<li><strong><code>GetDiff</code> added to <code>scm.Backend</code> interface.</strong> GitHub and GitLab SCM backends now implement <code>GetDiff</code> using their respective compare APIs. The <code>baseBranch</code> parameter is resolved automatically: GitHub uses <code>HEAD</code> (the repo's default branch) when empty; GitLab fetches the project's <code>default_branch</code> from the API. The review gate fetches the actual diff before calling <code>ReviewDiff</code>, instead of passing an empty string.</li>
+<li><strong><code>GetDiff</code> added to <code>scm.Backend</code> interface.</strong> GitHub and GitLab SCM backends now implement <code>GetDiff</code> using their respective compare APIs. The <code>baseBranch</code> parameter is resolved automatically: GitHub uses <code>HEAD</code> (the repo's default branch) when empty; GitLab fetches the project's <code>default_branch</code> from the API. The review gate fetches the actual diff before calling <code>ReviewDiff</code>, instead of passing an empty string. <code>scm.InterfaceVersion</code> bumped from 1 to 2 to signal the contract change to external plugins.</li>
 </ul>
 <h4 id="runtime-cost-enforcement">Runtime Cost Enforcement<a class="headerlink" href="#runtime-cost-enforcement" title="Permanent link">&para;</a></h4>
 <ul>
