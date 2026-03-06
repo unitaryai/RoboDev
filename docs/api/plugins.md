@@ -7,9 +7,8 @@ directly; regenerate them with `make sdk-gen` instead.
 
 Plugins communicate with the controller over gRPC using the
 [hashicorp/go-plugin](https://github.com/hashicorp/go-plugin) subprocess
-model. Each plugin binary is spawned as a child process, connects over a local
-Unix socket, and negotiates its interface version via the `Handshake` RPC
-before any other calls are made.
+model. Each plugin binary is spawned as a child process and connects over a
+local Unix socket.
 
 For a guide on writing and deploying plugins, see
 [Writing a Plugin](../plugins/writing-a-plugin.md).
@@ -35,9 +34,7 @@ All services share the package declaration `robodev.v1` and the Go package
 
 ## Handshake pattern
 
-Every service includes a `Handshake` RPC. The controller calls it at startup
-and after any plugin restart to negotiate the interface version before making
-any functional calls.
+Every service includes a `Handshake` RPC that external plugins must implement:
 
 ```protobuf
 rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
@@ -50,9 +47,14 @@ rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
 | `HandshakeResponse` | `plugin_name` | `string` | Human-readable plugin identifier (e.g. `"jira"`). |
 | `HandshakeResponse` | `plugin_version` | `string` | Semver version of the plugin binary (e.g. `"1.2.0"`). |
 
-If the plugin's `interface_version` does not match what the controller expects,
-the controller refuses to load the plugin, logs a structured error, and marks it
-permanently unhealthy. Restarting cannot resolve a version mismatch.
+**Current version enforcement** uses a two-level check — not a live `Handshake` RPC call:
+
+1. **Pre-spawn config check** — before starting the subprocess, the controller compares the `interface_version` declared in `robodev-config.yaml` against the version it expects for that plugin type. A mismatch is rejected immediately. This relies on the operator setting the correct version in config.
+2. **Transport handshake** — hashicorp/go-plugin verifies a magic cookie when the subprocess connects, confirming the binary is a valid RoboDev plugin binary.
+
+The protobuf `Handshake` RPC is a required part of the external plugin contract (plugins must implement it) and will be called by the controller once generated proto stubs are available. Until then, operators must ensure `interface_version` in config matches the binary they deploy.
+
+If the declared `interface_version` does not match what the controller expects, loading is refused, a structured error is logged, and the plugin is marked permanently unhealthy. Restarting cannot resolve a version mismatch.
 
 The current `interface_version` for most services is **1**. SCM is version **2** (bumped when `ListReviewComments`, `ReplyToComment`, `ResolveThread`, and `GetDiff` were added).
 

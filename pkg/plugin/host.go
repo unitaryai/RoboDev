@@ -101,11 +101,24 @@ var knownInterfaceVersions = map[PluginType]int{
 	PluginTypeSCM:           2,
 }
 
-// LoadPlugin spawns an external plugin subprocess and establishes a gRPC
-// connection. It validates the configured interface version against the
-// controller's expected version for the plugin type, then performs a
-// transport-level handshake. If the version is incompatible or the plugin
-// fails to respond, an error is returned and the plugin is not loaded.
+// LoadPlugin validates and starts an external plugin subprocess. Validation is
+// two-level:
+//
+//  1. Pre-spawn config check — the `InterfaceVersion` declared in cfg is
+//     compared against the controller's expected version for that plugin type
+//     (knownInterfaceVersions). Mismatches are rejected immediately without
+//     spawning a subprocess. This guards against obviously misconfigured plugins
+//     but relies on the operator setting InterfaceVersion correctly in config.
+//
+//  2. Transport handshake — hashicorp/go-plugin verifies the magic cookie
+//     ("ROBODEV_PLUGIN"/"robodev") when the subprocess connects. This confirms
+//     the binary is a valid RoboDev plugin but does not verify which interface
+//     version it implements.
+//
+// Note: the controller does not currently call the protobuf Handshake RPC to
+// verify the version the binary actually implements. That requires generated
+// proto stubs (run `make sdk-gen`). Until then, operators must ensure the
+// interface_version in config matches the binary.
 func (h *Host) LoadPlugin(cfg PluginConfig) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -142,7 +155,9 @@ func (h *Host) LoadPlugin(cfg PluginConfig) error {
 	return nil
 }
 
-// startPlugin creates and starts a new plugin subprocess.
+// startPlugin creates and starts a new plugin subprocess. It performs the
+// hashicorp/go-plugin transport handshake (magic cookie) but does not call
+// the protobuf Handshake RPC — that requires generated proto stubs.
 func (h *Host) startPlugin(cfg PluginConfig) (*pluginInstance, error) {
 	client := goplugin.NewClient(&goplugin.ClientConfig{
 		HandshakeConfig: h.handshake,
@@ -154,7 +169,10 @@ func (h *Host) startPlugin(cfg PluginConfig) (*pluginInstance, error) {
 		Logger: nil, // Uses slog via adapter
 	})
 
-	// Connect and perform the handshake.
+	// Establish the gRPC connection and perform the transport-level handshake
+	// (magic cookie verification). The protobuf Handshake RPC is not called
+	// here; version negotiation is enforced by the pre-spawn config check in
+	// LoadPlugin combined with the operator's InterfaceVersion setting.
 	_, err := client.Client()
 	if err != nil {
 		client.Kill()
