@@ -2673,7 +2673,7 @@
 <li><strong>Pre-spawn config check</strong> — before starting the subprocess, the controller compares the <code>interface_version</code> declared in <code>robodev-config.yaml</code> against its expected version for the plugin type. A mismatch is rejected immediately with a structured error, without spawning the binary.</li>
 <li><strong>Transport handshake</strong> — hashicorp/go-plugin verifies the magic cookie when the subprocess connects, confirming it is a valid RoboDev plugin binary.</li>
 </ol>
-<p>On a version mismatch, the controller refuses to load the plugin and marks it permanently unhealthy. It will <strong>not</strong> attempt restarts, since restarting cannot resolve an incompatibility.</p>
+<p>On a version mismatch, the controller refuses to load the plugin — <code>LoadPlugin</code> returns an error and no plugin instance is stored. The plugin is simply never registered, so there is no health state to track. Restarts are not attempted, since restarting cannot resolve a version incompatibility.</p>
 <div class="admonition note">
 <p class="admonition-title">Handshake RPC</p>
 <p>The <code>Handshake</code> RPC defined in each protobuf service is <strong>required</strong> — external plugins must implement it. The controller will call it at startup once generated proto stubs are available. Until then, enforcement is config-level: you must set <code>interface_version</code> in your plugin config to match the version your binary implements.</p>
