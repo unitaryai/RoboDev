@@ -2311,7 +2311,7 @@
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Tournaments multiply cost</p>
-<p>A 2-candidate tournament with a judge run costs roughly 3× a single task. Use the cost estimator's approval gate (<code>max_predicted_cost_per_job</code>) to avoid surprises.</p>
+<p>A 2-candidate tournament with a judge run costs roughly 3× a single task. Use <code>max_predicted_cost_per_job</code> to auto-reject tasks before they start when the predicted cost is too high.</p>
 </div>
 <h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
 <p>Enable competitive execution in your Helm values (or <code>robodev-config.yaml</code>):</p>

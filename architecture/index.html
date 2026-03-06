@@ -3161,10 +3161,10 @@
 <p><strong>Engine hooks</strong> -- for engines that support them (notably Claude Code), hooks run inside the agent container at tool-call boundaries. These hooks can intercept and block dangerous operations (e.g. writing to protected files, executing disallowed commands) before they take effect.</p>
 </li>
 <li>
-<p><strong>Repository guard rail files</strong> -- <code>guardrails.md</code> and <code>CLAUDE.md</code> files placed in target repositories provide per-repo instructions and constraints that the AI agent must follow. These are loaded into the agent's context at the start of each task.</p>
+<p><strong>Repository guard rail files</strong> -- <code>guardrails.md</code> and <code>CLAUDE.md</code> files placed in target repositories provide per-repo instructions that the AI agent may follow. These files are read by the agent naturally during execution (Claude Code reads <code>CLAUDE.md</code> automatically). The controller does not currently inject them — prompt-builder injection is on the roadmap.</p>
 </li>
 <li>
-<p><strong>Task profiles</strong> -- configuration-driven profiles that constrain what an agent may do based on task type (e.g. "documentation-only" tasks may not modify source code).</p>
+<p><strong>Task profiles</strong> -- configuration-driven profiles that define cost and duration limits per task type. The config schema is defined and values are stored, but per-task-type file pattern restrictions (<code>allowed_file_patterns</code>, <code>blocked_file_patterns</code>) are not yet enforced at runtime.</p>
 </li>
 <li>
 <p><strong>Quality gate</strong> -- an optional post-completion review step. A separate AI engine (or the same one) reviews the agent's output for security issues, OWASP patterns, leaked secrets, and dependency CVEs. Configurable responses include <code>retry_with_feedback</code>, <code>block_mr</code>, or <code>notify_human</code>.</p>

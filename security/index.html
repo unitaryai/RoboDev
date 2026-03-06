@@ -2331,8 +2331,9 @@ agents against live codebases.</p>
 </table>
 <hr />
 <h2 id="defence-in-depth-the-six-guard-rail-layers">Defence in Depth — The Six Guard Rail Layers<a class="headerlink" href="#defence-in-depth-the-six-guard-rail-layers" title="Permanent link">&para;</a></h2>
-<p>RoboDev enforces safety through six independent layers. A request must pass
-through all of them before an agent can act on it.</p>
+<p>RoboDev enforces safety through six independent layers. Layers 1, 2, 5, and 6
+are enforced by the controller at runtime. Layers 3 and 4 are advisory or
+partially implemented — see the notes under each layer.</p>
 <pre class="mermaid"><code>graph LR
     A["Incoming&lt;br/&gt;Ticket"] --&gt; L1["1. Controller&lt;br/&gt;Validation"]
     L1 --&gt; L2["2. Engine&lt;br/&gt;Hooks"]
@@ -2367,13 +2368,19 @@ before creating a TaskRun:</p>
 <li><strong>Stop</strong> — runs <code>on-complete.sh</code> to write <code>/workspace/result.json</code>.</li>
 </ul>
 <h3 id="layer-3-guardrailsmd-claudemd">Layer 3: Guardrails.md / CLAUDE.md<a class="headerlink" href="#layer-3-guardrailsmd-claudemd" title="Permanent link">&para;</a></h3>
-<p>A per-repository <code>guardrails.md</code> or <code>CLAUDE.md</code> file constrains the agent's
-behaviour within the codebase itself — for example, forbidding changes to
+<p>A per-repository <code>guardrails.md</code> or <code>CLAUDE.md</code> file can instruct the agent
+to follow repo-specific conventions — for example, forbidding changes to
 deployment manifests or limiting modifications to specific directories.</p>
+<p>These files take effect when a Claude Code agent reads its <code>CLAUDE.md</code>
+naturally during execution. The controller does not currently inject them into
+the agent prompt — prompt-builder injection is on the roadmap. This layer is
+advisory: the agent may read and follow the file, but the controller does not
+enforce compliance.</p>
 <h3 id="layer-4-task-profiles">Layer 4: Task Profiles<a class="headerlink" href="#layer-4-task-profiles" title="Permanent link">&para;</a></h3>
-<p>Task profiles define the scope of work an agent may perform for a given task
-type. They restrict which tools the agent may call and which file paths it may
-modify, providing a declarative security boundary per task category.</p>
+<p>Task profiles define cost and duration budgets per task type. The config
+schema is fully defined and values are stored, but per-task-type file pattern
+restrictions (<code>allowed_file_patterns</code>, <code>blocked_file_patterns</code>) are not yet
+enforced at runtime.</p>
 <h3 id="layer-5-quality-gate">Layer 5: Quality Gate<a class="headerlink" href="#layer-5-quality-gate" title="Permanent link">&para;</a></h3>
 <p>Before a pull request is merged, a quality gate reviews the agent's output.
 This may include automated linting, test execution, and human approval

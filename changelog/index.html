@@ -3903,6 +3903,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Moved PRM from "Coming Soon" to implemented in guardrails overview.</li>
 <li>Added note that engine hooks only apply to Claude Code.</li>
 <li>Added note that only the <code>memory</code> TaskRun store backend is currently supported.</li>
+<li>Fixed secondary docs overclaiming guardrails.md injection and task-profile file-pattern enforcement: <code>architecture.md</code>, <code>security.md</code>, <code>concepts/guardrails-overview.md</code>, <code>getting-started/kubernetes.md</code> all now accurately describe layers 3 &amp; 4 as advisory/on-roadmap.</li>
+<li>Fixed <code>docs/scaling.md</code> contradiction: KEDA note no longer claims leader election is active; multi-tenancy section notes that namespace-per-tenant runtime isolation is on the roadmap.</li>
+<li>Fixed Slack webhook API docs: action ID prefix corrected from <code>robodev_approve_</code> to <code>robodev_approval_</code>; clarified that approval callbacks are routed to the approval handler, not forwarded as tickets.</li>
+<li>Fixed <code>docs/concepts/engines.md</code>: tournament warning no longer calls <code>max_predicted_cost_per_job</code> an "approval gate" — it is an auto-rejection threshold.</li>
 </ul>
 <hr />
 <h2 id="020-2026-03-05">[0.2.0] — 2026-03-05<a class="headerlink" href="#020-2026-03-05" title="Permanent link">&para;</a></h2>
