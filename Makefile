@@ -148,6 +148,8 @@ deploy: ## Deploy to kind cluster via Helm
 		--namespace $(HELM_NAMESPACE) \
 		-f charts/robodev/values.yaml \
 		-f hack/values-dev.yaml \
+		--set-string image.repository=$(CONTROLLER_IMAGE) \
+		--set-string image.tag=$(DEV_TAG) \
 		--wait --timeout 120s
 
 undeploy: ## Remove the Helm release
@@ -171,6 +173,8 @@ deploy-test: ## Deploy to kind cluster with test values overlay
 		-f charts/robodev/values.yaml \
 		-f hack/values-dev.yaml \
 		-f hack/values-test.yaml \
+		--set-string image.repository=$(CONTROLLER_IMAGE) \
+		--set-string image.tag=$(DEV_TAG) \
 		--wait --timeout 120s
 
 fake-agent-image: ## Build the fake-agent container image for E2E workflow tests
@@ -221,6 +225,8 @@ live-deploy: ## Deploy to kind cluster with live values overlay
 		--namespace $(HELM_NAMESPACE) \
 		-f charts/robodev/values.yaml \
 		-f $(VALUES_LIVE) \
+		--set-string image.repository=$(CONTROLLER_IMAGE) \
+		--set-string image.tag=$(DEV_TAG) \
 		--wait --timeout 120s
 
 live-up: build docker-build-dev-controller docker-build-dev-engine-claude-code kind-create kind-load setup-secrets live-deploy ## Full live setup: build, cluster, secrets, deploy with real backends

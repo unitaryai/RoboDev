@@ -62,7 +62,8 @@ make local-down
 The `local-up` target creates a two-node kind cluster (control-plane + worker),
 builds the controller image with a `dev` tag, loads it into kind, and deploys
 the Helm chart with local-dev overrides. The local-dev profile disables image
-pulls and leader election, exposes the metrics service on `localhost:30080`,
+pulls and leader election, exposes the controller HTTP endpoint on
+`localhost:30080` for `/healthz`, `/readyz`, and `/metrics`,
 and uses the noop ticketing backend so the controller starts without external
 credentials. Use `make live-up` when you want to exercise real ticketing
 backends and engine containers.
