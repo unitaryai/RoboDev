@@ -1,6 +1,10 @@
 image:
+  repository: ghcr.io/unitaryai/robodev/controller
   pullPolicy: Never
   tag: dev
+config:
+  ticketing:
+    backend: ""
 leaderElection:
   enabled: false
 resources:
