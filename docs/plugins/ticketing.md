@@ -313,7 +313,7 @@ config:
 
 ### Local Admin Surface
 
-When the local backend is enabled, RoboDev serves an embedded frontend at `/local/` on the controller's metrics/health HTTP server. The UI can:
+When the local backend is enabled, RoboDev serves an embedded frontend on a dedicated local UI listener. By default it binds to `http://127.0.0.1:8082/`; override this with the `-local-ui-addr` flag if needed. The UI can:
 
 - list local tickets and inspect their state
 - show the persisted comment stream
@@ -323,7 +323,7 @@ When the local backend is enabled, RoboDev serves an embedded frontend at `/loca
 
 The optional `seed_file` is bootstrap input only. It is imported once when the backend starts and does not remain the source of truth after import.
 
-The legacy `ticketing.config.task_file` key is no longer supported. Use `ticketing.backend: local` with `ticketing.config.seed_file` when you want to bootstrap local tickets from YAML.
+The legacy `ticketing.config.task_file` key is no longer supported. Use `ticketing.backend: local`, set `ticketing.config.store_path` to the SQLite database path, and optionally set `ticketing.config.seed_file` when you want to bootstrap local tickets from YAML.
 
 ---
 

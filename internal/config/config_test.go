@@ -137,6 +137,29 @@ plugin_health:
 	}
 }
 
+func TestLoad_RejectsNonStringLocalSeedFile(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "robodev-config.yaml")
+	err := os.WriteFile(tmp, []byte(`
+ticketing:
+  backend: local
+  config:
+    store_path: /tmp/local-ticketing.db
+    seed_file: 123
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`), 0o600)
+	require.NoError(t, err)
+
+	_, err = Load(tmp)
+	require.ErrorContains(t, err, "ticketing.config.seed_file must be a string")
+}
+
 func TestLoad_TaskProfiles(t *testing.T) {
 	tests := []struct {
 		name         string

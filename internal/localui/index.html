@@ -572,9 +572,10 @@
     async function loadTicket(ticketId) {
       selectedTicketId = ticketId;
       renderTicketList(ticketsCache);
+      const encodedTicketId = encodeURIComponent(ticketId);
       const [ticketPayload, commentsPayload] = await Promise.all([
-        api(`/api/tickets/${ticketId}`),
-        api(`/api/tickets/${ticketId}/comments`)
+        api(`/api/tickets/${encodedTicketId}`),
+        api(`/api/tickets/${encodedTicketId}/comments`)
       ]);
       renderTicketDetail(ticketPayload.ticket);
       renderComments(commentsPayload.comments);
@@ -639,7 +640,8 @@
         return;
       }
 
-      await api(`/api/tickets/${selectedTicketId}/comments`, {
+      const encodedTicketId = encodeURIComponent(selectedTicketId);
+      await api(`/api/tickets/${encodedTicketId}/comments`, {
         method: "POST",
         body: JSON.stringify({body}),
       });
@@ -653,7 +655,8 @@
         showToast("Select a ticket first");
         return;
       }
-      await api(`/api/tickets/${selectedTicketId}/requeue`, {method: "POST"});
+      const encodedTicketId = encodeURIComponent(selectedTicketId);
+      await api(`/api/tickets/${encodedTicketId}/requeue`, {method: "POST"});
       showToast("Ticket requeued");
       await loadTicket(selectedTicketId);
     }

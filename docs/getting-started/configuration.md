@@ -143,9 +143,9 @@ ticketing:
 | `store_path` | Yes | SQLite database path for the local ticket store |
 | `seed_file` | No | YAML file imported once at startup; existing ticket IDs are left unchanged |
 
-When `ticketing.backend` is `local`, the controller exposes an embedded frontend at `/local/` on the metrics/health HTTP server. That UI lists tickets, shows comment history, creates new local tickets, adds operator comments, and requeues terminal tickets back to `ready`.
+When `ticketing.backend` is `local`, the controller exposes an embedded frontend on a dedicated local UI listener. By default it binds to `http://127.0.0.1:8082/`; override this with the `-local-ui-addr` flag if needed. That UI lists tickets, shows comment history, creates new local tickets, adds operator comments, and requeues terminal tickets back to `ready`.
 
-The legacy `ticketing.config.task_file` key is no longer supported. Replace it with `ticketing.backend: local` and `ticketing.config.seed_file`.
+The legacy `ticketing.config.task_file` key is no longer supported. Replace it with `ticketing.backend: local`, set `ticketing.config.store_path` to the SQLite database path, and optionally use `ticketing.config.seed_file` to import tickets from YAML once at startup.
 
 ## Engines
 

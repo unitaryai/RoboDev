@@ -80,13 +80,3 @@ type StoredComment struct {
 	Body      string      `json:"body"`
 	CreatedAt time.Time   `json:"created_at"`
 }
-
-type fileTicket struct {
-	ID          string   `yaml:"id"`
-	Title       string   `yaml:"title"`
-	Description string   `yaml:"description,omitempty"`
-	TicketType  string   `yaml:"ticket_type,omitempty"`
-	Labels      []string `yaml:"labels,omitempty"`
-	RepoURL     string   `yaml:"repo_url,omitempty"`
-	ExternalURL string   `yaml:"external_url,omitempty"`
-}

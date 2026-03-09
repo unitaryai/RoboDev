@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 
@@ -182,6 +183,34 @@ func TestHandler_ReturnsConflictForDuplicateTicket(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusConflict, rec.Code)
+}
+
+func TestHandler_AcceptsEscapedTicketIDsInAPIPaths(t *testing.T) {
+	backend, err := localticket.New(localticket.Config{StorePath: ":memory:"}, testLogger())
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, backend.Close())
+	})
+
+	ticketID := "LOCAL/1?#"
+	require.NoError(t, backend.CreateTicket(context.Background(), ticketing.Ticket{
+		ID:    ticketID,
+		Title: "Escaped local ticket",
+	}))
+
+	handler, err := NewHandler(testLogger(), backend)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/tickets/"+url.PathEscape(ticketID), nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var payload struct {
+		Ticket localticket.StoredTicket `json:"ticket"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &payload))
+	assert.Equal(t, ticketID, payload.Ticket.Ticket.ID)
 }
 
 func TestHandler_RejectsEmptyCommentBody(t *testing.T) {

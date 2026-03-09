@@ -88,7 +88,7 @@ func (c *Config) Validate() error {
 	}
 
 	if _, ok := c.Ticketing.Config["task_file"]; ok {
-		return fmt.Errorf("ticketing.config.task_file is no longer supported; use ticketing.backend=local with ticketing.config.seed_file")
+		return fmt.Errorf("ticketing.config.task_file is no longer supported; use ticketing.backend=local with ticketing.config.store_path and optional ticketing.config.seed_file")
 	}
 
 	if c.Ticketing.Backend == "local" {
@@ -99,9 +99,15 @@ func (c *Config) Validate() error {
 		if err := validateStorePath("ticketing.config.store_path", storePath); err != nil {
 			return err
 		}
-		if seedFile, ok := c.Ticketing.Config["seed_file"].(string); ok && seedFile != "" {
-			if err := validateStorePath("ticketing.config.seed_file", seedFile); err != nil {
-				return err
+		if rawSeedFile, exists := c.Ticketing.Config["seed_file"]; exists {
+			seedFile, ok := rawSeedFile.(string)
+			if !ok {
+				return fmt.Errorf("ticketing.config.seed_file must be a string")
+			}
+			if seedFile != "" {
+				if err := validateStorePath("ticketing.config.seed_file", seedFile); err != nil {
+					return err
+				}
 			}
 		}
 	}

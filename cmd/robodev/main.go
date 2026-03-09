@@ -83,6 +83,7 @@ import (
 func main() {
 	var (
 		configPath   = flag.String("config", "/etc/robodev/config.yaml", "path to the RoboDev configuration file")
+		localUIAddr  = flag.String("local-ui-addr", "127.0.0.1:8082", "address for the local ticketing UI when ticketing.backend=local")
 		metricsAddr  = flag.String("metrics-addr", ":8080", "address for the Prometheus metrics and health endpoints")
 		pollInterval = flag.Duration("poll-interval", 30*time.Second, "interval between ticketing backend polls")
 		namespace    = flag.String("namespace", "robodev", "kubernetes namespace for job creation")
@@ -96,6 +97,7 @@ func main() {
 
 	logger.Info("starting robodev controller",
 		"config", *configPath,
+		"local_ui_addr", *localUIAddr,
 		"metrics_addr", *metricsAddr,
 		"poll_interval", *pollInterval,
 		"namespace", *namespace,
@@ -175,7 +177,7 @@ func main() {
 			logger.Error("invalid task_file config", "error", err)
 			os.Exit(1)
 		} else if ok && taskFile != "" {
-			logger.Error("ticketing.config.task_file is no longer supported; use ticketing.backend=local with ticketing.config.seed_file")
+			logger.Error("ticketing.config.task_file is no longer supported; use ticketing.backend=local with ticketing.config.store_path and optional ticketing.config.seed_file")
 			os.Exit(1)
 		} else {
 			opts = append(opts, controller.WithTicketing(noopticket.New()))
@@ -703,23 +705,25 @@ func main() {
 			_, _ = w.Write([]byte("not ready"))
 		}
 	})
+	srv := &http.Server{
+		Addr:              *metricsAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	var localUISrv *http.Server
 	if localBackend != nil {
 		localUIHandler, uiErr := localui.NewHandler(logger.With("component", "local-ui"), localBackend)
 		if uiErr != nil {
 			logger.Error("failed to initialise local ticketing UI", "error", uiErr)
 			os.Exit(1)
 		}
-		mux.Handle("/local/", http.StripPrefix("/local", localUIHandler))
-		mux.HandleFunc("/local", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/local/", http.StatusTemporaryRedirect)
-		})
-		logger.Info("local ticketing UI enabled", "path", "/local/")
-	}
-
-	srv := &http.Server{
-		Addr:              *metricsAddr,
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
+		localUISrv = &http.Server{
+			Addr:              *localUIAddr,
+			Handler:           localUIHandler,
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		logger.Info("local ticketing UI enabled", "addr", *localUIAddr, "url", fmt.Sprintf("http://%s/", *localUIAddr))
 	}
 
 	// Start the HTTP server in a goroutine.
@@ -730,6 +734,15 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	if localUISrv != nil {
+		go func() {
+			logger.Info("starting local ticketing UI server", "addr", localUISrv.Addr)
+			if err := localUISrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("local ticketing UI server failed", "error", err)
+				os.Exit(1)
+			}
+		}()
+	}
 
 	// Create the reconciler with all backends wired up.
 	reconciler := controller.NewReconciler(cfg, logger, opts...)
@@ -799,6 +812,11 @@ func main() {
 	defer shutdownCancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("http server shutdown error", "error", err)
+	}
+	if localUISrv != nil {
+		if err := localUISrv.Shutdown(shutdownCtx); err != nil {
+			logger.Error("local ticketing UI server shutdown error", "error", err)
+		}
 	}
 	if webhookSrv != nil {
 		if err := webhookSrv.Shutdown(shutdownCtx); err != nil {
