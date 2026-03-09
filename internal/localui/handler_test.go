@@ -1,0 +1,228 @@
+package localui
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
+	localticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/local"
+)
+
+type stubService struct {
+	listTicketsFunc   func(ctx context.Context) ([]localticket.StoredTicket, error)
+	getTicketFunc     func(ctx context.Context, id string) (*localticket.StoredTicket, error)
+	listCommentsFunc  func(ctx context.Context, id string) ([]localticket.StoredComment, error)
+	createTicketFunc  func(ctx context.Context, ticket ticketing.Ticket) error
+	requeueTicketFunc func(ctx context.Context, id string) error
+	addCommentFunc    func(ctx context.Context, id string, comment string) error
+}
+
+func (s stubService) ListTickets(ctx context.Context) ([]localticket.StoredTicket, error) {
+	if s.listTicketsFunc != nil {
+		return s.listTicketsFunc(ctx)
+	}
+	return nil, nil
+}
+
+func (s stubService) GetTicket(ctx context.Context, id string) (*localticket.StoredTicket, error) {
+	if s.getTicketFunc != nil {
+		return s.getTicketFunc(ctx, id)
+	}
+	return nil, nil
+}
+
+func (s stubService) ListComments(ctx context.Context, id string) ([]localticket.StoredComment, error) {
+	if s.listCommentsFunc != nil {
+		return s.listCommentsFunc(ctx, id)
+	}
+	return nil, nil
+}
+
+func (s stubService) CreateTicket(ctx context.Context, ticket ticketing.Ticket) error {
+	if s.createTicketFunc != nil {
+		return s.createTicketFunc(ctx, ticket)
+	}
+	return nil
+}
+
+func (s stubService) RequeueTicket(ctx context.Context, id string) error {
+	if s.requeueTicketFunc != nil {
+		return s.requeueTicketFunc(ctx, id)
+	}
+	return nil
+}
+
+func (s stubService) AddUserComment(ctx context.Context, id string, comment string) error {
+	if s.addCommentFunc != nil {
+		return s.addCommentFunc(ctx, id, comment)
+	}
+	return nil
+}
+
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+}
+
+func newTestHandler(t *testing.T) http.Handler {
+	t.Helper()
+
+	backend, err := localticket.New(localticket.Config{StorePath: ":memory:"}, testLogger())
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, backend.Close())
+	})
+
+	require.NoError(t, backend.CreateTicket(context.Background(), ticketing.Ticket{
+		ID:          "LOCAL-1",
+		Title:       "First local ticket",
+		Description: "Test fixture",
+		TicketType:  "bug",
+	}))
+
+	handler, err := NewHandler(testLogger(), backend)
+	require.NoError(t, err)
+	return handler
+}
+
+func TestHandler_ServesIndex(t *testing.T) {
+	handler := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "RoboDev Local Tickets")
+}
+
+func TestHandler_ListsTickets(t *testing.T) {
+	handler := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/tickets", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var payload struct {
+		Tickets []localticket.StoredTicket `json:"tickets"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &payload))
+	require.Len(t, payload.Tickets, 1)
+	assert.Equal(t, "LOCAL-1", payload.Tickets[0].Ticket.ID)
+}
+
+func TestHandler_CreatesCommentsAndRequeuesTickets(t *testing.T) {
+	handler := newTestHandler(t)
+
+	createBody := bytes.NewBufferString(`{
+		"id":"LOCAL-2",
+		"title":"Second local ticket",
+		"description":"Created via UI",
+		"ticket_type":"feature",
+		"labels":["robodev","ui"]
+	}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/api/tickets", createBody)
+	createRec := httptest.NewRecorder()
+	handler.ServeHTTP(createRec, createReq)
+	require.Equal(t, http.StatusCreated, createRec.Code)
+
+	commentReq := httptest.NewRequest(http.MethodPost, "/api/tickets/LOCAL-2/comments", bytes.NewBufferString(`{"body":"Operator note"}`))
+	commentRec := httptest.NewRecorder()
+	handler.ServeHTTP(commentRec, commentReq)
+	require.Equal(t, http.StatusCreated, commentRec.Code)
+
+	requeueReq := httptest.NewRequest(http.MethodPost, "/api/tickets/LOCAL-2/requeue", nil)
+	requeueRec := httptest.NewRecorder()
+	handler.ServeHTTP(requeueRec, requeueReq)
+	require.Equal(t, http.StatusOK, requeueRec.Code)
+
+	commentsReq := httptest.NewRequest(http.MethodGet, "/api/tickets/LOCAL-2/comments", nil)
+	commentsRec := httptest.NewRecorder()
+	handler.ServeHTTP(commentsRec, commentsReq)
+	require.Equal(t, http.StatusOK, commentsRec.Code)
+
+	var commentsPayload struct {
+		Comments []localticket.StoredComment `json:"comments"`
+	}
+	require.NoError(t, json.Unmarshal(commentsRec.Body.Bytes(), &commentsPayload))
+	require.Len(t, commentsPayload.Comments, 1)
+	assert.Equal(t, localticket.CommentKindUser, commentsPayload.Comments[0].Kind)
+	assert.Equal(t, "Operator note", commentsPayload.Comments[0].Body)
+}
+
+func TestHandler_ReturnsNotFoundForMissingTicket(t *testing.T) {
+	handler := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/tickets/DOES-NOT-EXIST", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestHandler_ReturnsConflictForDuplicateTicket(t *testing.T) {
+	handler := newTestHandler(t)
+
+	createBody := bytes.NewBufferString(`{
+		"id":"LOCAL-1",
+		"title":"Duplicate local ticket"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/tickets", createBody)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusConflict, rec.Code)
+}
+
+func TestHandler_RejectsEmptyCommentBody(t *testing.T) {
+	handler := newTestHandler(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/tickets/LOCAL-1/comments",
+		bytes.NewBufferString(`{"body":"   "}`),
+	)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestHandler_RejectsUnknownCreateFields(t *testing.T) {
+	handler := newTestHandler(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/tickets",
+		bytes.NewBufferString(`{"id":"LOCAL-2","title":"Valid title","unexpected":"value"}`),
+	)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestHandler_ReturnsInternalServerErrorForUnexpectedServiceFailure(t *testing.T) {
+	handler, err := NewHandler(testLogger(), stubService{
+		getTicketFunc: func(context.Context, string) (*localticket.StoredTicket, error) {
+			return nil, errors.New("boom")
+		},
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/tickets/LOCAL-1", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}

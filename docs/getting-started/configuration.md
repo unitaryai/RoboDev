@@ -128,6 +128,25 @@ ticketing:
 | `labels` | No | Issues must carry at least one of these labels |
 | `exclude_labels` | No | Issues carrying any of these labels are skipped. Defaults to `["in-progress", "robodev-failed"]` |
 
+### Local
+
+```yaml
+ticketing:
+  backend: local
+  config:
+    store_path: "/data/local-ticketing.db"  # required
+    seed_file: "/data/tasks.yaml"           # optional one-time import
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `store_path` | Yes | SQLite database path for the local ticket store |
+| `seed_file` | No | YAML file imported once at startup; existing ticket IDs are left unchanged |
+
+When `ticketing.backend` is `local`, the controller exposes an embedded frontend at `/local/` on the metrics/health HTTP server. That UI lists tickets, shows comment history, creates new local tickets, adds operator comments, and requeues terminal tickets back to `ready`.
+
+The legacy `ticketing.config.task_file` key is no longer supported. Replace it with `ticketing.backend: local` and `ticketing.config.seed_file`.
+
 ## Engines
 
 ```yaml

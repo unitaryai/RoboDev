@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoboDev Local Tickets</title>
+  <style>
+    :root {
+      --bg: #f5efe4;
+      --panel: rgba(255, 250, 240, 0.9);
+      --ink: #1c221b;
+      --muted: #586257;
+      --line: rgba(28, 34, 27, 0.12);
+      --accent: #c45b35;
+      --accent-soft: #f3c8b7;
+      --ready: #176a52;
+      --progress: #8f5f12;
+      --failed: #a7372f;
+      --completed: #3864b3;
+      --shadow: 0 20px 60px rgba(28, 34, 27, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(196, 91, 53, 0.18), transparent 26rem),
+        radial-gradient(circle at bottom right, rgba(56, 100, 179, 0.16), transparent 24rem),
+        linear-gradient(180deg, #fbf7ef 0%, var(--bg) 100%);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    .shell {
+      width: min(1400px, calc(100vw - 2rem));
+      margin: 1rem auto;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1rem;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .masthead {
+      grid-column: 1 / -1;
+      padding: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      font-size: 0.72rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h1, h2, h3 {
+      font-family: "Iowan Old Style", "Palatino Linotype", serif;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    h1 { font-size: clamp(2.2rem, 4vw, 3.6rem); line-height: 0.95; }
+    h2 { font-size: 1.2rem; }
+    h3 { font-size: 1rem; }
+
+    .subhead {
+      color: var(--muted);
+      max-width: 56ch;
+      margin-top: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      width: min(520px, 100%);
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 0.9rem 1rem;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.4rem;
+      font-family: "Iowan Old Style", "Palatino Linotype", serif;
+    }
+
+    .stat span { color: var(--muted); font-size: 0.84rem; }
+
+    .sidebar-header,
+    .detail-header,
+    .section {
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child { border-bottom: 0; }
+
+    .ticket-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: calc(100vh - 16rem);
+      overflow: auto;
+    }
+
+    .ticket-item button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      transition: background 150ms ease, transform 150ms ease;
+    }
+
+    .ticket-item button:hover,
+    .ticket-item button.active {
+      background: rgba(196, 91, 53, 0.08);
+    }
+
+    .ticket-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.28rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: capitalize;
+      background: rgba(28, 34, 27, 0.08);
+    }
+
+    .pill.ready { color: var(--ready); background: rgba(23, 106, 82, 0.14); }
+    .pill.in_progress { color: var(--progress); background: rgba(143, 95, 18, 0.14); }
+    .pill.completed { color: var(--completed); background: rgba(56, 100, 179, 0.14); }
+    .pill.failed { color: var(--failed); background: rgba(167, 55, 47, 0.14); }
+
+    .detail {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      min-height: calc(100vh - 12rem);
+    }
+
+    .detail-summary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .stack {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1fr 1fr;
+      padding: 1rem 1.1rem 1.3rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 1rem;
+    }
+
+    .card p { margin: 0.5rem 0 0; color: var(--muted); line-height: 1.5; }
+
+    .field-grid {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field-grid .wide { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0.85rem 0.95rem;
+      background: rgba(255,255,255,0.7);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    textarea { min-height: 110px; resize: vertical; }
+
+    button.primary, button.secondary {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.8rem 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button.primary {
+      color: white;
+      background: linear-gradient(135deg, #ca623b, #8d4328);
+    }
+
+    button.secondary {
+      background: rgba(28, 34, 27, 0.08);
+      color: var(--ink);
+    }
+
+    button.primary:disabled,
+    button.secondary:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .comments {
+      padding: 1rem 1.1rem 1.4rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .comment {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 0.9rem 1rem;
+      background: rgba(255,255,255,0.6);
+    }
+
+    .comment-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.8rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 2rem 1.1rem;
+    }
+
+    .toast {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      background: rgba(28, 34, 27, 0.92);
+      color: white;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .masthead { align-items: start; flex-direction: column; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stack, .field-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel masthead">
+      <div>
+        <div class="eyebrow">Local Ticket Console</div>
+        <h1>RoboDev<br>Flight Deck</h1>
+        <p class="subhead">Create, inspect, annotate, and requeue local tickets without leaving the controller. The SQLite backend remains the source of truth.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong id="stat-total">0</strong><span>Total</span></div>
+        <div class="stat"><strong id="stat-ready">0</strong><span>Ready</span></div>
+        <div class="stat"><strong id="stat-progress">0</strong><span>In progress</span></div>
+        <div class="stat"><strong id="stat-terminal">0</strong><span>Terminal</span></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="sidebar-header">
+        <h2>Tickets</h2>
+      </div>
+      <ul class="ticket-list" id="ticket-list"></ul>
+    </aside>
+
+    <main class="panel detail">
+      <div class="detail-header">
+        <div class="detail-summary">
+          <div>
+            <div class="eyebrow">Selected Ticket</div>
+            <h2 id="ticket-title">No ticket selected</h2>
+            <p class="subhead" id="ticket-description">Create a local ticket to begin, or pick an existing record from the queue.</p>
+          </div>
+          <div class="detail-actions">
+            <span id="ticket-state" class="pill ready">ready</span>
+            <button class="secondary" id="requeue-button" type="button">Requeue</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <h3>Create Ticket</h3>
+          <div class="field-grid">
+            <div>
+              <label for="create-id">Ticket ID</label>
+              <input id="create-id" placeholder="LOCAL-42">
+            </div>
+            <div>
+              <label for="create-type">Ticket Type</label>
+              <input id="create-type" placeholder="bug">
+            </div>
+            <div class="wide">
+              <label for="create-title">Title</label>
+              <input id="create-title" placeholder="Tighten input validation on the status endpoint">
+            </div>
+            <div class="wide">
+              <label for="create-description">Description</label>
+              <textarea id="create-description" placeholder="Describe the task with enough context for the agent."></textarea>
+            </div>
+            <div>
+              <label for="create-labels">Labels (comma-separated)</label>
+              <input id="create-labels" placeholder="robodev, urgent">
+            </div>
+            <div>
+              <label for="create-repo">Repository URL</label>
+              <input id="create-repo" placeholder="https://github.com/example/repo">
+            </div>
+            <div class="wide">
+              <label for="create-external">External URL</label>
+              <input id="create-external" placeholder="https://local.example/tickets/LOCAL-42">
+            </div>
+          </div>
+          <p>
+            <button class="primary" id="create-button" type="button">Create local ticket</button>
+          </p>
+        </section>
+
+        <section class="card">
+          <h3>Ticket Notes</h3>
+          <p id="ticket-meta">Select a ticket to see its timestamps, result, and current lifecycle state.</p>
+          <label for="comment-body">Add comment</label>
+          <textarea id="comment-body" placeholder="Leave a note for future runs or a local operator."></textarea>
+          <p>
+            <button class="secondary" id="comment-button" type="button">Add comment</button>
+          </p>
+        </section>
+      </div>
+
+      <section class="section">
+        <h3 style="padding: 0 1.1rem;">Comment Stream</h3>
+        <div class="comments" id="comments"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let selectedTicketId = "";
+    let ticketsCache = [];
+
+    async function api(path, options = {}) {
+      const response = await fetch(`.${path}`, {
+        headers: {"Content-Type": "application/json"},
+        ...options,
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || `Request failed with ${response.status}`);
+      }
+      return body;
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function formatTime(value) {
+      if (!value) return "—";
+      return new Date(value).toLocaleString();
+    }
+
+    function stateClass(state) {
+      const value = state || "ready";
+      return ["ready", "in_progress", "completed", "failed"].includes(value) ? value : "ready";
+    }
+
+    function stateLabel(state) {
+      return (state || "ready").replaceAll("_", " ");
+    }
+
+    function renderStats(tickets) {
+      const counts = tickets.reduce((acc, ticket) => {
+        acc.total += 1;
+        if (ticket.state === "ready") acc.ready += 1;
+        if (ticket.state === "in_progress") acc.progress += 1;
+        if (ticket.state === "completed" || ticket.state === "failed") acc.terminal += 1;
+        return acc;
+      }, {total: 0, ready: 0, progress: 0, terminal: 0});
+      document.getElementById("stat-total").textContent = counts.total;
+      document.getElementById("stat-ready").textContent = counts.ready;
+      document.getElementById("stat-progress").textContent = counts.progress;
+      document.getElementById("stat-terminal").textContent = counts.terminal;
+    }
+
+    function clearTicketDetail(message = "Create a local ticket to begin, or pick an existing record from the queue.") {
+      selectedTicketId = "";
+      document.getElementById("ticket-title").textContent = "No ticket selected";
+      document.getElementById("ticket-description").textContent = message;
+      document.getElementById("ticket-meta").textContent =
+        "Select a ticket to see its timestamps, result, and current lifecycle state.";
+      document.getElementById("comment-body").value = "";
+      const stateEl = document.getElementById("ticket-state");
+      stateEl.className = "pill ready";
+      stateEl.textContent = "ready";
+      document.getElementById("requeue-button").disabled = true;
+      renderComments([]);
+    }
+
+    function renderTicketList(tickets) {
+      const list = document.getElementById("ticket-list");
+      list.innerHTML = "";
+      if (!tickets.length) {
+        list.innerHTML = `<li class="empty">No local tickets yet.</li>`;
+        return;
+      }
+
+      tickets.forEach(ticket => {
+        const item = document.createElement("li");
+        item.className = "ticket-item";
+        const button = document.createElement("button");
+        button.type = "button";
+        if (ticket.ticket.id === selectedTicketId) {
+          button.classList.add("active");
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "ticket-meta";
+
+        const id = document.createElement("span");
+        id.textContent = ticket.ticket.id;
+
+        const pill = document.createElement("span");
+        pill.className = `pill ${stateClass(ticket.state)}`;
+        pill.textContent = stateLabel(ticket.state);
+
+        const title = document.createElement("strong");
+        title.textContent = ticket.ticket.title;
+
+        meta.appendChild(id);
+        meta.appendChild(pill);
+        button.appendChild(meta);
+        button.appendChild(title);
+        button.addEventListener("click", () => loadTicket(ticket.ticket.id));
+        item.appendChild(button);
+        list.appendChild(item);
+      });
+    }
+
+    function renderTicketDetail(ticket) {
+      selectedTicketId = ticket.ticket.id;
+      document.getElementById("ticket-title").textContent = `${ticket.ticket.id} · ${ticket.ticket.title}`;
+      document.getElementById("ticket-description").textContent = ticket.ticket.description || "No description provided.";
+      const stateEl = document.getElementById("ticket-state");
+      stateEl.className = `pill ${stateClass(ticket.state)}`;
+      stateEl.textContent = stateLabel(ticket.state);
+      document.getElementById("ticket-meta").textContent =
+        `Created ${formatTime(ticket.created_at)} · Updated ${formatTime(ticket.updated_at)} · Failure ${ticket.failure_reason || "none"}`;
+      document.getElementById("requeue-button").disabled = ticket.state === "in_progress";
+    }
+
+    function renderComments(comments) {
+      const root = document.getElementById("comments");
+      root.innerHTML = "";
+      if (!comments.length) {
+        root.innerHTML = `<div class="empty">No comments recorded yet.</div>`;
+        return;
+      }
+      comments.forEach(comment => {
+        const article = document.createElement("article");
+        article.className = "comment";
+        const head = document.createElement("div");
+        head.className = "comment-head";
+
+        const kind = document.createElement("strong");
+        kind.textContent = comment.kind;
+
+        const createdAt = document.createElement("span");
+        createdAt.textContent = formatTime(comment.created_at);
+
+        const body = document.createElement("div");
+        body.textContent = comment.body;
+
+        head.appendChild(kind);
+        head.appendChild(createdAt);
+        article.appendChild(head);
+        article.appendChild(body);
+        root.appendChild(article);
+      });
+    }
+
+    async function refreshTickets() {
+      const payload = await api("/api/tickets");
+      ticketsCache = payload.tickets;
+      renderStats(ticketsCache);
+      renderTicketList(ticketsCache);
+      if (!ticketsCache.length) {
+        clearTicketDetail();
+        return;
+      }
+
+      const hasSelectedTicket = ticketsCache.some(ticket => ticket.ticket.id === selectedTicketId);
+      if (!hasSelectedTicket) {
+        await loadTicket(ticketsCache[0].ticket.id);
+      }
+    }
+
+    async function loadTicket(ticketId) {
+      selectedTicketId = ticketId;
+      renderTicketList(ticketsCache);
+      const [ticketPayload, commentsPayload] = await Promise.all([
+        api(`/api/tickets/${ticketId}`),
+        api(`/api/tickets/${ticketId}/comments`)
+      ]);
+      renderTicketDetail(ticketPayload.ticket);
+      renderComments(commentsPayload.comments);
+    }
+
+    function resetCreateForm() {
+      document.getElementById("create-id").value = "";
+      document.getElementById("create-type").value = "";
+      document.getElementById("create-title").value = "";
+      document.getElementById("create-description").value = "";
+      document.getElementById("create-labels").value = "";
+      document.getElementById("create-repo").value = "";
+      document.getElementById("create-external").value = "";
+    }
+
+    async function createTicket() {
+      const id = document.getElementById("create-id").value.trim();
+      const title = document.getElementById("create-title").value.trim();
+      if (!id) {
+        showToast("Ticket ID is required");
+        return;
+      }
+      if (!title) {
+        showToast("Ticket title is required");
+        return;
+      }
+
+      const labels = document.getElementById("create-labels").value
+        .split(",")
+        .map(label => label.trim())
+        .filter(Boolean);
+
+      const payload = {
+        id,
+        title,
+        description: document.getElementById("create-description").value,
+        ticket_type: document.getElementById("create-type").value,
+        labels,
+        repo_url: document.getElementById("create-repo").value,
+        external_url: document.getElementById("create-external").value,
+      };
+
+      const created = await api("/api/tickets", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      resetCreateForm();
+      showToast(`Created ${created.ticket.ticket.id}`);
+      await refreshTickets();
+      await loadTicket(created.ticket.ticket.id);
+    }
+
+    async function addComment() {
+      if (!selectedTicketId) {
+        showToast("Select a ticket first");
+        return;
+      }
+
+      const body = document.getElementById("comment-body").value.trim();
+      if (!body) {
+        showToast("Comment body is empty");
+        return;
+      }
+
+      await api(`/api/tickets/${selectedTicketId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({body}),
+      });
+      document.getElementById("comment-body").value = "";
+      showToast("Comment added");
+      await loadTicket(selectedTicketId);
+    }
+
+    async function requeueTicket() {
+      if (!selectedTicketId) {
+        showToast("Select a ticket first");
+        return;
+      }
+      await api(`/api/tickets/${selectedTicketId}/requeue`, {method: "POST"});
+      showToast("Ticket requeued");
+      await loadTicket(selectedTicketId);
+    }
+
+    document.getElementById("create-button").addEventListener("click", () => createTicket().catch(err => showToast(err.message)));
+    document.getElementById("comment-button").addEventListener("click", () => addComment().catch(err => showToast(err.message)));
+    document.getElementById("requeue-button").addEventListener("click", () => requeueTicket().catch(err => showToast(err.message)));
+
+    clearTicketDetail();
+    refreshTickets().catch(err => showToast(err.message));
+  </script>
+</body>
+</html>
