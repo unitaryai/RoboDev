@@ -2045,22 +2045,30 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Verify all prerequisites are installed</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>make<span class="w"> </span>check-prereqs
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Full setup: build binaries, build images, create kind cluster, deploy</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>make<span class="w"> </span>local-up
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Stream controller logs</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>make<span class="w"> </span>logs
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Run end-to-end smoke tests</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>make<span class="w"> </span>e2e-test
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1"># Fast rebuild and redeploy (reuses existing cluster)</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>make<span class="w"> </span>local-redeploy
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1"># Tear everything down</span>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>make<span class="w"> </span>local-down
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Full setup: build the controller binary, build the controller image,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># create the kind cluster, and deploy the local-dev profile</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>make<span class="w"> </span>local-up
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Stream controller logs</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>make<span class="w"> </span>logs
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Run end-to-end smoke tests</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>make<span class="w"> </span>e2e-test
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># Fast rebuild and redeploy (reuses existing cluster)</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>make<span class="w"> </span>local-redeploy
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1"># Tear everything down</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>make<span class="w"> </span>local-down
 </code></pre></div>
-<p>The <code>local-up</code> target creates a two-node kind cluster (control-plane + worker), builds all container images with a <code>dev</code> tag, loads them into kind, and deploys the Helm chart with local-dev overrides (no image pulls, no leader election, NodePort access on <code>localhost:30080</code>).</p>
+<p>The <code>local-up</code> target creates a two-node kind cluster (control-plane + worker),
+builds the controller image with a <code>dev</code> tag, loads it into kind, and deploys
+the Helm chart with local-dev overrides. The local-dev profile disables image
+pulls and leader election, exposes the controller HTTP endpoint on
+<code>localhost:30080</code> for <code>/healthz</code>, <code>/readyz</code>, and <code>/metrics</code>,
+and uses the noop ticketing backend so the controller starts without external
+credentials. Use <code>make live-up</code> when you want to exercise real ticketing
+backends and engine containers.</p>
 <h2 id="code-style">Code Style<a class="headerlink" href="#code-style" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Run <code>gofumpt</code> on all Go files before committing</li>

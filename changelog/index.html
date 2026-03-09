@@ -1892,6 +1892,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#local-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#security-correctness" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2968,6 +2979,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#local-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#security-correctness" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3920,6 +3942,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h4 id="local-development">Local Development<a class="headerlink" href="#local-development" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>make local-up</code> now boots cleanly on kind without extra Helm overrides.</strong> The local controller image is built and loaded under the chart's <code>ghcr.io/unitaryai/robodev/controller</code> repository, and the dev Helm overlay now leaves ticketing unconfigured so the controller falls back to the built-in noop backend for credential-free smoke testing.</li>
+</ul>
 <h4 id="security-correctness">Security / Correctness<a class="headerlink" href="#security-correctness" title="Permanent link">&para;</a></h4>
 <ul>
 <li>
