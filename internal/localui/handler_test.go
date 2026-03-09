@@ -122,6 +122,18 @@ func TestHandler_ListsTickets(t *testing.T) {
 	assert.Equal(t, "LOCAL-1", payload.Tickets[0].Ticket.ID)
 }
 
+func TestHandler_ListsTicketsAsEmptyArrayWhenServiceReturnsNil(t *testing.T) {
+	handler, err := NewHandler(testLogger(), stubService{})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/tickets", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"tickets":[]}`, rec.Body.String())
+}
+
 func TestHandler_CreatesCommentsAndRequeuesTickets(t *testing.T) {
 	handler := newTestHandler(t)
 
@@ -159,6 +171,22 @@ func TestHandler_CreatesCommentsAndRequeuesTickets(t *testing.T) {
 	require.Len(t, commentsPayload.Comments, 1)
 	assert.Equal(t, localticket.CommentKindUser, commentsPayload.Comments[0].Kind)
 	assert.Equal(t, "Operator note", commentsPayload.Comments[0].Body)
+}
+
+func TestHandler_ListsCommentsAsEmptyArrayWhenServiceReturnsNil(t *testing.T) {
+	handler, err := NewHandler(testLogger(), stubService{
+		listCommentsFunc: func(context.Context, string) ([]localticket.StoredComment, error) {
+			return nil, nil
+		},
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/tickets/LOCAL-1/comments", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"comments":[]}`, rec.Body.String())
 }
 
 func TestHandler_ReturnsNotFoundForMissingTicket(t *testing.T) {

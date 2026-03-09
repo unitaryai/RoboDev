@@ -73,7 +73,7 @@ func (h *Handler) handleListTickets(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	h.writeJSON(w, http.StatusOK, map[string]any{"tickets": tickets})
+	h.writeJSON(w, http.StatusOK, map[string]any{"tickets": ensureStoredTickets(tickets)})
 }
 
 func (h *Handler) handleGetTicket(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +93,7 @@ func (h *Handler) handleListComments(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, statusFor(err))
 		return
 	}
-	h.writeJSON(w, http.StatusOK, map[string]any{"comments": comments})
+	h.writeJSON(w, http.StatusOK, map[string]any{"comments": ensureStoredComments(comments)})
 }
 
 func (h *Handler) handleCreateTicket(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +158,7 @@ func (h *Handler) handleAddComment(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	h.writeJSON(w, http.StatusCreated, map[string]any{"comments": comments})
+	h.writeJSON(w, http.StatusCreated, map[string]any{"comments": ensureStoredComments(comments)})
 }
 
 func (h *Handler) handleRequeueTicket(w http.ResponseWriter, r *http.Request) {
@@ -215,6 +215,20 @@ func trimSlice(values []string) []string {
 		}
 	}
 	return result
+}
+
+func ensureStoredComments(comments []localticket.StoredComment) []localticket.StoredComment {
+	if comments == nil {
+		return []localticket.StoredComment{}
+	}
+	return comments
+}
+
+func ensureStoredTickets(tickets []localticket.StoredTicket) []localticket.StoredTicket {
+	if tickets == nil {
+		return []localticket.StoredTicket{}
+	}
+	return tickets
 }
 
 func statusFor(err error) int {

@@ -443,8 +443,13 @@
       return (state || "ready").replaceAll("_", " ");
     }
 
+    function safeArray(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
     function renderStats(tickets) {
-      const counts = tickets.reduce((acc, ticket) => {
+      const safeTickets = safeArray(tickets);
+      const counts = safeTickets.reduce((acc, ticket) => {
         acc.total += 1;
         if (ticket.state === "ready") acc.ready += 1;
         if (ticket.state === "in_progress") acc.progress += 1;
@@ -472,14 +477,15 @@
     }
 
     function renderTicketList(tickets) {
+      const safeTickets = safeArray(tickets);
       const list = document.getElementById("ticket-list");
       list.innerHTML = "";
-      if (!tickets.length) {
+      if (!safeTickets.length) {
         list.innerHTML = `<li class="empty">No local tickets yet.</li>`;
         return;
       }
 
-      tickets.forEach(ticket => {
+      safeTickets.forEach(ticket => {
         const item = document.createElement("li");
         item.className = "ticket-item";
         const button = document.createElement("button");
@@ -524,13 +530,14 @@
     }
 
     function renderComments(comments) {
+      const safeComments = safeArray(comments);
       const root = document.getElementById("comments");
       root.innerHTML = "";
-      if (!comments.length) {
+      if (!safeComments.length) {
         root.innerHTML = `<div class="empty">No comments recorded yet.</div>`;
         return;
       }
-      comments.forEach(comment => {
+      safeComments.forEach(comment => {
         const article = document.createElement("article");
         article.className = "comment";
         const head = document.createElement("div");
@@ -555,7 +562,7 @@
 
     async function refreshTickets() {
       const payload = await api("/api/tickets");
-      ticketsCache = payload.tickets;
+      ticketsCache = safeArray(payload.tickets);
       renderStats(ticketsCache);
       renderTicketList(ticketsCache);
       if (!ticketsCache.length) {
@@ -577,8 +584,11 @@
         api(`/api/tickets/${encodedTicketId}`),
         api(`/api/tickets/${encodedTicketId}/comments`)
       ]);
+      if (!ticketPayload.ticket) {
+        throw new Error("Ticket response did not include a ticket");
+      }
       renderTicketDetail(ticketPayload.ticket);
-      renderComments(commentsPayload.comments);
+      renderComments(safeArray(commentsPayload.comments));
     }
 
     function resetCreateForm() {
