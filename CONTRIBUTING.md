@@ -42,7 +42,8 @@ RoboDev uses [kind](https://kind.sigs.k8s.io/) for local development and testing
 # Verify all prerequisites are installed
 make check-prereqs
 
-# Full setup: build binaries, build images, create kind cluster, deploy
+# Full setup: build the controller binary, build the controller image,
+# create the kind cluster, and deploy the local-dev profile
 make local-up
 
 # Stream controller logs
@@ -58,7 +59,14 @@ make local-redeploy
 make local-down
 ```
 
-The `local-up` target creates a two-node kind cluster (control-plane + worker), builds all container images with a `dev` tag, loads them into kind, and deploys the Helm chart with local-dev overrides (no image pulls, no leader election, NodePort access on `localhost:30080`).
+The `local-up` target creates a two-node kind cluster (control-plane + worker),
+builds the controller image with a `dev` tag, loads it into kind, and deploys
+the Helm chart with local-dev overrides. The local-dev profile disables image
+pulls and leader election, exposes the controller HTTP endpoint on
+`localhost:30080` for `/healthz`, `/readyz`, and `/metrics`,
+and uses the noop ticketing backend so the controller starts without external
+credentials. Use `make live-up` when you want to exercise real ticketing
+backends and engine containers.
 
 ## Code Style
 

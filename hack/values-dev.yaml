@@ -1,6 +1,9 @@
 image:
   pullPolicy: Never
   tag: dev
+config:
+  ticketing:
+    backend: ""
 leaderElection:
   enabled: false
 resources:

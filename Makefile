@@ -16,6 +16,7 @@ BINARY := bin/robodev
 GO := go
 GOFLAGS := -v
 REGISTRY ?= ghcr.io/unitaryai
+CONTROLLER_IMAGE ?= $(REGISTRY)/robodev/controller
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 # Local development settings
@@ -65,7 +66,7 @@ clean: ## Remove build artefacts
 # ---------------------------------------------------------------------------
 
 docker-build-controller: ## Build controller container image
-	docker build -t $(REGISTRY)/robodev:$(VERSION) -f docker/controller/Dockerfile .
+	docker build -t $(CONTROLLER_IMAGE):$(VERSION) -f docker/controller/Dockerfile .
 
 docker-build-engine-claude-code: ## Build Claude Code engine container image
 	docker build -t $(REGISTRY)/engine-claude-code:$(VERSION) -f docker/engine-claude-code/Dockerfile docker/engine-claude-code/
@@ -86,7 +87,7 @@ docker-build: docker-build-controller docker-build-engine-claude-code docker-bui
 # ---------------------------------------------------------------------------
 
 docker-build-dev-controller:
-	docker build -t $(REGISTRY)/robodev:$(DEV_TAG) -f docker/controller/Dockerfile .
+	docker build -t $(CONTROLLER_IMAGE):$(DEV_TAG) -f docker/controller/Dockerfile .
 
 docker-build-dev-engine-claude-code:
 	docker build -t $(REGISTRY)/engine-claude-code:$(DEV_TAG) -f docker/engine-claude-code/Dockerfile docker/engine-claude-code/
@@ -134,7 +135,7 @@ kind-delete: ## Delete the kind cluster
 	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 kind-load: ## Load dev images into the kind cluster
-	kind load docker-image $(REGISTRY)/robodev:$(DEV_TAG) --name $(KIND_CLUSTER_NAME)
+	kind load docker-image $(CONTROLLER_IMAGE):$(DEV_TAG) --name $(KIND_CLUSTER_NAME)
 	@if docker image inspect $(REGISTRY)/engine-claude-code:$(DEV_TAG) >/dev/null 2>&1; then \
 		kind load docker-image $(REGISTRY)/engine-claude-code:$(DEV_TAG) --name $(KIND_CLUSTER_NAME); \
 	fi
@@ -147,6 +148,8 @@ deploy: ## Deploy to kind cluster via Helm
 		--namespace $(HELM_NAMESPACE) \
 		-f charts/robodev/values.yaml \
 		-f hack/values-dev.yaml \
+		--set-string image.repository=$(CONTROLLER_IMAGE) \
+		--set-string image.tag=$(DEV_TAG) \
 		--wait --timeout 120s
 
 undeploy: ## Remove the Helm release
@@ -170,6 +173,8 @@ deploy-test: ## Deploy to kind cluster with test values overlay
 		-f charts/robodev/values.yaml \
 		-f hack/values-dev.yaml \
 		-f hack/values-test.yaml \
+		--set-string image.repository=$(CONTROLLER_IMAGE) \
+		--set-string image.tag=$(DEV_TAG) \
 		--wait --timeout 120s
 
 fake-agent-image: ## Build the fake-agent container image for E2E workflow tests
@@ -220,6 +225,8 @@ live-deploy: ## Deploy to kind cluster with live values overlay
 		--namespace $(HELM_NAMESPACE) \
 		-f charts/robodev/values.yaml \
 		-f $(VALUES_LIVE) \
+		--set-string image.repository=$(CONTROLLER_IMAGE) \
+		--set-string image.tag=$(DEV_TAG) \
 		--wait --timeout 120s
 
 live-up: build docker-build-dev-controller docker-build-dev-engine-claude-code kind-create kind-load setup-secrets live-deploy ## Full live setup: build, cluster, secrets, deploy with real backends
