@@ -7,26 +7,37 @@ import (
 	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
 )
 
-// State represents the persisted lifecycle state for a local ticket.
-type State string
+// Status represents the tracker-facing status for a local ticket.
+type Status string
 
 const (
-	StateReady      State = "ready"
-	StateInProgress State = "in_progress"
-	StateCompleted  State = "completed"
-	StateFailed     State = "failed"
+	StatusDone       Status = "done"
+	StatusInProgress Status = "in_progress"
+	StatusTodo       Status = "todo"
 )
 
 const (
-	stateReady      = StateReady
-	stateInProgress = StateInProgress
-	stateCompleted  = StateCompleted
-	stateFailed     = StateFailed
+	statusDone       = StatusDone
+	statusInProgress = StatusInProgress
+	statusTodo       = StatusTodo
 )
 
-func (s State) isTerminal() bool {
-	return s == stateCompleted || s == stateFailed
-}
+// RunState represents the outcome of the most recent automation run.
+type RunState string
+
+const (
+	RunStateFailed    RunState = "failed"
+	RunStateIdle      RunState = "idle"
+	RunStateRunning   RunState = "running"
+	RunStateSucceeded RunState = "succeeded"
+)
+
+const (
+	runStateFailed    = RunStateFailed
+	runStateIdle      = RunStateIdle
+	runStateRunning   = RunStateRunning
+	runStateSucceeded = RunStateSucceeded
+)
 
 // CommentKind identifies the source of a persisted comment.
 type CommentKind string
@@ -57,7 +68,8 @@ const (
 // StoredTicket is the admin/read model exposed by the local backend.
 type StoredTicket struct {
 	Ticket        ticketing.Ticket   `json:"ticket"`
-	State         State              `json:"state"`
+	Status        Status             `json:"status"`
+	RunState      RunState           `json:"run_state"`
 	FailureReason string             `json:"failure_reason"`
 	Result        *engine.TaskResult `json:"result,omitempty"`
 	CreatedAt     time.Time          `json:"created_at"`

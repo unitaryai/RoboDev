@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/unitaryai/robodev/pkg/plugin/ticketing"
 	localticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/local"
@@ -25,6 +26,46 @@ type service interface {
 	CreateTicket(ctx context.Context, ticket ticketing.Ticket) error
 	RequeueTicket(ctx context.Context, id string) error
 	AddUserComment(ctx context.Context, id string, comment string) error
+}
+
+type trackerStatus string
+
+const (
+	trackerStatusDone       trackerStatus = "done"
+	trackerStatusInProgress trackerStatus = "in_progress"
+	trackerStatusTodo       trackerStatus = "todo"
+)
+
+type runOutcome string
+
+const (
+	runOutcomeFailed    runOutcome = "failed"
+	runOutcomeIdle      runOutcome = "idle"
+	runOutcomeRunning   runOutcome = "running"
+	runOutcomeSucceeded runOutcome = "succeeded"
+)
+
+type ticketView struct {
+	Ticket          ticketing.Ticket `json:"ticket"`
+	TrackerStatus   trackerStatus    `json:"tracker_status"`
+	RunAgainAllowed bool             `json:"run_again_allowed"`
+	RunOutcome      runOutcome       `json:"run_outcome"`
+	RunSummary      string           `json:"run_summary"`
+	NeedsAttention  bool             `json:"needs_attention"`
+	FailureReason   string           `json:"failure_reason"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
+	InProgressAt    *time.Time       `json:"in_progress_at,omitempty"`
+	CompletedAt     *time.Time       `json:"completed_at,omitempty"`
+	FailedAt        *time.Time       `json:"failed_at,omitempty"`
+}
+
+type commentView struct {
+	ID        int64     `json:"id"`
+	TicketID  string    `json:"ticket_id"`
+	Kind      string    `json:"kind"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Handler serves the local ticketing UI and its JSON API.
@@ -73,7 +114,7 @@ func (h *Handler) handleListTickets(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	h.writeJSON(w, http.StatusOK, map[string]any{"tickets": ensureStoredTickets(tickets)})
+	h.writeJSON(w, http.StatusOK, map[string]any{"tickets": ensureTicketViews(tickets)})
 }
 
 func (h *Handler) handleGetTicket(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +124,7 @@ func (h *Handler) handleGetTicket(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, statusFor(err))
 		return
 	}
-	h.writeJSON(w, http.StatusOK, map[string]any{"ticket": ticket})
+	h.writeJSON(w, http.StatusOK, map[string]any{"ticket": newTicketView(*ticket)})
 }
 
 func (h *Handler) handleListComments(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +134,7 @@ func (h *Handler) handleListComments(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, statusFor(err))
 		return
 	}
-	h.writeJSON(w, http.StatusOK, map[string]any{"comments": ensureStoredComments(comments)})
+	h.writeJSON(w, http.StatusOK, map[string]any{"comments": ensureCommentViews(comments)})
 }
 
 func (h *Handler) handleCreateTicket(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +161,14 @@ func (h *Handler) handleCreateTicket(w http.ResponseWriter, r *http.Request) {
 		RepoURL:     strings.TrimSpace(req.RepoURL),
 		ExternalURL: strings.TrimSpace(req.ExternalURL),
 	}
+	if ticket.ID == "" {
+		h.writeError(w, fmt.Errorf("ticket id must not be empty"), http.StatusBadRequest)
+		return
+	}
+	if ticket.Title == "" {
+		h.writeError(w, fmt.Errorf("ticket title must not be empty"), http.StatusBadRequest)
+		return
+	}
 
 	err := h.service.CreateTicket(r.Context(), ticket)
 	if err != nil {
@@ -132,7 +181,7 @@ func (h *Handler) handleCreateTicket(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	h.writeJSON(w, http.StatusCreated, map[string]any{"ticket": storedTicket})
+	h.writeJSON(w, http.StatusCreated, map[string]any{"ticket": newTicketView(*storedTicket)})
 }
 
 func (h *Handler) handleAddComment(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +207,7 @@ func (h *Handler) handleAddComment(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	h.writeJSON(w, http.StatusCreated, map[string]any{"comments": ensureStoredComments(comments)})
+	h.writeJSON(w, http.StatusCreated, map[string]any{"comments": ensureCommentViews(comments)})
 }
 
 func (h *Handler) handleRequeueTicket(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +221,7 @@ func (h *Handler) handleRequeueTicket(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	h.writeJSON(w, http.StatusOK, map[string]any{"ticket": ticket})
+	h.writeJSON(w, http.StatusOK, map[string]any{"ticket": newTicketView(*ticket)})
 }
 
 func (h *Handler) writeJSON(w http.ResponseWriter, status int, payload any) {
@@ -217,18 +266,113 @@ func trimSlice(values []string) []string {
 	return result
 }
 
-func ensureStoredComments(comments []localticket.StoredComment) []localticket.StoredComment {
+func ensureCommentViews(comments []localticket.StoredComment) []commentView {
 	if comments == nil {
-		return []localticket.StoredComment{}
+		return []commentView{}
 	}
-	return comments
+	views := make([]commentView, 0, len(comments))
+	for _, comment := range comments {
+		views = append(views, newCommentView(comment))
+	}
+	return views
 }
 
-func ensureStoredTickets(tickets []localticket.StoredTicket) []localticket.StoredTicket {
+func ensureTicketViews(tickets []localticket.StoredTicket) []ticketView {
 	if tickets == nil {
-		return []localticket.StoredTicket{}
+		return []ticketView{}
 	}
-	return tickets
+	views := make([]ticketView, 0, len(tickets))
+	for _, ticket := range tickets {
+		views = append(views, newTicketView(ticket))
+	}
+	return views
+}
+
+func newCommentView(comment localticket.StoredComment) commentView {
+	return commentView{
+		ID:        comment.ID,
+		TicketID:  comment.TicketID,
+		Kind:      commentKindLabel(comment.Kind),
+		Body:      commentBodyForUI(comment),
+		CreatedAt: comment.CreatedAt,
+	}
+}
+
+func commentBodyForUI(comment localticket.StoredComment) string {
+	if comment.Kind != localticket.CommentKindSystem {
+		return comment.Body
+	}
+
+	body := strings.ReplaceAll(comment.Body, "Task completed successfully.", "Run completed successfully.")
+	body = strings.ReplaceAll(body, "Task failed.", "Run failed.")
+	return body
+}
+
+func commentKindLabel(kind localticket.CommentKind) string {
+	switch kind {
+	case localticket.CommentKindSystem:
+		return "System"
+	case localticket.CommentKindUser:
+		return "Note"
+	default:
+		return "Activity"
+	}
+}
+
+func newTicketView(ticket localticket.StoredTicket) ticketView {
+	return ticketView{
+		Ticket:          ticket.Ticket,
+		TrackerStatus:   trackerStatusForUI(ticket),
+		RunAgainAllowed: runAgainAllowed(ticket),
+		RunOutcome:      runOutcomeForUI(ticket),
+		RunSummary:      runSummaryForUI(ticket),
+		NeedsAttention:  needsAttention(ticket),
+		FailureReason:   ticket.FailureReason,
+		CreatedAt:       ticket.CreatedAt,
+		UpdatedAt:       ticket.UpdatedAt,
+		InProgressAt:    ticket.InProgressAt,
+		CompletedAt:     ticket.CompletedAt,
+		FailedAt:        ticket.FailedAt,
+	}
+}
+
+func trackerStatusForUI(ticket localticket.StoredTicket) trackerStatus {
+	switch ticket.Status {
+	case localticket.StatusDone:
+		return trackerStatusDone
+	case localticket.StatusInProgress:
+		return trackerStatusInProgress
+	default:
+		return trackerStatusTodo
+	}
+}
+
+func runAgainAllowed(ticket localticket.StoredTicket) bool {
+	return ticket.Status == localticket.StatusDone || ticket.RunState == localticket.RunStateFailed
+}
+
+func runOutcomeForUI(ticket localticket.StoredTicket) runOutcome {
+	switch ticket.RunState {
+	case localticket.RunStateSucceeded:
+		return runOutcomeSucceeded
+	case localticket.RunStateFailed:
+		return runOutcomeFailed
+	case localticket.RunStateRunning:
+		return runOutcomeRunning
+	default:
+		return runOutcomeIdle
+	}
+}
+
+func runSummaryForUI(ticket localticket.StoredTicket) string {
+	if ticket.Result != nil {
+		return strings.TrimSpace(ticket.Result.Summary)
+	}
+	return ""
+}
+
+func needsAttention(ticket localticket.StoredTicket) bool {
+	return runOutcomeForUI(ticket) == runOutcomeFailed
 }
 
 func statusFor(err error) int {
@@ -244,6 +388,8 @@ func statusFor(err error) int {
 	case strings.Contains(err.Error(), "constraint failed"):
 		return http.StatusConflict
 	case strings.Contains(err.Error(), "in progress"):
+		return http.StatusConflict
+	case strings.Contains(err.Error(), "currently running"):
 		return http.StatusConflict
 	default:
 		var syntaxErr *json.SyntaxError

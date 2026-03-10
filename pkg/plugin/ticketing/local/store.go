@@ -14,7 +14,7 @@ import (
 )
 
 const ticketSelectColumns = `id, title, description, ticket_type, labels_json, repo_url, external_url, raw_json,
-	state, result_json, failure_reason, created_at, updated_at, in_progress_at, completed_at, failed_at`
+	state, run_state, result_json, failure_reason, created_at, updated_at, in_progress_at, completed_at, failed_at`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -54,33 +54,33 @@ func (b *Backend) GetTicket(ctx context.Context, id string) (*StoredTicket, erro
 	return &ticket, nil
 }
 
-// CreateTicket inserts a new ready ticket for local development workflows.
+// CreateTicket inserts a new to-do ticket for local development workflows.
 func (b *Backend) CreateTicket(ctx context.Context, ticket ticketing.Ticket) error {
 	return b.runInTx(ctx, func(txContext context.Context, tx txRunner) error {
 		return insertTicket(txContext, tx, ticket, eventCreated)
 	})
 }
 
-// RequeueTicket moves a terminal ticket back to ready for another attempt.
+// RequeueTicket moves a ticket back to to do so it can be picked up again.
 func (b *Backend) RequeueTicket(ctx context.Context, id string) error {
 	return b.runInTx(ctx, func(txContext context.Context, tx txRunner) error {
-		currentState, err := loadTicketState(txContext, tx, id)
+		status, runState, err := loadTicketLifecycle(txContext, tx, id)
 		if err != nil {
 			return err
 		}
-		if currentState == stateReady {
+		if status == statusTodo && runState == runStateIdle {
 			return nil
 		}
-		if currentState == stateInProgress {
-			return fmt.Errorf("ticket %q is in progress and cannot be requeued", id)
+		if runState == runStateRunning {
+			return fmt.Errorf("ticket %q is currently running and cannot be moved to to do", id)
 		}
 
 		now := nowRFC3339()
-		if err := setTicketReady(txContext, tx, id, now); err != nil {
+		if err := setTicketTodo(txContext, tx, id, now); err != nil {
 			return err
 		}
 
-		return insertEvent(txContext, tx, id, eventRequeued, map[string]string{"state": string(stateReady)})
+		return insertEvent(txContext, tx, id, eventRequeued, map[string]string{"status": string(statusTodo)})
 	})
 }
 
@@ -109,9 +109,10 @@ func (b *Backend) listReadyTickets(ctx context.Context) ([]ticketing.Ticket, err
 	rows, err := b.db.QueryContext(ctx,
 		`SELECT id, title, description, ticket_type, labels_json, repo_url, external_url, raw_json
 		 FROM tickets
-		 WHERE state = ?
+		 WHERE state = ? AND run_state = ?
 		 ORDER BY created_at ASC, id ASC`,
-		stateReady,
+		statusTodo,
+		runStateIdle,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("listing ready tickets: %w", err)
@@ -138,67 +139,51 @@ func (b *Backend) addComment(ctx context.Context, kind CommentKind, ticketID, co
 func (b *Backend) transitionTicket(
 	ctx context.Context,
 	ticketID string,
-	target State,
 	eventType EventType,
 	result *engine.TaskResult,
 	reason string,
 ) error {
 	return b.runInTx(ctx, func(txContext context.Context, tx txRunner) error {
-		currentState, err := loadTicketState(txContext, tx, ticketID)
+		status, runState, err := loadTicketLifecycle(txContext, tx, ticketID)
 		if err != nil {
 			return err
 		}
-		if currentState == target || currentState.isTerminal() {
-			return nil
+
+		now := nowRFC3339()
+		switch eventType {
+		case eventMarkedInProgress:
+			if status == statusInProgress && runState == runStateRunning {
+				return nil
+			}
+			if err := setTicketInProgress(txContext, tx, ticketID, now); err != nil {
+				return err
+			}
+		case eventMarkedComplete:
+			if status == statusDone && runState == runStateSucceeded {
+				return nil
+			}
+			if err := setTicketComplete(txContext, tx, ticketID, now, result); err != nil {
+				return err
+			}
+			if err := insertComment(txContext, tx, ticketID, commentKindSystem, completionComment(*result)); err != nil {
+				return err
+			}
+		case eventMarkedFailed:
+			if runState == runStateFailed && reason != "" {
+				return nil
+			}
+			if err := setTicketFailed(txContext, tx, ticketID, status, now, reason); err != nil {
+				return err
+			}
+			if err := insertComment(txContext, tx, ticketID, commentKindSystem, failureComment(reason)); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unsupported transition event %q", eventType)
 		}
 
-		if err := applyTransition(txContext, tx, ticketID, target, result, reason); err != nil {
-			return err
-		}
-		if err := insertSystemComment(txContext, tx, ticketID, target, result, reason); err != nil {
-			return err
-		}
-
-		return insertTransitionEvent(txContext, tx, ticketID, eventType, result, reason)
+		return insertTransitionEvent(txContext, tx, ticketID, eventType, status, runState, result, reason)
 	})
-}
-
-func applyTransition(
-	ctx context.Context,
-	tx txRunner,
-	ticketID string,
-	target State,
-	result *engine.TaskResult,
-	reason string,
-) error {
-	switch target {
-	case stateInProgress:
-		return setTicketInProgress(ctx, tx, ticketID, nowRFC3339())
-	case stateCompleted:
-		return setTicketComplete(ctx, tx, ticketID, nowRFC3339(), result)
-	case stateFailed:
-		return setTicketFailed(ctx, tx, ticketID, nowRFC3339(), reason)
-	default:
-		return fmt.Errorf("unsupported transition target %q", target)
-	}
-}
-
-func insertSystemComment(
-	ctx context.Context,
-	tx txRunner,
-	ticketID string,
-	target State,
-	result *engine.TaskResult,
-	reason string,
-) error {
-	switch target {
-	case stateCompleted:
-		return insertComment(ctx, tx, ticketID, commentKindSystem, completionComment(*result))
-	case stateFailed:
-		return insertComment(ctx, tx, ticketID, commentKindSystem, failureComment(reason))
-	default:
-		return nil
-	}
 }
 
 func insertTransitionEvent(
@@ -206,10 +191,15 @@ func insertTransitionEvent(
 	tx txRunner,
 	ticketID string,
 	eventType EventType,
+	status Status,
+	runState RunState,
 	result *engine.TaskResult,
 	reason string,
 ) error {
-	payload := map[string]string{}
+	payload := map[string]string{
+		"previous_run_state": string(runState),
+		"previous_status":    string(status),
+	}
 	if result != nil {
 		payload["summary"] = result.Summary
 	}
@@ -274,9 +264,10 @@ func insertTicketIfMissing(ctx context.Context, runner txRunner, ticket ticketin
 func ticketInsertSQL() string {
 	return `INSERT INTO tickets (
 		id, title, description, ticket_type, labels_json, repo_url, external_url, raw_json,
-		state, result_json, summary, branch_name, merge_request_url, input_tokens, output_tokens,
-		cost_estimate_usd, failure_reason, created_at, updated_at, in_progress_at, completed_at, failed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		state, run_state, result_json, summary, branch_name, merge_request_url, input_tokens,
+		output_tokens, cost_estimate_usd, failure_reason, created_at, updated_at, in_progress_at,
+		completed_at, failed_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 }
 
 func ticketInsertValues(ticket ticketing.Ticket) ([]any, error) {
@@ -309,7 +300,8 @@ func ticketInsertValues(ticket ticketing.Ticket) ([]any, error) {
 		ticket.RepoURL,
 		ticket.ExternalURL,
 		rawJSON,
-		stateReady,
+		statusTodo,
+		runStateIdle,
 		"",
 		"",
 		"",
@@ -326,30 +318,36 @@ func ticketInsertValues(ticket ticketing.Ticket) ([]any, error) {
 	}, nil
 }
 
-func loadTicketState(ctx context.Context, runner txRunner, ticketID string) (State, error) {
-	var state State
-	err := runner.QueryRowContext(ctx, `SELECT state FROM tickets WHERE id = ?`, ticketID).Scan(&state)
+func loadTicketLifecycle(ctx context.Context, runner txRunner, ticketID string) (Status, RunState, error) {
+	var (
+		status   Status
+		runState RunState
+	)
+	err := runner.QueryRowContext(ctx, `SELECT state, run_state FROM tickets WHERE id = ?`, ticketID).Scan(&status, &runState)
 	if err == nil {
-		return state, nil
+		return status, runState, nil
 	}
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", fmt.Errorf("ticket %q not found", ticketID)
+		return "", "", fmt.Errorf("ticket %q not found", ticketID)
 	}
 
-	return "", fmt.Errorf("loading ticket %q state: %w", ticketID, err)
+	return "", "", fmt.Errorf("loading ticket %q lifecycle: %w", ticketID, err)
 }
 
 func ensureTicketExists(ctx context.Context, runner txRunner, ticketID string) error {
-	_, err := loadTicketState(ctx, runner, ticketID)
+	_, _, err := loadTicketLifecycle(ctx, runner, ticketID)
 	return err
 }
 
 func setTicketInProgress(ctx context.Context, runner txRunner, ticketID, now string) error {
 	_, err := runner.ExecContext(ctx,
 		`UPDATE tickets
-		 SET state = ?, updated_at = ?, in_progress_at = ?
+		 SET state = ?, run_state = ?, result_json = '', summary = '', branch_name = '',
+		     merge_request_url = '', input_tokens = 0, output_tokens = 0,
+		     cost_estimate_usd = 0, failure_reason = '', updated_at = ?, in_progress_at = ?,
+		     completed_at = '', failed_at = ''
 		 WHERE id = ?`,
-		stateInProgress, now, now, ticketID,
+		statusInProgress, runStateRunning, now, now, ticketID,
 	)
 	if err != nil {
 		return fmt.Errorf("marking ticket %q in progress: %w", ticketID, err)
@@ -366,12 +364,13 @@ func setTicketComplete(ctx context.Context, runner txRunner, ticketID, now strin
 	tokensIn, tokensOut := tokenCounts(result)
 	_, err = runner.ExecContext(ctx,
 		`UPDATE tickets
-		 SET state = ?, result_json = ?, summary = ?, branch_name = ?, merge_request_url = ?,
-		     input_tokens = ?, output_tokens = ?, cost_estimate_usd = ?, failure_reason = '',
-		     updated_at = ?, completed_at = ?
+		 SET state = ?, run_state = ?, result_json = ?, summary = ?, branch_name = ?,
+		     merge_request_url = ?, input_tokens = ?, output_tokens = ?,
+		     cost_estimate_usd = ?, failure_reason = '', updated_at = ?, completed_at = ?,
+		     failed_at = ''
 		 WHERE id = ?`,
-		stateCompleted, resultJSON, result.Summary, result.BranchName, result.MergeRequestURL,
-		tokensIn, tokensOut, result.CostEstimateUSD, now, now, ticketID,
+		statusDone, runStateSucceeded, resultJSON, result.Summary, result.BranchName,
+		result.MergeRequestURL, tokensIn, tokensOut, result.CostEstimateUSD, now, now, ticketID,
 	)
 	if err != nil {
 		return fmt.Errorf("marking ticket %q complete: %w", ticketID, err)
@@ -380,12 +379,13 @@ func setTicketComplete(ctx context.Context, runner txRunner, ticketID, now strin
 	return nil
 }
 
-func setTicketFailed(ctx context.Context, runner txRunner, ticketID, now, reason string) error {
+func setTicketFailed(ctx context.Context, runner txRunner, ticketID string, status Status, now, reason string) error {
 	_, err := runner.ExecContext(ctx,
 		`UPDATE tickets
-		 SET state = ?, failure_reason = ?, updated_at = ?, failed_at = ?
+		 SET state = ?, run_state = ?, failure_reason = ?, updated_at = ?, failed_at = ?,
+		     completed_at = ''
 		 WHERE id = ?`,
-		stateFailed, reason, now, now, ticketID,
+		status, runStateFailed, reason, now, now, ticketID,
 	)
 	if err != nil {
 		return fmt.Errorf("marking ticket %q failed: %w", ticketID, err)
@@ -394,17 +394,18 @@ func setTicketFailed(ctx context.Context, runner txRunner, ticketID, now, reason
 	return nil
 }
 
-func setTicketReady(ctx context.Context, runner txRunner, ticketID, now string) error {
+func setTicketTodo(ctx context.Context, runner txRunner, ticketID, now string) error {
 	_, err := runner.ExecContext(ctx,
 		`UPDATE tickets
-		 SET state = ?, result_json = '', summary = '', branch_name = '', merge_request_url = '',
-		     input_tokens = 0, output_tokens = 0, cost_estimate_usd = 0, failure_reason = '',
-		     updated_at = ?, in_progress_at = '', completed_at = '', failed_at = ''
+		 SET state = ?, run_state = ?, result_json = '', summary = '', branch_name = '',
+		     merge_request_url = '', input_tokens = 0, output_tokens = 0,
+		     cost_estimate_usd = 0, failure_reason = '', updated_at = ?, in_progress_at = '',
+		     completed_at = '', failed_at = ''
 		 WHERE id = ?`,
-		stateReady, now, ticketID,
+		statusTodo, runStateIdle, now, ticketID,
 	)
 	if err != nil {
-		return fmt.Errorf("requeueing ticket %q: %w", ticketID, err)
+		return fmt.Errorf("moving ticket %q to to do: %w", ticketID, err)
 	}
 
 	return nil
@@ -521,7 +522,8 @@ func scanStoredTicket(scanner rowScanner) (StoredTicket, error) {
 		&ticket.Ticket.RepoURL,
 		&ticket.Ticket.ExternalURL,
 		&rawJSON,
-		&ticket.State,
+		&ticket.Status,
+		&ticket.RunState,
 		&resultJSON,
 		&ticket.FailureReason,
 		&createdAt,
@@ -670,7 +672,7 @@ func nowRFC3339() string {
 }
 
 func completionComment(result engine.TaskResult) string {
-	comment := fmt.Sprintf("Task completed successfully.\n\n**Summary:** %s", result.Summary)
+	comment := fmt.Sprintf("Run completed successfully.\n\n**Summary:** %s", result.Summary)
 	if result.MergeRequestURL != "" {
 		comment += fmt.Sprintf("\n**Merge Request:** %s", result.MergeRequestURL)
 	}
@@ -678,5 +680,5 @@ func completionComment(result engine.TaskResult) string {
 }
 
 func failureComment(reason string) string {
-	return fmt.Sprintf("Task failed.\n\n**Reason:** %s", reason)
+	return fmt.Sprintf("Run failed.\n\n**Reason:** %s", reason)
 }

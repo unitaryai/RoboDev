@@ -305,10 +305,10 @@ config:
 
 | Method | Local Action |
 |---|---|
-| `PollReadyTickets` | Reads `ready` tickets from SQLite, ordered by creation time |
-| `MarkInProgress` | Moves the ticket to `in_progress` and records an audit event |
-| `MarkComplete` | Persists the full task result, adds a system comment, and marks the ticket `completed` |
-| `MarkFailed` | Persists the failure reason, adds a system comment, and marks the ticket `failed` |
+| `PollReadyTickets` | Reads `To do` tickets whose last run is idle, ordered by creation time |
+| `MarkInProgress` | Moves the ticket to `In progress`, marks the current run as active, and records an audit event |
+| `MarkComplete` | Persists the full task result, adds a system comment, and moves the ticket to `Done` |
+| `MarkFailed` | Persists the failure reason, adds a system comment, and records the last run as failed without changing the tracker-facing board column |
 | `AddComment` | Persists a durable comment on the ticket |
 
 ### Local Admin Surface
@@ -316,10 +316,11 @@ config:
 When the local backend is enabled, RoboDev serves an embedded frontend on a dedicated local UI listener. By default it binds to `http://127.0.0.1:8082/`; override this with the `-local-ui-addr` flag if needed. The UI can:
 
 - list local tickets and inspect their state
+- present a generic local board with `To do`, `In progress`, and `Done` columns
 - show the persisted comment stream
 - create new local tickets
 - add operator comments
-- requeue `completed` or `failed` tickets back to `ready`
+- reset a completed ticket or a failed run back to `To do`
 
 The optional `seed_file` is bootstrap input only. It is imported once when the backend starts and does not remain the source of truth after import.
 

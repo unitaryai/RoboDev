@@ -79,7 +79,8 @@ func TestMarkInProgress_PersistsState(t *testing.T) {
 
 	record, err := backend.GetTicket(ctx, "LOCAL-1")
 	require.NoError(t, err)
-	assert.Equal(t, StateInProgress, record.State)
+	assert.Equal(t, StatusInProgress, record.Status)
+	assert.Equal(t, RunStateRunning, record.RunState)
 	require.NotNil(t, record.InProgressAt)
 
 	tickets, err := backend.PollReadyTickets(ctx)
@@ -108,7 +109,8 @@ func TestMarkComplete_PersistsResultAndSystemComment(t *testing.T) {
 
 	record, err := backend.GetTicket(ctx, "LOCAL-1")
 	require.NoError(t, err)
-	assert.Equal(t, StateCompleted, record.State)
+	assert.Equal(t, StatusDone, record.Status)
+	assert.Equal(t, RunStateSucceeded, record.RunState)
 	require.NotNil(t, record.Result)
 	assert.Equal(t, result.Summary, record.Result.Summary)
 	assert.Equal(t, result.MergeRequestURL, record.Result.MergeRequestURL)
@@ -135,9 +137,14 @@ func TestMarkFailed_PersistsFailureAndSystemComment(t *testing.T) {
 
 	record, err := backend.GetTicket(ctx, "LOCAL-1")
 	require.NoError(t, err)
-	assert.Equal(t, StateFailed, record.State)
+	assert.Equal(t, StatusTodo, record.Status)
+	assert.Equal(t, RunStateFailed, record.RunState)
 	assert.Equal(t, reason, record.FailureReason)
 	require.NotNil(t, record.FailedAt)
+
+	tickets, err := backend.PollReadyTickets(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, tickets)
 
 	comments, err := backend.ListComments(ctx, "LOCAL-1")
 	require.NoError(t, err)
@@ -149,6 +156,22 @@ func TestMarkFailed_PersistsFailureAndSystemComment(t *testing.T) {
 	comments, err = backend.ListComments(ctx, "LOCAL-1")
 	require.NoError(t, err)
 	require.Len(t, comments, 1)
+}
+
+func TestMarkFailed_AfterStart_KeepsTrackerStatusInProgress(t *testing.T) {
+	backend := seedBackendForTest(t)
+	ctx := context.Background()
+
+	require.NoError(t, backend.MarkInProgress(ctx, "LOCAL-1"))
+	require.NoError(t, backend.MarkFailed(ctx, "LOCAL-1", "worker crashed"))
+
+	record, err := backend.GetTicket(ctx, "LOCAL-1")
+	require.NoError(t, err)
+	assert.Equal(t, StatusInProgress, record.Status)
+	assert.Equal(t, RunStateFailed, record.RunState)
+	assert.Equal(t, "worker crashed", record.FailureReason)
+	require.NotNil(t, record.InProgressAt)
+	require.NotNil(t, record.FailedAt)
 }
 
 func TestAddComment_PersistsSystemComment(t *testing.T) {
@@ -284,15 +307,18 @@ func TestCreateTicket_DuplicateIDFails(t *testing.T) {
 func TestRequeue_ClearsTerminalState(t *testing.T) {
 	backend := seedBackendForTest(t)
 	ctx := context.Background()
+	require.NoError(t, backend.MarkInProgress(ctx, "LOCAL-1"))
 	require.NoError(t, backend.MarkFailed(ctx, "LOCAL-1", "test failure"))
 
 	require.NoError(t, backend.RequeueTicket(ctx, "LOCAL-1"))
 
 	record, err := backend.GetTicket(ctx, "LOCAL-1")
 	require.NoError(t, err)
-	assert.Equal(t, StateReady, record.State)
+	assert.Equal(t, StatusTodo, record.Status)
+	assert.Equal(t, RunStateIdle, record.RunState)
 	assert.Equal(t, "", record.FailureReason)
 	assert.Nil(t, record.Result)
+	assert.Nil(t, record.InProgressAt)
 	assert.Nil(t, record.FailedAt)
 }
 
@@ -352,7 +378,7 @@ func TestListComments_UnknownTicketFails(t *testing.T) {
 func TestScanTicketRecord_EmptyResultJSONYieldsNilResult(t *testing.T) {
 	backend := seedBackendForTest(t)
 
-	rows, err := backend.db.Query(`SELECT id, title, description, ticket_type, labels_json, repo_url, external_url, raw_json, state, failure_reason, result_json, created_at, updated_at, in_progress_at, completed_at, failed_at FROM tickets WHERE id = ?`, "LOCAL-1")
+	rows, err := backend.db.Query(`SELECT id, title, description, ticket_type, labels_json, repo_url, external_url, raw_json, state, run_state, result_json, failure_reason, created_at, updated_at, in_progress_at, completed_at, failed_at FROM tickets WHERE id = ?`, "LOCAL-1")
 	require.NoError(t, err)
 	defer rows.Close()
 
@@ -360,12 +386,14 @@ func TestScanTicketRecord_EmptyResultJSONYieldsNilResult(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, records, 1)
 	assert.Nil(t, records[0].Result)
+	assert.Equal(t, StatusTodo, records[0].Status)
+	assert.Equal(t, RunStateIdle, records[0].RunState)
 }
 
-func TestCurrentState_UnknownTicketError(t *testing.T) {
+func TestCurrentLifecycle_UnknownTicketError(t *testing.T) {
 	backend := newBackendForTest(t)
 	err := backend.runInTx(context.Background(), func(ctx context.Context, tx txRunner) error {
-		_, err := loadTicketState(ctx, tx, "missing")
+		_, _, err := loadTicketLifecycle(ctx, tx, "missing")
 		return err
 	})
 	require.Error(t, err)

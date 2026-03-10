@@ -13,10 +13,10 @@
       --line: #d8dde6;
       --soft: #eef1f5;
       --accent: #2f6feb;
-      --ready: #0f766e;
+      --todo: #0f766e;
       --progress: #9a6700;
-      --completed: #3559b7;
-      --failed: #b42318;
+      --done: #3559b7;
+      --attention: #b42318;
       --neutral: #7a8699;
     }
 
@@ -69,7 +69,7 @@
 
     .board {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0.75rem;
       padding: 0;
       align-items: start;
@@ -151,6 +151,16 @@
       line-height: 1.4;
     }
 
+    .ticket-card-meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .ticket-card-meta.attention {
+      color: var(--attention);
+    }
+
     .pill {
       display: inline-flex;
       align-items: center;
@@ -165,9 +175,9 @@
       color: var(--neutral);
     }
 
-    .pill.ready {
+    .pill.todo {
       background: rgba(15, 118, 110, 0.12);
-      color: var(--ready);
+      color: var(--todo);
     }
 
     .pill.in_progress {
@@ -175,14 +185,24 @@
       color: var(--progress);
     }
 
-    .pill.completed {
+    .pill.done {
       background: rgba(53, 89, 183, 0.12);
-      color: var(--completed);
+      color: var(--done);
     }
 
     .pill.failed {
       background: rgba(180, 35, 24, 0.12);
-      color: var(--failed);
+      color: var(--attention);
+    }
+
+    .pill.succeeded {
+      background: rgba(53, 89, 183, 0.12);
+      color: var(--done);
+    }
+
+    .pill.running {
+      background: rgba(154, 103, 0, 0.14);
+      color: var(--progress);
     }
 
     .pill.neutral {
@@ -474,9 +494,9 @@
       <section class="panel board" id="ticket-board">
         <section class="lane">
           <div class="lane-header">
-            <h2>Ready</h2>
+            <h2>To do</h2>
           </div>
-          <div class="lane-list" id="lane-ready"></div>
+          <div class="lane-list" id="lane-todo"></div>
         </section>
 
         <section class="lane">
@@ -488,16 +508,9 @@
 
         <section class="lane">
           <div class="lane-header">
-            <h2>Completed</h2>
+            <h2>Done</h2>
           </div>
-          <div class="lane-list" id="lane-completed"></div>
-        </section>
-
-        <section class="lane">
-          <div class="lane-header">
-            <h2>Failed</h2>
-          </div>
-          <div class="lane-list" id="lane-failed"></div>
+          <div class="lane-list" id="lane-done"></div>
         </section>
       </section>
     </div>
@@ -519,7 +532,8 @@
               </div>
               <div class="detail-actions">
                 <span id="ticket-state" class="pill neutral">none</span>
-                <button class="secondary" id="requeue-button" type="button">Requeue</button>
+                <span id="ticket-run-outcome" class="pill neutral" hidden>none</span>
+                <button class="secondary" id="requeue-button" type="button">Move to to do</button>
               </div>
             </div>
           </div>
@@ -533,9 +547,9 @@
           </div>
 
           <details class="meta-toggle">
-            <summary>Meta</summary>
+            <summary>Run details</summary>
             <div class="meta-box">
-              <p class="meta-copy" id="ticket-meta">Choose a ticket to see timestamps and failure details.</p>
+              <p class="meta-copy" id="ticket-meta">Choose a ticket to see tracker status, timestamps, and the latest run.</p>
             </div>
           </details>
 
@@ -608,10 +622,9 @@
     let sidebarMode = "detail";
 
     const laneConfig = [
-      {key: "ready", label: "Ready"},
+      {key: "todo", label: "To do"},
       {key: "in_progress", label: "In progress"},
-      {key: "completed", label: "Completed"},
-      {key: "failed", label: "Failed"},
+      {key: "done", label: "Done"},
     ];
 
     async function api(path, options = {}) {
@@ -664,29 +677,59 @@
       renderBoard(ticketsCache);
     }
 
-    function stateClass(state) {
-      const value = state || "ready";
-      return ["ready", "in_progress", "completed", "failed"].includes(value) ? value : "ready";
+    function trackerStatusClass(status) {
+      const value = status || "todo";
+      return ["todo", "in_progress", "done"].includes(value) ? value : "todo";
     }
 
-    function stateLabel(state) {
-      return (state || "ready").replaceAll("_", " ");
+    function trackerStatusLabel(status) {
+      switch (status) {
+        case "done":
+          return "Done";
+        case "in_progress":
+          return "In progress";
+        default:
+          return "To do";
+      }
     }
 
-    function canRequeue(state) {
-      return state === "completed" || state === "failed";
+    function runOutcomeClass(outcome) {
+      const value = outcome || "idle";
+      if (["failed", "running", "succeeded"].includes(value)) {
+        return value;
+      }
+      return "neutral";
+    }
+
+    function runOutcomeLabel(outcome, needsAttention) {
+      if (needsAttention || outcome === "failed") {
+        return "Needs attention";
+      }
+      if (outcome === "running") {
+        return "Running";
+      }
+      if (outcome === "succeeded") {
+        return "Last run passed";
+      }
+      return "No runs yet";
+    }
+
+    function resetLabel(ticket) {
+      if (ticket.run_outcome === "failed") {
+        return "Try again";
+      }
+      return "Move to to do";
     }
 
     function groupTicketsByState(tickets) {
       const grouped = {
-        completed: [],
-        failed: [],
+        done: [],
         in_progress: [],
-        ready: [],
+        todo: [],
       };
 
       safeArray(tickets).forEach(ticket => {
-        const key = Object.hasOwn(grouped, ticket.state) ? ticket.state : "ready";
+        const key = Object.hasOwn(grouped, ticket.tracker_status) ? ticket.tracker_status : "todo";
         grouped[key].push(ticket);
       });
 
@@ -701,12 +744,18 @@
       selectedTicketId = "";
       document.getElementById("ticket-title").textContent = "Select a ticket";
       document.getElementById("ticket-description").textContent = message;
-      document.getElementById("ticket-meta").textContent = "Choose a ticket to see timestamps and failure details.";
+      document.getElementById("ticket-meta").textContent = "Choose a ticket to see tracker status, timestamps, and the latest run.";
       document.getElementById("comment-body").value = "";
       const stateEl = document.getElementById("ticket-state");
       stateEl.className = "pill neutral";
-      stateEl.textContent = "none";
-      document.getElementById("requeue-button").disabled = true;
+      stateEl.textContent = "No status";
+      const runEl = document.getElementById("ticket-run-outcome");
+      runEl.hidden = true;
+      runEl.className = "pill neutral";
+      runEl.textContent = "No runs yet";
+      const retryButton = document.getElementById("requeue-button");
+      retryButton.disabled = true;
+      retryButton.textContent = "Move to to do";
       renderComments([]);
       clearBoardSelection();
       closeModal();
@@ -730,9 +779,23 @@
       const title = document.createElement("strong");
       title.textContent = ticket.ticket.title;
 
+      const meta = document.createElement("div");
+      meta.className = "ticket-card-meta";
+      if (ticket.needs_attention) {
+        meta.classList.add("attention");
+        meta.textContent = ticket.failure_reason || "Latest run needs attention";
+      } else if (ticket.run_outcome === "running") {
+        meta.textContent = "Run in progress";
+      } else if (ticket.run_summary) {
+        meta.textContent = ticket.run_summary;
+      } else {
+        meta.textContent = ticket.ticket.description || "No extra detail";
+      }
+
       head.appendChild(id);
       button.appendChild(head);
       button.appendChild(title);
+      button.appendChild(meta);
       button.addEventListener("click", () => loadTicket(ticket.ticket.id));
       return button;
     }
@@ -760,14 +823,38 @@
       document.getElementById("ticket-description").textContent = ticket.ticket.description || "No description provided.";
 
       const stateEl = document.getElementById("ticket-state");
-      stateEl.className = `pill ${stateClass(ticket.state)}`;
-      stateEl.textContent = stateLabel(ticket.state);
+      stateEl.className = `pill ${trackerStatusClass(ticket.tracker_status)}`;
+      stateEl.textContent = trackerStatusLabel(ticket.tracker_status);
 
-      const failureText = ticket.failure_reason ? `Failure: ${ticket.failure_reason}` : "Failure: none";
-      document.getElementById("ticket-meta").textContent =
-        `Created ${formatTime(ticket.created_at)}. Updated ${formatTime(ticket.updated_at)}. ${failureText}`;
+      const runEl = document.getElementById("ticket-run-outcome");
+      runEl.hidden = ticket.run_outcome === "idle";
+      runEl.className = `pill ${runOutcomeClass(ticket.run_outcome)}`;
+      runEl.textContent = runOutcomeLabel(ticket.run_outcome, ticket.needs_attention);
 
-      document.getElementById("requeue-button").disabled = !canRequeue(ticket.state);
+      const metaParts = [
+        `Tracker status ${trackerStatusLabel(ticket.tracker_status)}`,
+        `Created ${formatTime(ticket.created_at)}`,
+        `Updated ${formatTime(ticket.updated_at)}`,
+      ];
+      if (ticket.run_outcome === "running") {
+        metaParts.push(`Current run started ${formatTime(ticket.in_progress_at)}`);
+      } else if (ticket.run_outcome === "failed") {
+        const reason = ticket.failure_reason || "No failure reason recorded";
+        metaParts.push(`Latest run failed ${formatTime(ticket.failed_at)}`);
+        metaParts.push(`Reason: ${reason}`);
+      } else if (ticket.run_outcome === "succeeded") {
+        metaParts.push(`Latest run completed ${formatTime(ticket.completed_at)}`);
+        if (ticket.run_summary) {
+          metaParts.push(`Summary: ${ticket.run_summary}`);
+        }
+      } else {
+        metaParts.push("No runs yet");
+      }
+      document.getElementById("ticket-meta").textContent = metaParts.join(". ");
+
+      const retryButton = document.getElementById("requeue-button");
+      retryButton.disabled = !ticket.run_again_allowed;
+      retryButton.textContent = resetLabel(ticket);
     }
 
     function renderComments(comments) {
@@ -928,7 +1015,9 @@
 
       const encodedTicketId = encodeURIComponent(selectedTicketId);
       await api(`/api/tickets/${encodedTicketId}/requeue`, {method: "POST"});
-      showToast("Ticket requeued");
+      const selectedTicket = ticketsCache.find(ticket => ticket.ticket.id === selectedTicketId);
+      const retryingFailedRun = selectedTicket && selectedTicket.run_outcome === "failed";
+      showToast(retryingFailedRun ? "Ticket queued for another run" : "Ticket moved to to do");
       await refreshTickets();
       await loadTicket(selectedTicketId);
     }

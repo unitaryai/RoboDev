@@ -64,24 +64,24 @@ func (b *Backend) Close() error {
 	return b.db.Close()
 }
 
-// PollReadyTickets returns ready tickets ordered by creation time.
+// PollReadyTickets returns to-do tickets that are queued for another run.
 func (b *Backend) PollReadyTickets(ctx context.Context) ([]ticketing.Ticket, error) {
 	return b.listReadyTickets(ctx)
 }
 
-// MarkInProgress marks the ticket as in progress unless it is already terminal.
+// MarkInProgress moves the tracker status to in progress and marks the run active.
 func (b *Backend) MarkInProgress(ctx context.Context, ticketID string) error {
-	return b.transitionTicket(ctx, ticketID, stateInProgress, eventMarkedInProgress, nil, "")
+	return b.transitionTicket(ctx, ticketID, eventMarkedInProgress, nil, "")
 }
 
-// MarkComplete marks the ticket as completed and records the task result.
+// MarkComplete moves the tracker status to done and records the task result.
 func (b *Backend) MarkComplete(ctx context.Context, ticketID string, result engine.TaskResult) error {
-	return b.transitionTicket(ctx, ticketID, stateCompleted, eventMarkedComplete, &result, "")
+	return b.transitionTicket(ctx, ticketID, eventMarkedComplete, &result, "")
 }
 
-// MarkFailed marks the ticket as failed and stores the failure reason.
+// MarkFailed stores the run failure without changing the tracker status class.
 func (b *Backend) MarkFailed(ctx context.Context, ticketID string, reason string) error {
-	return b.transitionTicket(ctx, ticketID, stateFailed, eventMarkedFailed, nil, reason)
+	return b.transitionTicket(ctx, ticketID, eventMarkedFailed, nil, reason)
 }
 
 // AddComment appends a durable system comment without changing ticket state.

@@ -74,7 +74,7 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 }
 
-func newTestHandler(t *testing.T) http.Handler {
+func newTestBackendAndHandler(t *testing.T) (*localticket.Backend, http.Handler) {
 	t.Helper()
 
 	backend, err := localticket.New(localticket.Config{StorePath: ":memory:"}, testLogger())
@@ -92,6 +92,13 @@ func newTestHandler(t *testing.T) http.Handler {
 
 	handler, err := NewHandler(testLogger(), backend)
 	require.NoError(t, err)
+	return backend, handler
+}
+
+func newTestHandler(t *testing.T) http.Handler {
+	t.Helper()
+
+	_, handler := newTestBackendAndHandler(t)
 	return handler
 }
 
@@ -115,11 +122,17 @@ func TestHandler_ListsTickets(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	var payload struct {
-		Tickets []localticket.StoredTicket `json:"tickets"`
+		Tickets []struct {
+			Ticket        ticketing.Ticket `json:"ticket"`
+			TrackerStatus string           `json:"tracker_status"`
+			RunOutcome    string           `json:"run_outcome"`
+		} `json:"tickets"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &payload))
 	require.Len(t, payload.Tickets, 1)
 	assert.Equal(t, "LOCAL-1", payload.Tickets[0].Ticket.ID)
+	assert.Equal(t, "todo", payload.Tickets[0].TrackerStatus)
+	assert.Equal(t, "idle", payload.Tickets[0].RunOutcome)
 }
 
 func TestHandler_ListsTicketsAsEmptyArrayWhenServiceReturnsNil(t *testing.T) {
@@ -135,7 +148,7 @@ func TestHandler_ListsTicketsAsEmptyArrayWhenServiceReturnsNil(t *testing.T) {
 }
 
 func TestHandler_CreatesCommentsAndRequeuesTickets(t *testing.T) {
-	handler := newTestHandler(t)
+	backend, handler := newTestBackendAndHandler(t)
 
 	createBody := bytes.NewBufferString(`{
 		"id":"LOCAL-2",
@@ -154,10 +167,26 @@ func TestHandler_CreatesCommentsAndRequeuesTickets(t *testing.T) {
 	handler.ServeHTTP(commentRec, commentReq)
 	require.Equal(t, http.StatusCreated, commentRec.Code)
 
+	require.NoError(t, backend.MarkFailed(context.Background(), "LOCAL-2", "worker stopped"))
+
 	requeueReq := httptest.NewRequest(http.MethodPost, "/api/tickets/LOCAL-2/requeue", nil)
 	requeueRec := httptest.NewRecorder()
 	handler.ServeHTTP(requeueRec, requeueReq)
 	require.Equal(t, http.StatusOK, requeueRec.Code)
+
+	var requeuePayload struct {
+		Ticket struct {
+			Ticket          ticketing.Ticket `json:"ticket"`
+			TrackerStatus   string           `json:"tracker_status"`
+			RunAgainAllowed bool             `json:"run_again_allowed"`
+			RunOutcome      string           `json:"run_outcome"`
+		} `json:"ticket"`
+	}
+	require.NoError(t, json.Unmarshal(requeueRec.Body.Bytes(), &requeuePayload))
+	assert.Equal(t, "LOCAL-2", requeuePayload.Ticket.Ticket.ID)
+	assert.Equal(t, "todo", requeuePayload.Ticket.TrackerStatus)
+	assert.Equal(t, "idle", requeuePayload.Ticket.RunOutcome)
+	assert.False(t, requeuePayload.Ticket.RunAgainAllowed)
 
 	commentsReq := httptest.NewRequest(http.MethodGet, "/api/tickets/LOCAL-2/comments", nil)
 	commentsRec := httptest.NewRecorder()
@@ -165,12 +194,16 @@ func TestHandler_CreatesCommentsAndRequeuesTickets(t *testing.T) {
 	require.Equal(t, http.StatusOK, commentsRec.Code)
 
 	var commentsPayload struct {
-		Comments []localticket.StoredComment `json:"comments"`
+		Comments []struct {
+			Kind string `json:"kind"`
+			Body string `json:"body"`
+		} `json:"comments"`
 	}
 	require.NoError(t, json.Unmarshal(commentsRec.Body.Bytes(), &commentsPayload))
-	require.Len(t, commentsPayload.Comments, 1)
-	assert.Equal(t, localticket.CommentKindUser, commentsPayload.Comments[0].Kind)
+	require.Len(t, commentsPayload.Comments, 2)
+	assert.Equal(t, "Note", commentsPayload.Comments[0].Kind)
 	assert.Equal(t, "Operator note", commentsPayload.Comments[0].Body)
+	assert.Equal(t, "System", commentsPayload.Comments[1].Kind)
 }
 
 func TestHandler_ListsCommentsAsEmptyArrayWhenServiceReturnsNil(t *testing.T) {
