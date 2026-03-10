@@ -6,293 +6,419 @@
   <title>RoboDev Local Tickets</title>
   <style>
     :root {
-      --bg: #f5efe4;
-      --panel: rgba(255, 250, 240, 0.9);
-      --ink: #1c221b;
-      --muted: #586257;
-      --line: rgba(28, 34, 27, 0.12);
-      --accent: #c45b35;
-      --accent-soft: #f3c8b7;
-      --ready: #176a52;
-      --progress: #8f5f12;
-      --failed: #a7372f;
-      --completed: #3864b3;
-      --shadow: 0 20px 60px rgba(28, 34, 27, 0.12);
+      --bg: #f4f5f7;
+      --panel: #ffffff;
+      --ink: #17212b;
+      --muted: #66717d;
+      --line: #d8dde6;
+      --soft: #eef1f5;
+      --accent: #2f6feb;
+      --ready: #0f766e;
+      --progress: #9a6700;
+      --completed: #3559b7;
+      --failed: #b42318;
+      --neutral: #7a8699;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
+      background: var(--bg);
       color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(196, 91, 53, 0.18), transparent 26rem),
-        radial-gradient(circle at bottom right, rgba(56, 100, 179, 0.16), transparent 24rem),
-        linear-gradient(180deg, #fbf7ef 0%, var(--bg) 100%);
-      font-family: "Avenir Next", "Segoe UI", sans-serif;
-      min-height: 100vh;
+      font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    .shell {
-      width: min(1400px, calc(100vw - 2rem));
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1380px, calc(100vw - 2rem));
       margin: 1rem auto;
       display: grid;
-      grid-template-columns: 360px 1fr;
+      gap: 0.75rem;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 1rem;
+      padding: 0.25rem 0;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .workspace {
+      display: block;
     }
 
     .panel {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      overflow: hidden;
+      border-radius: 14px;
     }
 
-    .masthead {
-      grid-column: 1 / -1;
-      padding: 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: end;
-      gap: 1rem;
-    }
-
-    .eyebrow {
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: var(--muted);
-      font-size: 0.72rem;
-      margin-bottom: 0.5rem;
-    }
-
-    h1, h2, h3 {
-      font-family: "Iowan Old Style", "Palatino Linotype", serif;
-      margin: 0;
-      font-weight: 700;
-    }
-
-    h1 { font-size: clamp(2.2rem, 4vw, 3.6rem); line-height: 0.95; }
-    h2 { font-size: 1.2rem; }
-    h3 { font-size: 1rem; }
-
-    .subhead {
-      color: var(--muted);
-      max-width: 56ch;
-      margin-top: 0.75rem;
-      line-height: 1.5;
-    }
-
-    .stats {
+    .board {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0.75rem;
-      width: min(520px, 100%);
+      padding: 0;
+      align-items: start;
+      background: transparent;
+      border: 0;
     }
 
-    .stat {
-      background: rgba(255,255,255,0.55);
+    .lane {
+      background: #fafbfc;
       border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 0.9rem 1rem;
+      border-radius: 12px;
+      display: grid;
+      grid-template-rows: auto minmax(110px, auto);
+      min-height: 0;
     }
 
-    .stat strong {
-      display: block;
-      font-size: 1.4rem;
-      font-family: "Iowan Old Style", "Palatino Linotype", serif;
-    }
-
-    .stat span { color: var(--muted); font-size: 0.84rem; }
-
-    .sidebar-header,
-    .detail-header,
-    .section {
-      padding: 1rem 1.1rem;
+    .lane-header {
+      display: flex;
+      align-items: center;
+      padding: 0.8rem 0.9rem;
       border-bottom: 1px solid var(--line);
     }
 
-    .section:last-child { border-bottom: 0; }
-
-    .ticket-list {
-      list-style: none;
-      padding: 0;
+    .lane-header h2 {
       margin: 0;
-      max-height: calc(100vh - 16rem);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .lane-list {
+      display: grid;
+      gap: 0.6rem;
+      align-content: start;
+      padding: 0.75rem;
       overflow: auto;
     }
 
-    .ticket-item button {
-      width: 100%;
-      border: 0;
-      background: transparent;
-      text-align: left;
-      padding: 1rem 1.1rem;
-      border-bottom: 1px solid var(--line);
-      cursor: pointer;
-      transition: background 150ms ease, transform 150ms ease;
-    }
-
-    .ticket-item button:hover,
-    .ticket-item button.active {
-      background: rgba(196, 91, 53, 0.08);
-    }
-
-    .ticket-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
+    .empty-lane,
+    .empty {
       color: var(--muted);
-      font-size: 0.82rem;
-      margin-bottom: 0.35rem;
+      font-size: 0.92rem;
+    }
+
+    .ticket-card {
+      width: 100%;
+      padding: 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      text-align: left;
+      cursor: pointer;
+      display: grid;
+      gap: 0.45rem;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    .ticket-card:hover,
+    .ticket-card.active {
+      border-color: rgba(47, 111, 235, 0.45);
+      box-shadow: 0 0 0 2px rgba(47, 111, 235, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .ticket-card-head {
+      display: flex;
+      align-items: center;
+    }
+
+    .ticket-id {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .ticket-card strong {
+      display: block;
+      font-size: 0.92rem;
+      line-height: 1.4;
     }
 
     .pill {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
+      justify-content: center;
       border-radius: 999px;
-      padding: 0.28rem 0.7rem;
-      font-size: 0.78rem;
+      padding: 0.18rem 0.6rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
+      white-space: nowrap;
       text-transform: capitalize;
-      background: rgba(28, 34, 27, 0.08);
+      background: #edf0f3;
+      color: var(--neutral);
     }
 
-    .pill.ready { color: var(--ready); background: rgba(23, 106, 82, 0.14); }
-    .pill.in_progress { color: var(--progress); background: rgba(143, 95, 18, 0.14); }
-    .pill.completed { color: var(--completed); background: rgba(56, 100, 179, 0.14); }
-    .pill.failed { color: var(--failed); background: rgba(167, 55, 47, 0.14); }
-
-    .detail {
-      display: grid;
-      grid-template-rows: auto auto 1fr;
-      min-height: calc(100vh - 12rem);
+    .pill.ready {
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--ready);
     }
 
-    .detail-summary {
+    .pill.in_progress {
+      background: rgba(154, 103, 0, 0.14);
+      color: var(--progress);
+    }
+
+    .pill.completed {
+      background: rgba(53, 89, 183, 0.12);
+      color: var(--completed);
+    }
+
+    .pill.failed {
+      background: rgba(180, 35, 24, 0.12);
+      color: var(--failed);
+    }
+
+    .pill.neutral {
+      background: #edf0f3;
+      color: var(--neutral);
+    }
+
+    .detail-panel {
+      padding: 0.9rem;
+    }
+
+    .detail-header {
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 1rem;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .detail-header-row {
+      display: flex;
       align-items: start;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .detail-header h2,
+    .composer-panel h2,
+    .activity h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .detail-description,
+    .meta-copy {
+      margin: 0;
+      color: var(--muted);
     }
 
     .detail-actions {
       display: flex;
-      gap: 0.75rem;
+      gap: 0.5rem;
       flex-wrap: wrap;
     }
 
-    .stack {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: 1fr 1fr;
-      padding: 1rem 1.1rem 1.3rem;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.6);
+    .meta-box {
       border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 1rem;
+      border-radius: 10px;
+      background: #fafbfc;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
     }
 
-    .card p { margin: 0.5rem 0 0; color: var(--muted); line-height: 1.5; }
-
-    .field-grid {
-      display: grid;
-      gap: 0.9rem;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .field-grid .wide { grid-column: 1 / -1; }
-
-    label {
+    .meta-label {
       display: block;
-      font-size: 0.84rem;
-      font-weight: 700;
-      color: var(--muted);
       margin-bottom: 0.35rem;
-    }
-
-    input, textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 0.85rem 0.95rem;
-      background: rgba(255,255,255,0.7);
-      color: var(--ink);
-      font: inherit;
-    }
-
-    textarea { min-height: 110px; resize: vertical; }
-
-    button.primary, button.secondary {
-      border: 0;
-      border-radius: 999px;
-      padding: 0.8rem 1rem;
+      color: var(--muted);
+      font-size: 0.78rem;
       font-weight: 700;
-      cursor: pointer;
-      font: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    button.primary {
-      color: white;
-      background: linear-gradient(135deg, #ca623b, #8d4328);
-    }
-
-    button.secondary {
-      background: rgba(28, 34, 27, 0.08);
-      color: var(--ink);
-    }
-
-    button.primary:disabled,
-    button.secondary:disabled {
-      cursor: not-allowed;
-      opacity: 0.55;
-    }
-
-    .comments {
-      padding: 1rem 1.1rem 1.4rem;
+    .comment-entry {
       display: grid;
-      gap: 0.85rem;
+      gap: 0.45rem;
+      margin: 0 0 1rem;
+    }
+
+    .advanced-fields,
+    .meta-toggle {
+      border-top: 1px solid var(--line);
+      margin-top: 0.9rem;
+      padding-top: 0.9rem;
+    }
+
+    .advanced-fields summary,
+    .meta-toggle summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      list-style: none;
+    }
+
+    .advanced-fields summary::-webkit-details-marker,
+    .meta-toggle summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .advanced-fields summary::after,
+    .meta-toggle summary::after {
+      content: " +";
+    }
+
+    .advanced-fields[open] summary::after,
+    .meta-toggle[open] summary::after {
+      content: " -";
+    }
+
+    .sidebar-view[hidden] {
+      display: none;
+    }
+
+    .activity {
+      display: grid;
+      gap: 0.65rem;
     }
 
     .comment {
       border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 0.9rem 1rem;
-      background: rgba(255,255,255,0.6);
+      border-radius: 10px;
+      padding: 0.75rem;
+      background: #ffffff;
     }
 
     .comment-head {
       display: flex;
       justify-content: space-between;
-      gap: 0.8rem;
+      gap: 0.75rem;
+      margin-bottom: 0.45rem;
       color: var(--muted);
-      font-size: 0.78rem;
-      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
     }
 
-    .empty {
+    .comment-body {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 0.65rem;
+      grid-template-columns: 1fr;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.3rem;
       color: var(--muted);
-      padding: 2rem 1.1rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 0.72rem 0.78rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 0.8rem;
+    }
+
+    .modal-shell {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgba(23, 33, 43, 0.28);
+    }
+
+    .modal-shell[hidden] {
+      display: none;
+    }
+
+    .modal {
+      width: min(640px, calc(100vw - 2rem));
+      max-height: calc(100vh - 2rem);
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 18px 60px rgba(23, 33, 43, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0.75rem 0.75rem 0;
+    }
+
+    button.primary,
+    button.secondary {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0.68rem 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    button.secondary {
+      background: #ffffff;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    button.primary:disabled,
+    button.secondary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
     }
 
     .toast {
       position: fixed;
       right: 1rem;
       bottom: 1rem;
-      background: rgba(28, 34, 27, 0.92);
-      color: white;
-      padding: 0.9rem 1rem;
-      border-radius: 14px;
-      box-shadow: var(--shadow);
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      background: rgba(23, 33, 43, 0.94);
+      color: #ffffff;
       opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 180ms ease, transform 180ms ease;
+      transform: translateY(8px);
+      transition: opacity 160ms ease, transform 160ms ease;
       pointer-events: none;
     }
 
@@ -301,106 +427,176 @@
       transform: translateY(0);
     }
 
-    @media (max-width: 980px) {
-      .shell { grid-template-columns: 1fr; }
-      .masthead { align-items: start; flex-direction: column; }
-      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .stack, .field-grid { grid-template-columns: 1fr; }
+    @media (max-width: 900px) {
+      .board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: calc(100vw - 1rem);
+        margin: 0.5rem auto 1rem;
+      }
+
+      .topbar {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .detail-header-row {
+        flex-direction: column;
+      }
+
+      .board {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-shell {
+        padding: 0.5rem;
+      }
+
+      .modal {
+        width: 100%;
+        max-height: calc(100vh - 1rem);
+      }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <section class="panel masthead">
-      <div>
-        <div class="eyebrow">Local Ticket Console</div>
-        <h1>RoboDev<br>Flight Deck</h1>
-        <p class="subhead">Create, inspect, annotate, and requeue local tickets without leaving the controller. The SQLite backend remains the source of truth.</p>
-      </div>
-      <div class="stats">
-        <div class="stat"><strong id="stat-total">0</strong><span>Total</span></div>
-        <div class="stat"><strong id="stat-ready">0</strong><span>Ready</span></div>
-        <div class="stat"><strong id="stat-progress">0</strong><span>In progress</span></div>
-        <div class="stat"><strong id="stat-terminal">0</strong><span>Terminal</span></div>
-      </div>
-    </section>
+  <div class="app">
+    <header class="topbar">
+      <h1>Local tickets</h1>
+      <button class="secondary" id="focus-create" type="button">New ticket</button>
+    </header>
 
-    <aside class="panel">
-      <div class="sidebar-header">
-        <h2>Tickets</h2>
-      </div>
-      <ul class="ticket-list" id="ticket-list"></ul>
-    </aside>
+    <div class="workspace">
+      <section class="panel board" id="ticket-board">
+        <section class="lane">
+          <div class="lane-header">
+            <h2>Ready</h2>
+          </div>
+          <div class="lane-list" id="lane-ready"></div>
+        </section>
 
-    <main class="panel detail">
-      <div class="detail-header">
-        <div class="detail-summary">
-          <div>
-            <div class="eyebrow">Selected Ticket</div>
-            <h2 id="ticket-title">No ticket selected</h2>
-            <p class="subhead" id="ticket-description">Create a local ticket to begin, or pick an existing record from the queue.</p>
+        <section class="lane">
+          <div class="lane-header">
+            <h2>In progress</h2>
           </div>
-          <div class="detail-actions">
-            <span id="ticket-state" class="pill ready">ready</span>
-            <button class="secondary" id="requeue-button" type="button">Requeue</button>
+          <div class="lane-list" id="lane-in_progress"></div>
+        </section>
+
+        <section class="lane">
+          <div class="lane-header">
+            <h2>Completed</h2>
           </div>
+          <div class="lane-list" id="lane-completed"></div>
+        </section>
+
+        <section class="lane">
+          <div class="lane-header">
+            <h2>Failed</h2>
+          </div>
+          <div class="lane-list" id="lane-failed"></div>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal-shell" id="modal-shell" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <button class="secondary" id="close-modal" type="button">Close</button>
+      </div>
+
+      <section class="detail-panel">
+        <div class="sidebar-view" id="detail-view">
+          <div class="detail-header">
+            <div class="detail-header-row">
+              <div>
+                <h2 id="ticket-title">Select a ticket</h2>
+                <p class="detail-description" id="ticket-description">Pick a card to inspect it.</p>
+              </div>
+              <div class="detail-actions">
+                <span id="ticket-state" class="pill neutral">none</span>
+                <button class="secondary" id="requeue-button" type="button">Requeue</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="comment-entry">
+            <label for="comment-body">Add note</label>
+            <textarea id="comment-body" placeholder="Leave a short note."></textarea>
+            <div class="button-row">
+              <button class="secondary" id="comment-button" type="button">Add note</button>
+            </div>
+          </div>
+
+          <details class="meta-toggle">
+            <summary>Meta</summary>
+            <div class="meta-box">
+              <p class="meta-copy" id="ticket-meta">Choose a ticket to see timestamps and failure details.</p>
+            </div>
+          </details>
+
+          <section class="activity">
+            <h3>Activity</h3>
+            <div id="comments" class="comments"></div>
+          </section>
         </div>
-      </div>
 
-      <div class="stack">
-        <section class="card">
-          <h3>Create Ticket</h3>
+        <div class="sidebar-view composer-panel" id="create-view" hidden>
+          <div class="detail-header">
+            <div class="detail-header-row">
+              <div>
+                <h2>New ticket</h2>
+                <p class="detail-description">Enough detail for a local run.</p>
+              </div>
+            </div>
+          </div>
+
           <div class="field-grid">
             <div>
               <label for="create-id">Ticket ID</label>
               <input id="create-id" placeholder="LOCAL-42">
             </div>
             <div>
-              <label for="create-type">Ticket Type</label>
-              <input id="create-type" placeholder="bug">
-            </div>
-            <div class="wide">
               <label for="create-title">Title</label>
-              <input id="create-title" placeholder="Tighten input validation on the status endpoint">
+              <input id="create-title" placeholder="Guard stale detail updates">
             </div>
             <div class="wide">
               <label for="create-description">Description</label>
-              <textarea id="create-description" placeholder="Describe the task with enough context for the agent."></textarea>
-            </div>
-            <div>
-              <label for="create-labels">Labels (comma-separated)</label>
-              <input id="create-labels" placeholder="robodev, urgent">
-            </div>
-            <div>
-              <label for="create-repo">Repository URL</label>
-              <input id="create-repo" placeholder="https://github.com/example/repo">
-            </div>
-            <div class="wide">
-              <label for="create-external">External URL</label>
-              <input id="create-external" placeholder="https://local.example/tickets/LOCAL-42">
+              <textarea id="create-description" placeholder="Enough context for a local run."></textarea>
             </div>
           </div>
-          <p>
-            <button class="primary" id="create-button" type="button">Create local ticket</button>
-          </p>
-        </section>
-
-        <section class="card">
-          <h3>Ticket Notes</h3>
-          <p id="ticket-meta">Select a ticket to see its timestamps, result, and current lifecycle state.</p>
-          <label for="comment-body">Add comment</label>
-          <textarea id="comment-body" placeholder="Leave a note for future runs or a local operator."></textarea>
-          <p>
-            <button class="secondary" id="comment-button" type="button">Add comment</button>
-          </p>
-        </section>
-      </div>
-
-      <section class="section">
-        <h3 style="padding: 0 1.1rem;">Comment Stream</h3>
-        <div class="comments" id="comments"></div>
+          <details class="advanced-fields">
+            <summary>More fields</summary>
+            <div class="field-grid">
+              <div>
+                <label for="create-type">Type</label>
+                <input id="create-type" placeholder="bug">
+              </div>
+              <div>
+                <label for="create-labels">Labels</label>
+                <input id="create-labels" placeholder="frontend, local">
+              </div>
+              <div>
+                <label for="create-repo">Repository URL</label>
+                <input id="create-repo" placeholder="https://github.com/example/repo">
+              </div>
+              <div>
+                <label for="create-external">External URL</label>
+                <input id="create-external" placeholder="https://local.example/tickets/LOCAL-42">
+              </div>
+            </div>
+          </details>
+          <div class="button-row">
+            <button class="primary" id="create-button" type="button">Create ticket</button>
+            <button class="secondary" id="cancel-create" type="button">Cancel</button>
+          </div>
+        </div>
       </section>
-    </main>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -408,6 +604,15 @@
   <script>
     let selectedTicketId = "";
     let ticketsCache = [];
+    let loadSequence = 0;
+    let sidebarMode = "detail";
+
+    const laneConfig = [
+      {key: "ready", label: "Ready"},
+      {key: "in_progress", label: "In progress"},
+      {key: "completed", label: "Completed"},
+      {key: "failed", label: "Failed"},
+    ];
 
     async function api(path, options = {}) {
       const response = await fetch(`.${path}`, {
@@ -430,8 +635,33 @@
     }
 
     function formatTime(value) {
-      if (!value) return "—";
+      if (!value) return " - ";
       return new Date(value).toLocaleString();
+    }
+
+    function safeArray(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
+    function setSidebarMode(mode) {
+      sidebarMode = mode;
+      const detailView = document.getElementById("detail-view");
+      const createView = document.getElementById("create-view");
+      const createButton = document.getElementById("focus-create");
+      const modal = document.getElementById("modal-shell");
+
+      detailView.hidden = mode !== "detail";
+      createView.hidden = mode !== "create";
+      createButton.textContent = mode === "create" ? "Close" : "New ticket";
+      modal.hidden = false;
+    }
+
+    function closeModal() {
+      document.getElementById("modal-shell").hidden = true;
+      document.getElementById("focus-create").textContent = "New ticket";
+      sidebarMode = "detail";
+      selectedTicketId = "";
+      renderBoard(ticketsCache);
     }
 
     function stateClass(state) {
@@ -443,90 +673,101 @@
       return (state || "ready").replaceAll("_", " ");
     }
 
-    function safeArray(value) {
-      return Array.isArray(value) ? value : [];
+    function canRequeue(state) {
+      return state === "completed" || state === "failed";
     }
 
-    function renderStats(tickets) {
-      const safeTickets = safeArray(tickets);
-      const counts = safeTickets.reduce((acc, ticket) => {
-        acc.total += 1;
-        if (ticket.state === "ready") acc.ready += 1;
-        if (ticket.state === "in_progress") acc.progress += 1;
-        if (ticket.state === "completed" || ticket.state === "failed") acc.terminal += 1;
-        return acc;
-      }, {total: 0, ready: 0, progress: 0, terminal: 0});
-      document.getElementById("stat-total").textContent = counts.total;
-      document.getElementById("stat-ready").textContent = counts.ready;
-      document.getElementById("stat-progress").textContent = counts.progress;
-      document.getElementById("stat-terminal").textContent = counts.terminal;
+    function groupTicketsByState(tickets) {
+      const grouped = {
+        completed: [],
+        failed: [],
+        in_progress: [],
+        ready: [],
+      };
+
+      safeArray(tickets).forEach(ticket => {
+        const key = Object.hasOwn(grouped, ticket.state) ? ticket.state : "ready";
+        grouped[key].push(ticket);
+      });
+
+      return grouped;
     }
 
-    function clearTicketDetail(message = "Create a local ticket to begin, or pick an existing record from the queue.") {
+    function clearBoardSelection() {
+      document.querySelectorAll(".ticket-card.active").forEach(card => card.classList.remove("active"));
+    }
+
+    function clearTicketDetail(message = "Pick a card to inspect it.") {
       selectedTicketId = "";
-      document.getElementById("ticket-title").textContent = "No ticket selected";
+      document.getElementById("ticket-title").textContent = "Select a ticket";
       document.getElementById("ticket-description").textContent = message;
-      document.getElementById("ticket-meta").textContent =
-        "Select a ticket to see its timestamps, result, and current lifecycle state.";
+      document.getElementById("ticket-meta").textContent = "Choose a ticket to see timestamps and failure details.";
       document.getElementById("comment-body").value = "";
       const stateEl = document.getElementById("ticket-state");
-      stateEl.className = "pill ready";
-      stateEl.textContent = "ready";
+      stateEl.className = "pill neutral";
+      stateEl.textContent = "none";
       document.getElementById("requeue-button").disabled = true;
       renderComments([]);
+      clearBoardSelection();
+      closeModal();
     }
 
-    function renderTicketList(tickets) {
-      const safeTickets = safeArray(tickets);
-      const list = document.getElementById("ticket-list");
-      list.innerHTML = "";
-      if (!safeTickets.length) {
-        list.innerHTML = `<li class="empty">No local tickets yet.</li>`;
-        return;
+    function buildTicketCard(ticket) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ticket-card";
+      if (ticket.ticket.id === selectedTicketId) {
+        button.classList.add("active");
       }
 
-      safeTickets.forEach(ticket => {
-        const item = document.createElement("li");
-        item.className = "ticket-item";
-        const button = document.createElement("button");
-        button.type = "button";
-        if (ticket.ticket.id === selectedTicketId) {
-          button.classList.add("active");
+      const head = document.createElement("div");
+      head.className = "ticket-card-head";
+
+      const id = document.createElement("span");
+      id.className = "ticket-id";
+      id.textContent = ticket.ticket.id;
+
+      const title = document.createElement("strong");
+      title.textContent = ticket.ticket.title;
+
+      head.appendChild(id);
+      button.appendChild(head);
+      button.appendChild(title);
+      button.addEventListener("click", () => loadTicket(ticket.ticket.id));
+      return button;
+    }
+
+    function renderBoard(tickets) {
+      const grouped = groupTicketsByState(tickets);
+
+      laneConfig.forEach(lane => {
+        const ticketsInLane = grouped[lane.key];
+        const laneRoot = document.getElementById(`lane-${lane.key}`);
+        laneRoot.innerHTML = "";
+        if (!ticketsInLane.length) {
+          laneRoot.innerHTML = `<div class="empty-lane">No tickets</div>`;
+          return;
         }
 
-        const meta = document.createElement("div");
-        meta.className = "ticket-meta";
-
-        const id = document.createElement("span");
-        id.textContent = ticket.ticket.id;
-
-        const pill = document.createElement("span");
-        pill.className = `pill ${stateClass(ticket.state)}`;
-        pill.textContent = stateLabel(ticket.state);
-
-        const title = document.createElement("strong");
-        title.textContent = ticket.ticket.title;
-
-        meta.appendChild(id);
-        meta.appendChild(pill);
-        button.appendChild(meta);
-        button.appendChild(title);
-        button.addEventListener("click", () => loadTicket(ticket.ticket.id));
-        item.appendChild(button);
-        list.appendChild(item);
+        ticketsInLane.forEach(ticket => laneRoot.appendChild(buildTicketCard(ticket)));
       });
     }
 
     function renderTicketDetail(ticket) {
       selectedTicketId = ticket.ticket.id;
-      document.getElementById("ticket-title").textContent = `${ticket.ticket.id} · ${ticket.ticket.title}`;
+      setSidebarMode("detail");
+      document.getElementById("ticket-title").textContent = `${ticket.ticket.id} - ${ticket.ticket.title}`;
       document.getElementById("ticket-description").textContent = ticket.ticket.description || "No description provided.";
+
       const stateEl = document.getElementById("ticket-state");
       stateEl.className = `pill ${stateClass(ticket.state)}`;
       stateEl.textContent = stateLabel(ticket.state);
+
+      const failureText = ticket.failure_reason ? `Failure: ${ticket.failure_reason}` : "Failure: none";
       document.getElementById("ticket-meta").textContent =
-        `Created ${formatTime(ticket.created_at)} · Updated ${formatTime(ticket.updated_at)} · Failure ${ticket.failure_reason || "none"}`;
-      document.getElementById("requeue-button").disabled = ticket.state === "in_progress";
+        `Created ${formatTime(ticket.created_at)}. Updated ${formatTime(ticket.updated_at)}. ${failureText}`;
+
+      document.getElementById("requeue-button").disabled = !canRequeue(ticket.state);
     }
 
     function renderComments(comments) {
@@ -534,12 +775,14 @@
       const root = document.getElementById("comments");
       root.innerHTML = "";
       if (!safeComments.length) {
-        root.innerHTML = `<div class="empty">No comments recorded yet.</div>`;
+        root.innerHTML = `<div class="empty">No activity yet.</div>`;
         return;
       }
+
       safeComments.forEach(comment => {
         const article = document.createElement("article");
         article.className = "comment";
+
         const head = document.createElement("div");
         head.className = "comment-head";
 
@@ -550,6 +793,7 @@
         createdAt.textContent = formatTime(comment.created_at);
 
         const body = document.createElement("div");
+        body.className = "comment-body";
         body.textContent = comment.body;
 
         head.appendChild(kind);
@@ -563,32 +807,44 @@
     async function refreshTickets() {
       const payload = await api("/api/tickets");
       ticketsCache = safeArray(payload.tickets);
-      renderStats(ticketsCache);
-      renderTicketList(ticketsCache);
+      renderBoard(ticketsCache);
+
       if (!ticketsCache.length) {
-        clearTicketDetail();
+        clearTicketDetail("No tickets yet.");
+        return;
+      }
+
+      if (!selectedTicketId) {
         return;
       }
 
       const hasSelectedTicket = ticketsCache.some(ticket => ticket.ticket.id === selectedTicketId);
       if (!hasSelectedTicket) {
-        await loadTicket(ticketsCache[0].ticket.id);
+        clearTicketDetail();
       }
     }
 
     async function loadTicket(ticketId) {
       selectedTicketId = ticketId;
-      renderTicketList(ticketsCache);
+      renderBoard(ticketsCache);
+      const requestId = ++loadSequence;
       const encodedTicketId = encodeURIComponent(ticketId);
       const [ticketPayload, commentsPayload] = await Promise.all([
         api(`/api/tickets/${encodedTicketId}`),
         api(`/api/tickets/${encodedTicketId}/comments`)
       ]);
+
+      if (requestId !== loadSequence || selectedTicketId !== ticketId) {
+        return;
+      }
+
       if (!ticketPayload.ticket) {
         throw new Error("Ticket response did not include a ticket");
       }
+
       renderTicketDetail(ticketPayload.ticket);
       renderComments(safeArray(commentsPayload.comments));
+      renderBoard(ticketsCache);
     }
 
     function resetCreateForm() {
@@ -604,6 +860,7 @@
     async function createTicket() {
       const id = document.getElementById("create-id").value.trim();
       const title = document.getElementById("create-title").value.trim();
+
       if (!id) {
         showToast("Ticket ID is required");
         return;
@@ -632,7 +889,9 @@
         method: "POST",
         body: JSON.stringify(payload),
       });
+
       resetCreateForm();
+      setSidebarMode("detail");
       showToast(`Created ${created.ticket.ticket.id}`);
       await refreshTickets();
       await loadTicket(created.ticket.ticket.id);
@@ -655,8 +914,9 @@
         method: "POST",
         body: JSON.stringify({body}),
       });
+
       document.getElementById("comment-body").value = "";
-      showToast("Comment added");
+      showToast("Note added");
       await loadTicket(selectedTicketId);
     }
 
@@ -665,12 +925,36 @@
         showToast("Select a ticket first");
         return;
       }
+
       const encodedTicketId = encodeURIComponent(selectedTicketId);
       await api(`/api/tickets/${encodedTicketId}/requeue`, {method: "POST"});
       showToast("Ticket requeued");
+      await refreshTickets();
       await loadTicket(selectedTicketId);
     }
 
+    document.getElementById("focus-create").addEventListener("click", () => {
+      if (!document.getElementById("modal-shell").hidden && sidebarMode === "create") {
+        closeModal();
+        return;
+      }
+      setSidebarMode("create");
+      window.setTimeout(() => {
+        document.getElementById("create-id").focus();
+      }, 0);
+    });
+    document.getElementById("cancel-create").addEventListener("click", () => closeModal());
+    document.getElementById("close-modal").addEventListener("click", () => closeModal());
+    document.getElementById("modal-shell").addEventListener("click", event => {
+      if (event.target === event.currentTarget) {
+        closeModal();
+      }
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeModal();
+      }
+    });
     document.getElementById("create-button").addEventListener("click", () => createTicket().catch(err => showToast(err.message)));
     document.getElementById("comment-button").addEventListener("click", () => addComment().catch(err => showToast(err.message)));
     document.getElementById("requeue-button").addEventListener("click", () => requeueTicket().catch(err => showToast(err.message)));
