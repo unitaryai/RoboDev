@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
@@ -1799,6 +1799,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#built-in-aws-secrets-manager-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in AWS Secrets Manager Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#namespace-per-tenant-isolation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2213,6 +2224,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#built-in-aws-secrets-manager-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in AWS Secrets Manager Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#namespace-per-tenant-isolation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2566,6 +2588,24 @@ Lease objects would allow multiple replicas with automatic failover.</p>
 <ul>
 <li>[ ] Add <code>--leader-elect</code> flag and Lease RBAC to the Helm chart</li>
 <li>[ ] Wire <code>leaderElect</code> option in <code>main.go</code> controller startup</li>
+</ul>
+<hr />
+<h3 id="built-in-aws-secrets-manager-backend">Built-in AWS Secrets Manager Backend<a class="headerlink" href="#built-in-aws-secrets-manager-backend" title="Permanent link">&para;</a></h3>
+<p><strong>Priority:</strong> Medium
+<strong>Scope:</strong> Medium
+<strong>Dependencies:</strong> Secrets plugin interface (complete), IRSA documentation</p>
+<p>A native <code>aws-sm</code> backend using the AWS SDK for Go v2 that resolves
+<code>aws-sm://secret-name#key</code> URIs directly against AWS Secrets Manager. On EKS
+with IRSA, authentication is automatic (no static credentials). This removes
+the need for a separate gRPC plugin binary or External Secrets Operator for
+teams that want direct AWS SM integration.</p>
+<ul>
+<li>[x] <code>pkg/plugin/secrets/awssm/</code> — built-in backend implementation</li>
+<li>[ ] IRSA service account annotation in Helm chart (opt-in)</li>
+<li>[x] Secret caching with configurable TTL (avoid per-request API calls)</li>
+<li>[x] Cross-account assume-role support for multi-tenant deployments</li>
+<li>[ ] Integration tests with localstack</li>
+<li>[x] Documentation in <code>docs/plugins/secrets.md</code></li>
 </ul>
 <hr />
 <h3 id="namespace-per-tenant-isolation">Namespace-Per-Tenant Isolation<a class="headerlink" href="#namespace-per-tenant-isolation" title="Permanent link">&para;</a></h3>
@@ -3120,6 +3160,12 @@ live controller and <code>main.go</code>:</p>
 <td>Leader Election (Controller HA)</td>
 <td>Low</td>
 <td>🚧 Not started</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Built-in AWS Secrets Manager Backend</td>
+<td>Medium</td>
+<td>🚧 Core complete; IRSA Helm annotation + localstack tests remaining</td>
 </tr>
 <tr>
 <td>—</td>
