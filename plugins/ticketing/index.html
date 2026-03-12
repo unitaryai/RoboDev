@@ -1568,6 +1568,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in: Local
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Built-in: Local">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-admin-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Admin Surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#writing-a-custom-ticketing-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2400,6 +2450,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in: Local
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Built-in: Local">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-admin-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Admin Surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#writing-a-custom-ticketing-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2870,6 +2970,60 @@
 <h3 id="required-permissions_2">Required Permissions<a class="headerlink" href="#required-permissions_2" title="Permanent link">&para;</a></h3>
 <p>The Linear API key needs <strong>read and write access</strong> to issues and comments in the target team. Create a key under <strong>Settings → API → Personal API keys</strong>. For service accounts, use a team-scoped API key under <strong>Settings → API → OAuth applications</strong>.</p>
 <hr />
+<h2 id="built-in-local">Built-in: Local<a class="headerlink" href="#built-in-local" title="Permanent link">&para;</a></h2>
+<p>The local backend (<code>pkg/plugin/ticketing/local/</code>) stores tickets in a local SQLite database and is intended for local development, demos, and evaluation runs where you want durable ticket lifecycle state without depending on GitHub, Linear, or Shortcut.</p>
+<h3 id="configuration_3">Configuration<a class="headerlink" href="#configuration_3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">ticketing</span><span class="p">:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">      </span><span class="nt">store_path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/data/local-ticketing.db&quot;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">      </span><span class="nt">seed_file</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/data/tasks.yaml&quot;</span><span class="w">   </span><span class="c1"># optional one-time import</span>
+</code></pre></div>
+<h3 id="behaviour_3">Behaviour<a class="headerlink" href="#behaviour_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Local Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PollReadyTickets</code></td>
+<td>Reads <code>To do</code> tickets whose last run is idle, ordered by creation time</td>
+</tr>
+<tr>
+<td><code>MarkInProgress</code></td>
+<td>Moves the ticket to <code>In progress</code>, marks the current run as active, and records an audit event</td>
+</tr>
+<tr>
+<td><code>MarkComplete</code></td>
+<td>Persists the full task result, adds a system comment, and moves the ticket to <code>Done</code></td>
+</tr>
+<tr>
+<td><code>MarkFailed</code></td>
+<td>Persists the failure reason, adds a system comment, and records the last run as failed without changing the tracker-facing board column</td>
+</tr>
+<tr>
+<td><code>AddComment</code></td>
+<td>Persists a durable comment on the ticket</td>
+</tr>
+</tbody>
+</table>
+<h3 id="local-admin-surface">Local Admin Surface<a class="headerlink" href="#local-admin-surface" title="Permanent link">&para;</a></h3>
+<p>When the local backend is enabled, RoboDev serves an embedded frontend on a dedicated local UI listener. By default it binds to <code>http://127.0.0.1:8082/</code>; override this with the <code>-local-ui-addr</code> flag if needed. The UI can:</p>
+<ul>
+<li>list local tickets and inspect their state</li>
+<li>present a generic local board with <code>To do</code>, <code>In progress</code>, and <code>Done</code> columns</li>
+<li>show the persisted comment stream</li>
+<li>create new local tickets</li>
+<li>add operator comments</li>
+<li>reset a completed ticket or a failed run back to <code>To do</code></li>
+</ul>
+<p>The optional <code>seed_file</code> is bootstrap input only. It is imported once when the backend starts and does not remain the source of truth after import.</p>
+<p>The legacy <code>ticketing.config.task_file</code> key is no longer supported. Use <code>ticketing.backend: local</code>, set <code>ticketing.config.store_path</code> to the SQLite database path, and optionally set <code>ticketing.config.seed_file</code> when you want to bootstrap local tickets from YAML.</p>
+<hr />
 <h2 id="writing-a-custom-ticketing-backend">Writing a Custom Ticketing Backend<a class="headerlink" href="#writing-a-custom-ticketing-backend" title="Permanent link">&para;</a></h2>
 <p>See the <a href="../writing-a-plugin/">Writing a Plugin</a> guide for complete examples in Go, Python, and TypeScript. Key design considerations:</p>
 <h3 id="idempotency">Idempotency<a class="headerlink" href="#idempotency" title="Permanent link">&para;</a></h3>
@@ -2925,14 +3079,14 @@
 </ul>
 <h2 id="protobuf-definition">Protobuf Definition<a class="headerlink" href="#protobuf-definition" title="Permanent link">&para;</a></h2>
 <p>The complete protobuf service is defined in <code>proto/ticketing.proto</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">service</span><span class="w"> </span><span class="n">TicketingBackend</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">Handshake</span><span class="p">(</span><span class="n">HandshakeRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">HandshakeResponse</span><span class="p">);</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">PollReadyTickets</span><span class="p">(</span><span class="n">PollReadyTicketsRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">PollReadyTicketsResponse</span><span class="p">);</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkInProgress</span><span class="p">(</span><span class="n">MarkInProgressRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkInProgressResponse</span><span class="p">);</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkComplete</span><span class="p">(</span><span class="n">MarkCompleteRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkCompleteResponse</span><span class="p">);</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkFailed</span><span class="p">(</span><span class="n">MarkFailedRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkFailedResponse</span><span class="p">);</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">AddComment</span><span class="p">(</span><span class="n">AddCommentRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">AddCommentResponse</span><span class="p">);</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">service</span><span class="w"> </span><span class="n">TicketingBackend</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">Handshake</span><span class="p">(</span><span class="n">HandshakeRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">HandshakeResponse</span><span class="p">);</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">PollReadyTickets</span><span class="p">(</span><span class="n">PollReadyTicketsRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">PollReadyTicketsResponse</span><span class="p">);</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkInProgress</span><span class="p">(</span><span class="n">MarkInProgressRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkInProgressResponse</span><span class="p">);</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkComplete</span><span class="p">(</span><span class="n">MarkCompleteRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkCompleteResponse</span><span class="p">);</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">MarkFailed</span><span class="p">(</span><span class="n">MarkFailedRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">MarkFailedResponse</span><span class="p">);</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="k">rpc</span><span class="w"> </span><span class="n">AddComment</span><span class="p">(</span><span class="n">AddCommentRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">AddCommentResponse</span><span class="p">);</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="p">}</span>
 </code></pre></div>
 <p>See <code>proto/common.proto</code> for the shared <code>Ticket</code>, <code>TaskResult</code>, and <code>HandshakeRequest</code>/<code>HandshakeResponse</code> message definitions.</p>
 
