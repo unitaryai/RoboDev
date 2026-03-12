@@ -487,6 +487,47 @@ engines:
 3. When the agent hits `--max-turns`, the retry pod receives `task.SessionID` and the agent is invoked with `--resume <session-id>` instead of a fresh session.
 4. The workspace directory is also persisted on the PVC (`OSMIA_WORKSPACE_DIR`), so `setup-claude.sh` skips the git-clone step on retry pods.
 
+#### Storage Cleanup
+
+Session data is ephemeral — it only needs to exist while retries are possible. Once a TaskRun reaches a terminal state (Succeeded, Failed with retries exhausted, or TimedOut), its session data can be removed. Osmia handles this automatically via a **background cleaner goroutine** (`internal/sessionstore/cleaner.go`) that runs inside the controller pod when session persistence is enabled.
+
+**How cleanup works:**
+
+The cleaner runs a sweep every hour (configurable) and removes session data older than `ttl_minutes` (default 1440 = 24 hours):
+
+| Backend | What gets cleaned | How |
+|---|---|---|
+| `shared-pvc` | Subdirectories on the shared PVC | The controller pod mounts the shared PVC at `/data/sessions`. The cleaner lists subdirectories and removes any whose modification time is older than the TTL. |
+| `per-taskrun-pvc` | Dedicated PVCs | The cleaner lists PVCs with the `osmia.io/task-run-id` label and deletes any whose creation timestamp is older than the TTL. |
+| `s3` | S3 objects by prefix | Not yet implemented. |
+
+**Important details:**
+
+- **PVC phase is intentionally not checked.** When an agent pod finishes and is deleted, its PVC remains in `Bound` phase — Kubernetes does not automatically transition it to `Released`. If the cleaner filtered by phase, PVCs would accumulate indefinitely. Age-based deletion is safe because the TTL guarantees the TaskRun is terminal and no pod is referencing the PVC.
+- **The `Cleanup()` method on each store is idempotent.** Calling it multiple times (e.g. after a controller restart) is safe — deleting an already-removed PVC is treated as success.
+- **The controller pod must mount the shared PVC** for the `shared-pvc` cleaner to work. The Helm chart handles this automatically: when `sessionPersistence.backend` is `shared-pvc`, the deployment template adds a `session-pvc` volume and mounts it at `/data/sessions`. If you deploy without the Helm chart, ensure the controller pod has the shared PVC mounted and pass the mount path as `PVCRootDir` in the `CleanerConfig`.
+- **`per-taskrun-pvc` cleanup requires RBAC.** The controller's service account needs `list` and `delete` permissions on `persistentvolumeclaims` in the target namespace. The Helm chart's default RBAC rules include these permissions.
+
+**Tuning the TTL:**
+
+Set `sessionPersistence.ttlMinutes` in `values.yaml`. A shorter TTL reduces storage usage but risks deleting session data before a long-running retry completes. A longer TTL is safer but accumulates more data. The default of 24 hours is conservative — most tasks complete retries within minutes.
+
+```yaml
+sessionPersistence:
+  enabled: true
+  backend: per-taskrun-pvc
+  ttlMinutes: 720   # 12 hours — more aggressive cleanup
+```
+
+**What happens if cleanup fails?**
+
+The cleaner logs warnings and continues to the next item. Failed deletions are retried on the next sweep (1 hour later). No session data is critical — worst case, stale PVCs occupy storage until manually removed. You can monitor cleanup via the controller's structured logs:
+
+```
+level=INFO msg="per-taskrun-pvc cleaner: deleted stale session PVC" pvc=osmia-session-tr-abc123
+level=WARN msg="per-taskrun-pvc cleaner: failed to delete stale PVC" pvc=osmia-session-tr-xyz error="..."
+```
+
 **Helm chart:** Set `sessionPersistence.enabled: true` and configure the chosen backend in `values.yaml`. The chart will create the shared PVC when `backend: shared-pvc` is selected.
 
 ---
