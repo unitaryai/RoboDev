@@ -16,6 +16,10 @@ import (
 	localticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/local"
 )
 
+// maxRequestBodyBytes caps the size of JSON request bodies to prevent
+// unbounded memory consumption from oversized payloads.
+const maxRequestBodyBytes = 1 << 20 // 1 MiB
+
 //go:embed index.html
 var assets embed.FS
 
@@ -147,6 +151,7 @@ func (h *Handler) handleCreateTicket(w http.ResponseWriter, r *http.Request) {
 		RepoURL     string   `json:"repo_url"`
 		ExternalURL string   `json:"external_url"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	if err := decodeJSONBody(r.Body, &req); err != nil {
 		h.writeError(w, err, http.StatusBadRequest)
 		return
@@ -189,6 +194,7 @@ func (h *Handler) handleAddComment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Body string `json:"body"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	if err := decodeJSONBody(r.Body, &req); err != nil {
 		h.writeError(w, err, http.StatusBadRequest)
 		return
@@ -212,6 +218,17 @@ func (h *Handler) handleAddComment(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleRequeueTicket(w http.ResponseWriter, r *http.Request) {
 	ticketID := r.PathValue("id")
+
+	existing, err := h.service.GetTicket(r.Context(), ticketID)
+	if err != nil {
+		h.writeError(w, err, statusFor(err))
+		return
+	}
+	if !runAgainAllowed(*existing) {
+		h.writeError(w, fmt.Errorf("ticket %q is not eligible for requeue", ticketID), http.StatusConflict)
+		return
+	}
+
 	if err := h.service.RequeueTicket(r.Context(), ticketID); err != nil {
 		h.writeError(w, err, statusFor(err))
 		return

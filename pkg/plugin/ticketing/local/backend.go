@@ -38,7 +38,9 @@ func New(cfg Config, logger *slog.Logger) (*Backend, error) {
 		logger = slog.Default()
 	}
 
-	db, err := openDatabase(cfg.StorePath)
+	ctx := context.Background()
+
+	db, err := openDatabase(ctx, cfg.StorePath)
 	if err != nil {
 		return nil, err
 	}
@@ -47,11 +49,11 @@ func New(cfg Config, logger *slog.Logger) (*Backend, error) {
 		db:     db,
 		logger: logger,
 	}
-	if err := backend.initialiseSchema(); err != nil {
+	if err := backend.initialiseSchema(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("initialising schema: %w", err)
 	}
-	if err := backend.importSeedFile(context.Background(), cfg.SeedFile); err != nil {
+	if err := backend.importSeedFile(ctx, cfg.SeedFile); err != nil {
 		db.Close()
 		return nil, err
 	}

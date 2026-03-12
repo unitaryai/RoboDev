@@ -818,6 +818,11 @@ func main() {
 			logger.Error("local ticketing UI server shutdown error", "error", err)
 		}
 	}
+	if localBackend != nil {
+		if err := localBackend.Close(); err != nil {
+			logger.Error("local ticketing backend close error", "error", err)
+		}
+	}
 	if webhookSrv != nil {
 		if err := webhookSrv.Shutdown(shutdownCtx); err != nil {
 			logger.Error("webhook server shutdown error", "error", err)

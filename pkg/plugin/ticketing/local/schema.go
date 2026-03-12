@@ -1,6 +1,7 @@
 package local
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -57,7 +58,7 @@ const (
 	createEventsTicketIdx   = `CREATE INDEX IF NOT EXISTS idx_ticket_events_ticket_created_at ON ticket_events(ticket_id, created_at, id)`
 )
 
-func openDatabase(path string) (*sql.DB, error) {
+func openDatabase(ctx context.Context, path string) (*sql.DB, error) {
 	if err := ensureStoreDirectory(path); err != nil {
 		return nil, err
 	}
@@ -69,7 +70,7 @@ func openDatabase(path string) (*sql.DB, error) {
 	if path == ":memory:" {
 		db.SetMaxOpenConns(1)
 	}
-	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+	if _, err := db.ExecContext(ctx, "PRAGMA journal_mode=WAL"); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("setting wal mode: %w", err)
 	}
@@ -90,7 +91,7 @@ func ensureStoreDirectory(path string) error {
 	return nil
 }
 
-func (b *Backend) initialiseSchema() error {
+func (b *Backend) initialiseSchema(ctx context.Context) error {
 	statements := []string{
 		createTicketsTable,
 		createCommentsTable,
@@ -101,7 +102,7 @@ func (b *Backend) initialiseSchema() error {
 	}
 
 	for _, statement := range statements {
-		if _, err := b.db.Exec(statement); err != nil {
+		if _, err := b.db.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("executing migration: %w", err)
 		}
 	}

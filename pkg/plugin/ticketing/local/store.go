@@ -48,6 +48,9 @@ func (b *Backend) GetTicket(ctx context.Context, id string) (*StoredTicket, erro
 
 	ticket, err := scanStoredTicket(row)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("ticket %q not found", id)
+		}
 		return nil, err
 	}
 

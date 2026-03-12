@@ -62,6 +62,9 @@ func loadSeedTickets(path string) ([]ticketing.Ticket, error) {
 		if task.ID == "" {
 			return nil, fmt.Errorf("seed file %q contains a task with an empty id", path)
 		}
+		if task.Title == "" {
+			return nil, fmt.Errorf("seed file %q contains task %q with an empty title", path, task.ID)
+		}
 		if _, exists := seen[task.ID]; exists {
 			return nil, fmt.Errorf("seed file %q contains duplicate ticket id %q", path, task.ID)
 		}

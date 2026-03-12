@@ -22,10 +22,18 @@ func TestLifecycleMethods_AreNoOps(t *testing.T) {
 	backend := New()
 	ctx := context.Background()
 
-	require.NoError(t, backend.MarkInProgress(ctx, "TICKET-1"))
-	require.NoError(t, backend.MarkComplete(ctx, "TICKET-1", engine.TaskResult{Summary: "done"}))
-	require.NoError(t, backend.MarkFailed(ctx, "TICKET-1", "boom"))
-	require.NoError(t, backend.AddComment(ctx, "TICKET-1", "comment"))
+	t.Run("MarkInProgress", func(t *testing.T) {
+		require.NoError(t, backend.MarkInProgress(ctx, "TICKET-1"))
+	})
+	t.Run("MarkComplete", func(t *testing.T) {
+		require.NoError(t, backend.MarkComplete(ctx, "TICKET-1", engine.TaskResult{Summary: "done"}))
+	})
+	t.Run("MarkFailed", func(t *testing.T) {
+		require.NoError(t, backend.MarkFailed(ctx, "TICKET-1", "boom"))
+	})
+	t.Run("AddComment", func(t *testing.T) {
+		require.NoError(t, backend.AddComment(ctx, "TICKET-1", "comment"))
+	})
 }
 
 func TestName(t *testing.T) {

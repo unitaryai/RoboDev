@@ -796,7 +796,7 @@
       button.appendChild(head);
       button.appendChild(title);
       button.appendChild(meta);
-      button.addEventListener("click", () => loadTicket(ticket.ticket.id));
+      button.addEventListener("click", () => loadTicket(ticket.ticket.id).catch(err => showToast(err.message)));
       return button;
     }
 
@@ -819,6 +819,7 @@
     function renderTicketDetail(ticket) {
       selectedTicketId = ticket.ticket.id;
       setSidebarMode("detail");
+      document.getElementById("comment-body").value = "";
       document.getElementById("ticket-title").textContent = `${ticket.ticket.id} - ${ticket.ticket.title}`;
       document.getElementById("ticket-description").textContent = ticket.ticket.description || "No description provided.";
 
@@ -972,16 +973,22 @@
         external_url: document.getElementById("create-external").value,
       };
 
-      const created = await api("/api/tickets", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const button = document.getElementById("create-button");
+      button.disabled = true;
+      try {
+        const created = await api("/api/tickets", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
 
-      resetCreateForm();
-      setSidebarMode("detail");
-      showToast(`Created ${created.ticket.ticket.id}`);
-      await refreshTickets();
-      await loadTicket(created.ticket.ticket.id);
+        resetCreateForm();
+        setSidebarMode("detail");
+        showToast(`Created ${created.ticket.ticket.id}`);
+        await refreshTickets();
+        await loadTicket(created.ticket.ticket.id);
+      } finally {
+        button.disabled = false;
+      }
     }
 
     async function addComment() {
@@ -996,15 +1003,21 @@
         return;
       }
 
-      const encodedTicketId = encodeURIComponent(selectedTicketId);
-      await api(`/api/tickets/${encodedTicketId}/comments`, {
-        method: "POST",
-        body: JSON.stringify({body}),
-      });
+      const button = document.getElementById("comment-button");
+      button.disabled = true;
+      try {
+        const encodedTicketId = encodeURIComponent(selectedTicketId);
+        await api(`/api/tickets/${encodedTicketId}/comments`, {
+          method: "POST",
+          body: JSON.stringify({body}),
+        });
 
-      document.getElementById("comment-body").value = "";
-      showToast("Note added");
-      await loadTicket(selectedTicketId);
+        document.getElementById("comment-body").value = "";
+        showToast("Note added");
+        await loadTicket(selectedTicketId);
+      } finally {
+        button.disabled = false;
+      }
     }
 
     async function requeueTicket() {
