@@ -54,12 +54,14 @@ type Task struct {
 }
 ```
 
-`PriorBranchName` and `SessionID` represent two alternative continuation strategies. The controller sets one or the other depending on whether session persistence is enabled:
+`PriorBranchName` and `SessionID` represent two continuation strategies that can coexist:
 
-| Field | Strategy | How it works |
-|---|---|---|
-| `PriorBranchName` | Git-based (default) | Retry prompt clones the prior branch; agent reads `git log` to understand prior work |
-| `SessionID` | Session persistence (opt-in) | `--resume <id>` restores the full conversation; the `## Continuation` prompt section is suppressed |
+| Field | Strategy | Who sets it | How it works |
+|---|---|---|---|
+| `PriorBranchName` | Git-based (default) | Controller, on retries | Retry prompt includes prior branch; agent reads `git log` to understand prior work |
+| `SessionID` | Session persistence (opt-in) | Controller, on retry jobs only | `--resume <id>` restores the full conversation; the `## Continuation` prompt section is suppressed |
+
+On first attempts, the controller does not set either field. When session persistence is enabled, the engine itself derives a deterministic session ID from `TaskRunID` and launches Claude Code with `--session-id <id>`. On subsequent retries the controller passes the known session ID via `SessionID`, and the engine switches to `--resume <id>` to continue the prior conversation.
 
 ### EngineConfig
 
