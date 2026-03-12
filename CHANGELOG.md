@@ -27,7 +27,7 @@ New configuration:
 
 ```yaml
 engines:
-  claude_code:
+  claude-code:
     session_persistence:
       enabled: true
       backend: shared-pvc

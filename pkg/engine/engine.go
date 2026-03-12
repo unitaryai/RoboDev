@@ -5,6 +5,8 @@
 // Kubernetes Jobs or other runtime constructs.
 package engine
 
+import "context"
+
 // TokenUsage tracks token consumption for cost accounting.
 type TokenUsage struct {
 	InputTokens  int `json:"input_tokens"`
@@ -121,6 +123,27 @@ type ExecutionSpec struct {
 	ResourceLimits        Resources               `json:"resource_limits"`
 	Volumes               []VolumeMount           `json:"volumes"`
 	ActiveDeadlineSeconds int                     `json:"active_deadline_seconds"`
+}
+
+// SessionStore manages persistent storage for agent session state between pod
+// restarts. Implementations live in internal/sessionstore; the interface is
+// defined here so that public engine packages (pkg/engine/claudecode) can
+// accept it without importing internal packages.
+type SessionStore interface {
+	// Prepare sets up storage for a TaskRun (e.g. creates a per-TaskRun PVC
+	// or ensures the S3 prefix exists). Must be called before the first job.
+	Prepare(ctx context.Context, taskRunID string) error
+
+	// VolumeMounts returns the additional volume mounts to add to the agent
+	// pod spec.
+	VolumeMounts(taskRunID string) []VolumeMount
+
+	// Env returns extra environment variables for the agent container.
+	Env(taskRunID, sessionID string) map[string]string
+
+	// Cleanup removes storage for a completed TaskRun. Safe to call multiple
+	// times; implementations must be idempotent.
+	Cleanup(ctx context.Context, taskRunID string) error
 }
 
 // ExecutionEngine wraps an AI coding tool (Claude Code, Codex, etc).

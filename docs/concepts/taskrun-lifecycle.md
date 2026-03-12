@@ -103,12 +103,14 @@ Retry is useful for transient failures (API timeouts, rate limits). Persistent f
 
 When an agent hits `--max-turns` and a retry is triggered, the retry pod needs to know where to pick up. Osmia supports two continuation strategies:
 
-| Strategy | Default? | How it works |
-|---|---|---|
-| **Git-based** | Yes | The prior run pushes its branch. The retry prompt includes `## Continuation` with instructions to clone that branch and read `git log --oneline -20` |
-| **Session persistence** | Opt-in | The `~/.claude/` directory and workspace are stored on a PVC. The retry pod resumes with `--resume <session-id>`, restoring the full conversation — no git-clone needed, no wasted turns |
+| Strategy | Default? | Engine support | How it works |
+|---|---|---|---|
+| **Git-based** | Yes | All engines | The prior run pushes its branch. The retry prompt includes `## Continuation` with instructions to clone that branch and read `git log --oneline -20` |
+| **Session persistence** | Opt-in | Claude Code only | The `~/.claude/` directory and workspace are stored on a PVC. The retry pod resumes with `--resume <session-id>`, restoring the full conversation — no git-clone needed, no wasted turns |
 
 Session persistence eliminates the main downside of git-based continuation: the retry agent must infer context from git history alone, spending turns re-reading code it already understood. With `--resume`, the agent continues as if the pod never restarted.
+
+> **Note:** Session persistence currently requires the Claude Code engine. It is configured via `session_persistence` on `ClaudeCodeEngineConfig` and relies on Claude Code's `--resume` flag and `$CLAUDE_CONFIG_DIR` for session state storage. Other engines (Codex, Aider, OpenCode) use git-based continuation only.
 
 See [Session Persistence](../plugins/engines.md#session-persistence) in the Claude Code engine docs for configuration details.
 

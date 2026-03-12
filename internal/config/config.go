@@ -644,4 +644,19 @@ func (c *Config) applyDefaults() {
 	if c.Routing.EpsilonGreedy == 0 {
 		c.Routing.EpsilonGreedy = 0.1
 	}
+
+	if c.Engines.ClaudeCode != nil {
+		sp := &c.Engines.ClaudeCode.SessionPersistence
+		if sp.Enabled {
+			if sp.StorageSize == "" {
+				sp.StorageSize = "1Gi"
+			}
+			if sp.S3Prefix == "" {
+				sp.S3Prefix = "osmia-sessions/"
+			}
+			if sp.TTLMinutes == 0 {
+				sp.TTLMinutes = 1440
+			}
+		}
+	}
 }

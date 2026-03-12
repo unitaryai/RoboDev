@@ -111,12 +111,13 @@ func (c *Cleaner) sweepSharedPVC(ctx context.Context) {
 		if !entry.IsDir() {
 			continue
 		}
-		info, err := entry.Info()
-		if err != nil {
+		dirPath := filepath.Join(c.pvcRootDir, entry.Name())
+		lastActivity := newestModTime(dirPath)
+		if lastActivity.IsZero() {
+			// Could not determine activity time; skip to avoid deleting active sessions.
 			continue
 		}
-		if info.ModTime().Before(cutoff) {
-			dirPath := filepath.Join(c.pvcRootDir, entry.Name())
+		if lastActivity.Before(cutoff) {
 			if err := os.RemoveAll(dirPath); err != nil {
 				c.logger.WarnContext(ctx, "shared-pvc cleaner: failed to remove stale session dir",
 					"dir", dirPath,
@@ -125,11 +126,33 @@ func (c *Cleaner) sweepSharedPVC(ctx context.Context) {
 			} else {
 				c.logger.InfoContext(ctx, "shared-pvc cleaner: removed stale session dir",
 					"dir", dirPath,
-					"mod_time", info.ModTime(),
+					"last_activity", lastActivity,
 				)
 			}
 		}
 	}
+}
+
+// newestModTime returns the most recent modification time among the immediate
+// children of dir. Writes under subdirectories like claude/ or workspace/ do
+// not update the parent directory's mtime, so checking children gives a more
+// accurate picture of when the session was last active.
+func newestModTime(dir string) time.Time {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return time.Time{}
+	}
+	var newest time.Time
+	for _, e := range entries {
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().After(newest) {
+			newest = info.ModTime()
+		}
+	}
+	return newest
 }
 
 // sweepPerTaskRunPVCs lists PVCs labelled with osmia.io/task-run-id and
