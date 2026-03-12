@@ -1731,6 +1731,62 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#session-persistence-for-agent-continuations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session Persistence for Agent Continuations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Breaking Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#removal-of-no_session_persistence-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removal of no_session_persistence flag
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1759,7 +1815,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -1986,7 +2042,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2103,7 +2159,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_2" class="md-nav__link">
+  <a href="#added_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2307,7 +2363,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_3" class="md-nav__link">
+  <a href="#added_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2857,6 +2913,62 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#session-persistence-for-agent-continuations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session Persistence for Agent Continuations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Breaking Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#removal-of-no_session_persistence-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removal of no_session_persistence flag
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2885,7 +2997,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3112,7 +3224,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3229,7 +3341,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_2" class="md-nav__link">
+  <a href="#added_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3433,7 +3545,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added_3" class="md-nav__link">
+  <a href="#added_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3958,6 +4070,51 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h4 id="session-persistence-for-agent-continuations">Session Persistence for Agent Continuations<a class="headerlink" href="#session-persistence-for-agent-continuations" title="Permanent link">&para;</a></h4>
+<p>Retry pods can now resume Claude Code sessions with full conversation history via
+<code>--resume &lt;session-id&gt;</code> instead of starting fresh and relying on git diffs alone.</p>
+<p>Three storage backends are available:</p>
+<ul>
+<li><strong><code>shared-pvc</code></strong> — a single ReadWriteMany PVC with per-TaskRun subdirectories (simplest to operate)</li>
+<li><strong><code>per-taskrun-pvc</code></strong> — a dynamically created/deleted PVC per TaskRun (stronger isolation)</li>
+<li><strong><code>s3</code></strong> — stub; full implementation pending init-container support in ExecutionSpec</li>
+</ul>
+<p><code>~/.claude/</code> (conversation history) is persisted, and the workspace can also be
+persisted depending on the configured backend, allowing retry pods to skip the
+git-clone step when the workspace is retained.</p>
+<p>New configuration:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">engines</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">claude-code</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">session_persistence</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">      </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">      </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-pvc</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">      </span><span class="nt">pvc_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">osmia-agent-sessions</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">      </span><span class="nt">ttl_minutes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1440</span>
+</code></pre></div>
+<p>New Helm values: <code>sessionPersistence.enabled</code>, <code>sessionPersistence.backend</code>,
+<code>sessionPersistence.sharedPVC</code>, <code>sessionPersistence.perTaskRunPVC</code>, <code>sessionPersistence.ttlMinutes</code>.</p>
+<p>New package: <code>internal/sessionstore</code> (<code>SharedPVCStore</code>, <code>PerTaskRunPVCStore</code>,
+<code>S3Store</code>, <code>Cleaner</code>).
+New interface: <code>pkg/engine.SessionStore</code>.</p>
+<p>New field: <code>Task.TaskRunID</code> — isolates session storage per execution attempt so
+retries of the same ticket do not share session data.</p>
+<p>New field: <code>Task.SessionID</code> — set by the controller on retry jobs so the engine
+knows to use <code>--resume</code> rather than <code>--session-id</code>.</p>
+<p>New field: <code>TaskRun.SessionID</code> — stores the session ID assigned to the first job.</p>
+<p>New event type: <code>agentstream.SystemEvent</code> — parses the system init event emitted
+by Claude Code at startup, capturing the session ID for belt-and-braces tracking.</p>
+<p>New field: <code>VolumeMount.PVCName</code> — allows the jobbuilder to back a volume with a
+PersistentVolumeClaim instead of emptyDir or ConfigMap.</p>
+<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
+<h4 id="removal-of-no_session_persistence-flag">Removal of <code>no_session_persistence</code> flag<a class="headerlink" href="#removal-of-no_session_persistence-flag" title="Permanent link">&para;</a></h4>
+<p>The <code>no_session_persistence</code> configuration field has been removed from
+<code>ClaudeCodeEngineConfig</code> and <code>EngineConfig</code>. The <code>--no-session-persistence</code> CLI
+flag was closed as NOT_PLANNED by Anthropic and removed from the Claude Code CLI,
+so passing it causes the agent to error.</p>
+<p><strong>Migration:</strong> Remove <code>no_session_persistence: true</code> from any <code>osmia-config.yaml</code>
+files. Session persistence is now disabled by default and must be explicitly
+opted in via <code>session_persistence.enabled: true</code>.</p>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <h4 id="project-renamed-from-robodev-to-osmia">Project Renamed from RoboDev to Osmia<a class="headerlink" href="#project-renamed-from-robodev-to-osmia" title="Permanent link">&para;</a></h4>
 <p>The project has been renamed from <strong>RoboDev</strong> to <strong>Osmia</strong> (the mason bee genus — solitary but incredibly efficient builders). All identifiers, paths, and references have been updated throughout the codebase:</p>
@@ -3974,7 +4131,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Config file: <code>robodev-config.yaml</code> → <code>osmia-config.yaml</code></li>
 <li>Hint file: <code>.robodev-hint.md</code> → <code>.osmia-hint.md</code></li>
 </ul>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <h4 id="aws-secrets-manager-backend">AWS Secrets Manager Backend<a class="headerlink" href="#aws-secrets-manager-backend" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong>Built-in AWS Secrets Manager secrets backend.</strong> New <code>aws-secrets-manager</code> backend (<code>pkg/plugin/secrets/awssm/</code>) reads secrets from AWS Secrets Manager via the AWS SDK v2 default credential chain. Supports IRSA on EKS, cross-account access via STS AssumeRole, configurable cache TTL (default 5 minutes), and the <code>secret-name#json-field</code> key format. URI scheme: <code>aws-sm://</code>. Configured via <code>secret_resolver.backends</code> in <code>robodev-config.yaml</code>.</li>
@@ -4091,7 +4248,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <hr />
 <h2 id="020-2026-03-05">[0.2.0] — 2026-03-05<a class="headerlink" href="#020-2026-03-05" title="Permanent link">&para;</a></h2>
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <h4 id="helm-chart-persistence">Helm Chart Persistence<a class="headerlink" href="#helm-chart-persistence" title="Permanent link">&para;</a></h4>
 <ul>
 <li>New <code>persistence</code> values block — when <code>persistence.enabled: true</code>, a PVC is
@@ -4141,7 +4298,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Fixed broken anchor link in <code>index.md</code> pointing to the Competitive Execution section.</li>
 </ul>
 <hr />
-<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
 <h4 id="prmr-comment-response-item-20">PR/MR Comment Response (Item 20)<a class="headerlink" href="#prmr-comment-response-item-20" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong><code>pkg/plugin/scm</code></strong> — <code>ReviewComment</code> type; <code>ListReviewComments</code>,
@@ -4452,7 +4609,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Update Docker Compose quickstart and Documentation Site status in <code>docs/roadmap.md</code> to reflect shipped work</li>
 <li>Sync all 13 items in <code>docs/improvements-plan.md</code> with actual implementation status (12 items were marked "Planned" despite being implemented)</li>
 </ul>
-<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
 <h4 id="dspy-inspired-llm-abstraction-internalllm">DSPy-Inspired LLM Abstraction (<code>internal/llm/</code>)<a class="headerlink" href="#dspy-inspired-llm-abstraction-internalllm" title="Permanent link">&para;</a></h4>
 <ul>
 <li>New <code>internal/llm/</code> package providing a typed, composable LLM abstraction inspired by DSPy</li>
