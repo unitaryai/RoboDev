@@ -137,6 +137,29 @@ plugin_health:
 	}
 }
 
+func TestLoad_RejectsNonStringLocalSeedFile(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "robodev-config.yaml")
+	err := os.WriteFile(tmp, []byte(`
+ticketing:
+  backend: local
+  config:
+    store_path: /tmp/local-ticketing.db
+    seed_file: 123
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`), 0o600)
+	require.NoError(t, err)
+
+	_, err = Load(tmp)
+	require.ErrorContains(t, err, "ticketing.config.seed_file must be a string")
+}
+
 func TestLoad_TaskProfiles(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -604,6 +627,126 @@ guardrails:
 			} else {
 				assert.Equal(t, tt.want, AgentTeamsConfig{})
 			}
+		})
+	}
+}
+
+func TestLoad_LocalTicketingConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		yaml    string
+		wantErr string
+	}{
+		{
+			name: "valid local ticketing config",
+			yaml: `
+ticketing:
+  backend: local
+  config:
+    store_path: /var/lib/robodev/local-ticketing.db
+    seed_file: /var/lib/robodev/tasks.yaml
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`,
+		},
+		{
+			name: "local ticketing requires store path",
+			yaml: `
+ticketing:
+  backend: local
+  config:
+    seed_file: /var/lib/robodev/tasks.yaml
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`,
+			wantErr: "ticketing.config.store_path is required",
+		},
+		{
+			name: "local ticketing rejects traversal in store path",
+			yaml: `
+ticketing:
+  backend: local
+  config:
+    store_path: ../local-ticketing.db
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`,
+			wantErr: "ticketing.config.store_path contains directory traversal component",
+		},
+		{
+			name: "local ticketing rejects traversal in seed file",
+			yaml: `
+ticketing:
+  backend: local
+  config:
+    store_path: /var/lib/robodev/local-ticketing.db
+    seed_file: ../tasks.yaml
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`,
+			wantErr: "ticketing.config.seed_file contains directory traversal component",
+		},
+		{
+			name: "legacy task file is rejected",
+			yaml: `
+ticketing:
+  config:
+    task_file: /var/lib/robodev/tasks.yaml
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`,
+			wantErr: "ticketing.config.task_file is no longer supported",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmp := filepath.Join(t.TempDir(), "robodev-config.yaml")
+			err := os.WriteFile(tmp, []byte(tt.yaml), 0o600)
+			require.NoError(t, err)
+
+			got, err := Load(tmp)
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			assert.Equal(t, "local", got.Ticketing.Backend)
+			assert.Equal(t, "/var/lib/robodev/local-ticketing.db", got.Ticketing.Config["store_path"])
+			assert.Equal(t, "/var/lib/robodev/tasks.yaml", got.Ticketing.Config["seed_file"])
 		})
 	}
 }

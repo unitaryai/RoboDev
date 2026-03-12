@@ -1,8 +1,8 @@
 //go:build integration
 
 // Package integration_test contains integration tests for local development
-// mode features: DockerBuilder job generation, noop file-watcher ticketing,
-// and builder selection logic.
+// mode features: DockerBuilder job generation, the local SQLite ticketing
+// backend, and builder selection logic.
 package integration_test
 
 import (
@@ -20,7 +20,7 @@ import (
 	"github.com/unitaryai/robodev/internal/sandboxbuilder"
 	"github.com/unitaryai/robodev/pkg/engine"
 	"github.com/unitaryai/robodev/pkg/engine/claudecode"
-	"github.com/unitaryai/robodev/pkg/plugin/ticketing/noop"
+	localticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/local"
 )
 
 // newSandboxBuilderForTest creates a SandboxBuilder with default config for tests.
@@ -52,24 +52,15 @@ func TestDockerBuilderProducesValidJob(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, job)
 
-	// Verify local backend annotation on Job metadata.
-	assert.Equal(t, "local", job.ObjectMeta.Annotations["robodev.io/execution-backend"],
-		"Job must be annotated with local execution backend")
-
-	// Verify local backend annotation on pod template.
-	assert.Equal(t, "local", job.Spec.Template.ObjectMeta.Annotations["robodev.io/execution-backend"],
-		"pod template must be annotated with local execution backend")
-
-	// Verify standard labels are present.
+	assert.Equal(t, "local", job.ObjectMeta.Annotations["robodev.io/execution-backend"])
+	assert.Equal(t, "local", job.Spec.Template.ObjectMeta.Annotations["robodev.io/execution-backend"])
 	assert.Equal(t, "robodev-agent", job.Labels["app"])
 	assert.Equal(t, "claude-code", job.Labels["robodev.io/engine"])
 	assert.Equal(t, "tr-local-1", job.Labels["robodev.io/task-run-id"])
 
-	// Verify container exists with correct image.
 	require.Len(t, job.Spec.Template.Spec.Containers, 1)
 	assert.Equal(t, spec.Image, job.Spec.Template.Spec.Containers[0].Image)
 
-	// Verify security context is present and restrictive.
 	sc := job.Spec.Template.Spec.Containers[0].SecurityContext
 	require.NotNil(t, sc)
 	assert.True(t, *sc.RunAsNonRoot)
@@ -77,14 +68,14 @@ func TestDockerBuilderProducesValidJob(t *testing.T) {
 	assert.False(t, *sc.AllowPrivilegeEscalation)
 }
 
-// TestNoopFileWatcherReadsTasks verifies that the noop backend configured
-// with a task file reads tickets from the YAML file.
-func TestNoopFileWatcherReadsTasks(t *testing.T) {
+// TestLocalBackendImportsSeedFile verifies that the local backend imports
+// ready tickets from a one-time seed file into SQLite.
+func TestLocalBackendImportsSeedFile(t *testing.T) {
 	t.Parallel()
 
-	// Create a temporary YAML task file.
 	dir := t.TempDir()
-	taskFile := filepath.Join(dir, "tasks.yaml")
+	seedFile := filepath.Join(dir, "tasks.yaml")
+	storePath := filepath.Join(dir, "local-ticketing.db")
 	content := `- id: "LOCAL-1"
   title: "First local task"
   description: "Description for first task"
@@ -95,74 +86,72 @@ func TestNoopFileWatcherReadsTasks(t *testing.T) {
   title: "Second local task"
   repo_url: "https://github.com/org/repo2"
 `
-	err := os.WriteFile(taskFile, []byte(content), 0644)
+	err := os.WriteFile(seedFile, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
-	backend := noop.NewWithTaskFile(logger, taskFile)
-
-	ctx := context.Background()
-	tickets, err := backend.PollReadyTickets(ctx)
+	backend, err := localticket.New(localticket.Config{
+		StorePath: storePath,
+		SeedFile:  seedFile,
+	}, logger)
 	require.NoError(t, err)
-	require.Len(t, tickets, 2, "should read 2 tickets from file")
+	t.Cleanup(func() {
+		require.NoError(t, backend.Close())
+	})
 
+	tickets, err := backend.PollReadyTickets(context.Background())
+	require.NoError(t, err)
+	require.Len(t, tickets, 2)
 	assert.Equal(t, "LOCAL-1", tickets[0].ID)
 	assert.Equal(t, "First local task", tickets[0].Title)
 	assert.Equal(t, "Description for first task", tickets[0].Description)
 	assert.Equal(t, "https://github.com/org/repo", tickets[0].RepoURL)
-
 	assert.Equal(t, "LOCAL-2", tickets[1].ID)
-	assert.Equal(t, "Second local task", tickets[1].Title)
 }
 
-// TestNoopFileWatcherExcludesProcessed verifies that after marking a ticket
-// in-progress, subsequent polls exclude that ticket.
-func TestNoopFileWatcherExcludesProcessed(t *testing.T) {
+// TestLocalBackendPersistsTicketState verifies that after moving a ticket to
+// in-progress, re-opening the backend does not re-expose it as ready work.
+func TestLocalBackendPersistsTicketState(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	taskFile := filepath.Join(dir, "tasks.yaml")
+	seedFile := filepath.Join(dir, "tasks.yaml")
+	storePath := filepath.Join(dir, "local-ticketing.db")
 	content := `- id: "EXCL-1"
   title: "Task one"
 - id: "EXCL-2"
   title: "Task two"
 `
-	err := os.WriteFile(taskFile, []byte(content), 0644)
+	err := os.WriteFile(seedFile, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
-	backend := noop.NewWithTaskFile(logger, taskFile)
+	backend, err := localticket.New(localticket.Config{
+		StorePath: storePath,
+		SeedFile:  seedFile,
+	}, logger)
+	require.NoError(t, err)
 
 	ctx := context.Background()
-
-	// First poll: both tickets returned.
 	tickets, err := backend.PollReadyTickets(ctx)
 	require.NoError(t, err)
 	require.Len(t, tickets, 2)
+	require.NoError(t, backend.MarkInProgress(ctx, "EXCL-1"))
+	require.NoError(t, backend.Close())
 
-	// Mark both in-progress.
-	for _, ticket := range tickets {
-		err = backend.MarkInProgress(ctx, ticket.ID)
-		require.NoError(t, err)
-	}
+	backend, err = localticket.New(localticket.Config{
+		StorePath: storePath,
+		SeedFile:  seedFile,
+	}, logger)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, backend.Close())
+	})
 
-	// Second poll: no tickets returned (all processed).
 	tickets, err = backend.PollReadyTickets(ctx)
 	require.NoError(t, err)
-	assert.Empty(t, tickets, "second poll should return empty after all tickets processed")
-}
-
-// TestNoopBackendWithoutFileReturnsEmpty verifies that the standard noop
-// backend (no task file) returns an empty ticket list.
-func TestNoopBackendWithoutFileReturnsEmpty(t *testing.T) {
-	t.Parallel()
-
-	backend := noop.New()
-	ctx := context.Background()
-
-	tickets, err := backend.PollReadyTickets(ctx)
-	require.NoError(t, err)
-	assert.Empty(t, tickets, "noop backend without task file should return empty")
+	require.Len(t, tickets, 1)
+	assert.Equal(t, "EXCL-2", tickets[0].ID)
 }
 
 // TestBuilderSelectionByBackend verifies that the execution backend
@@ -188,11 +177,11 @@ func TestBuilderSelectionByBackend(t *testing.T) {
 			wantSandbox: true,
 		},
 		{
-			name: "job_backend_selects_standard_builder",
+			name:    "job_backend_selects_standard_builder",
 			backend: "job",
 		},
 		{
-			name: "empty_backend_selects_standard_builder",
+			name:    "empty_backend_selects_standard_builder",
 			backend: "",
 		},
 	}
@@ -204,41 +193,27 @@ func TestBuilderSelectionByBackend(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Select the builder based on the backend string, mirroring
-			// the selection logic that main.go would use.
-			var builder interface {
-				Build(string, string, *engine.ExecutionSpec) (*interface{}, error)
-			}
-			_ = builder // we don't actually call it; we test the selection logic
-
 			switch tc.backend {
 			case "local":
 				db := jobbuilder.NewDockerBuilder("test-ns")
 				job, err := db.Build("tr-sel-1", "claude-code", spec)
 				require.NoError(t, err)
-				assert.Equal(t, "local", job.ObjectMeta.Annotations["robodev.io/execution-backend"],
-					"local backend must produce docker-annotated jobs")
+				assert.Equal(t, "local", job.ObjectMeta.Annotations["robodev.io/execution-backend"])
 
 			case "sandbox":
-				// Sandbox builder should produce jobs with RuntimeClassName.
-				// Importing sandboxbuilder here to verify the selection.
 				sb := newSandboxBuilderForTest("test-ns")
 				job, err := sb.Build("tr-sel-2", "claude-code", spec)
 				require.NoError(t, err)
 				require.NotNil(t, job.Spec.Template.Spec.RuntimeClassName)
-				assert.Equal(t, "gvisor", *job.Spec.Template.Spec.RuntimeClassName,
-					"sandbox backend must produce RuntimeClassName-annotated jobs")
+				assert.Equal(t, "gvisor", *job.Spec.Template.Spec.RuntimeClassName)
 
 			default:
-				// Standard builder: no backend annotation, no RuntimeClassName.
 				jb := jobbuilder.NewJobBuilder("test-ns")
 				job, err := jb.Build("tr-sel-3", "claude-code", spec)
 				require.NoError(t, err)
 				_, hasAnnotation := job.ObjectMeta.Annotations["robodev.io/execution-backend"]
-				assert.False(t, hasAnnotation,
-					"standard job backend must not have execution-backend annotation")
-				assert.Nil(t, job.Spec.Template.Spec.RuntimeClassName,
-					"standard job backend must not set RuntimeClassName")
+				assert.False(t, hasAnnotation)
+				assert.Nil(t, job.Spec.Template.Spec.RuntimeClassName)
 			}
 		})
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/unitaryai/robodev/internal/diagnosis"
 	"github.com/unitaryai/robodev/internal/estimator"
 	"github.com/unitaryai/robodev/internal/jobbuilder"
+	"github.com/unitaryai/robodev/internal/localui"
 	"github.com/unitaryai/robodev/internal/memory"
 	"github.com/unitaryai/robodev/internal/prm"
 	"github.com/unitaryai/robodev/internal/reviewpoller"
@@ -46,6 +47,7 @@ import (
 	// Ticketing backends.
 	ghticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/github"
 	linearticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/linear"
+	localticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/local"
 	noopticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/noop"
 	scticket "github.com/unitaryai/robodev/pkg/plugin/ticketing/shortcut"
 
@@ -82,6 +84,7 @@ import (
 func main() {
 	var (
 		configPath   = flag.String("config", "/etc/robodev/config.yaml", "path to the RoboDev configuration file")
+		localUIAddr  = flag.String("local-ui-addr", "127.0.0.1:8082", "address for the local ticketing UI when ticketing.backend=local")
 		metricsAddr  = flag.String("metrics-addr", ":8080", "address for the Prometheus metrics and health endpoints")
 		pollInterval = flag.Duration("poll-interval", 30*time.Second, "interval between ticketing backend polls")
 		namespace    = flag.String("namespace", "robodev", "kubernetes namespace for job creation")
@@ -95,6 +98,7 @@ func main() {
 
 	logger.Info("starting robodev controller",
 		"config", *configPath,
+		"local_ui_addr", *localUIAddr,
 		"metrics_addr", *metricsAddr,
 		"poll_interval", *pollInterval,
 		"namespace", *namespace,
@@ -127,6 +131,7 @@ func main() {
 	}
 
 	// --- Ticketing backend ---
+	var localBackend *localticket.Backend
 	var scBackend *scticket.ShortcutBackend
 	if cfg.Ticketing.Backend == "github" {
 		ghBackend, ghErr := initGitHubBackend(cfg, k8sClient, *namespace, logger)
@@ -156,17 +161,25 @@ func main() {
 			"workflow_state_id", scBackend.WorkflowStateID(),
 			"in_progress_state_id", scBackend.InProgressStateID(),
 		)
+	} else if cfg.Ticketing.Backend == "local" {
+		var localErr error
+		localBackend, localErr = initLocalBackend(cfg, logger)
+		if localErr != nil {
+			logger.Error("failed to initialise local ticketing backend", "error", localErr)
+			os.Exit(1)
+		}
+		opts = append(opts, controller.WithTicketing(localBackend))
+		logger.Info("local ticketing backend initialised")
 	} else if cfg.Ticketing.Backend != "" {
 		logger.Error("unsupported ticketing backend", "backend", cfg.Ticketing.Backend)
 		os.Exit(1)
 	} else {
-		// Check for a task_file in the ticketing config (file-watcher mode).
-		if taskFile, _, err := configStringOptional(cfg.Ticketing.Config, "task_file"); err != nil {
+		if taskFile, ok, err := configStringOptional(cfg.Ticketing.Config, "task_file"); err != nil {
 			logger.Error("invalid task_file config", "error", err)
 			os.Exit(1)
-		} else if taskFile != "" {
-			opts = append(opts, controller.WithTicketing(noopticket.NewWithTaskFile(logger, taskFile)))
-			logger.Info("noop ticketing with file-watcher enabled", "task_file", taskFile)
+		} else if ok && taskFile != "" {
+			logger.Error("ticketing.config.task_file is no longer supported; use ticketing.backend=local with ticketing.config.store_path and optional ticketing.config.seed_file")
+			os.Exit(1)
 		} else {
 			opts = append(opts, controller.WithTicketing(noopticket.New()))
 			logger.Info("no ticketing backend configured, using noop fallback")
@@ -693,11 +706,25 @@ func main() {
 			_, _ = w.Write([]byte("not ready"))
 		}
 	})
-
 	srv := &http.Server{
 		Addr:              *metricsAddr,
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	var localUISrv *http.Server
+	if localBackend != nil {
+		localUIHandler, uiErr := localui.NewHandler(logger.With("component", "local-ui"), localBackend)
+		if uiErr != nil {
+			logger.Error("failed to initialise local ticketing UI", "error", uiErr)
+			os.Exit(1)
+		}
+		localUISrv = &http.Server{
+			Addr:              *localUIAddr,
+			Handler:           localUIHandler,
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		logger.Info("local ticketing UI enabled", "addr", *localUIAddr, "url", fmt.Sprintf("http://%s/", *localUIAddr))
 	}
 
 	// Start the HTTP server in a goroutine.
@@ -708,6 +735,15 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	if localUISrv != nil {
+		go func() {
+			logger.Info("starting local ticketing UI server", "addr", localUISrv.Addr)
+			if err := localUISrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("local ticketing UI server failed", "error", err)
+				os.Exit(1)
+			}
+		}()
+	}
 
 	// Create the reconciler with all backends wired up.
 	reconciler := controller.NewReconciler(cfg, logger, opts...)
@@ -777,6 +813,16 @@ func main() {
 	defer shutdownCancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("http server shutdown error", "error", err)
+	}
+	if localUISrv != nil {
+		if err := localUISrv.Shutdown(shutdownCtx); err != nil {
+			logger.Error("local ticketing UI server shutdown error", "error", err)
+		}
+	}
+	if localBackend != nil {
+		if err := localBackend.Close(); err != nil {
+			logger.Error("local ticketing backend close error", "error", err)
+		}
 	}
 	if webhookSrv != nil {
 		if err := webhookSrv.Shutdown(shutdownCtx); err != nil {
@@ -1029,6 +1075,26 @@ func initShortcutBackend(cfg *config.Config, k8sClient kubernetes.Interface, nam
 	}
 
 	return backend, nil
+}
+
+// initLocalBackend creates and returns a local SQLite-backed ticketing backend
+// from the controller configuration.
+func initLocalBackend(cfg *config.Config, logger *slog.Logger) (*localticket.Backend, error) {
+	m := cfg.Ticketing.Config
+
+	storePath, err := configString(m, "store_path")
+	if err != nil {
+		return nil, err
+	}
+	seedFile, _, err := configStringOptional(m, "seed_file")
+	if err != nil {
+		return nil, err
+	}
+
+	return localticket.New(localticket.Config{
+		StorePath: storePath,
+		SeedFile:  seedFile,
+	}, logger)
 }
 
 // webhookAdapter wraps the controller's Reconciler to satisfy the

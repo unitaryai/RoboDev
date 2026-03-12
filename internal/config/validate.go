@@ -87,6 +87,31 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	if _, ok := c.Ticketing.Config["task_file"]; ok {
+		return fmt.Errorf("ticketing.config.task_file is no longer supported; use ticketing.backend=local with ticketing.config.store_path and optional ticketing.config.seed_file")
+	}
+
+	if c.Ticketing.Backend == "local" {
+		storePath, ok := c.Ticketing.Config["store_path"].(string)
+		if !ok || storePath == "" {
+			return fmt.Errorf("ticketing.config.store_path is required when ticketing.backend is %q", c.Ticketing.Backend)
+		}
+		if err := validateStorePath("ticketing.config.store_path", storePath); err != nil {
+			return err
+		}
+		if rawSeedFile, exists := c.Ticketing.Config["seed_file"]; exists {
+			seedFile, ok := rawSeedFile.(string)
+			if !ok {
+				return fmt.Errorf("ticketing.config.seed_file must be a string")
+			}
+			if seedFile != "" {
+				if err := validateStorePath("ticketing.config.seed_file", seedFile); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	if c.ReviewResponse.Enabled && c.ReviewResponse.MinSeverity != "" {
 		switch c.ReviewResponse.MinSeverity {
 		case "info", "warning", "error":

@@ -128,6 +128,25 @@ ticketing:
 | `labels` | No | Issues must carry at least one of these labels |
 | `exclude_labels` | No | Issues carrying any of these labels are skipped. Defaults to `["in-progress", "robodev-failed"]` |
 
+### Local
+
+```yaml
+ticketing:
+  backend: local
+  config:
+    store_path: "/data/local-ticketing.db"  # required
+    seed_file: "/data/tasks.yaml"           # optional one-time import
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `store_path` | Yes | SQLite database path for the local ticket store |
+| `seed_file` | No | YAML file imported once at startup; existing ticket IDs are left unchanged |
+
+When `ticketing.backend` is `local`, the controller exposes an embedded frontend on a dedicated local UI listener. By default it binds to `http://127.0.0.1:8082/`; override this with the `-local-ui-addr` flag if needed. That UI shows a small local board with `To do`, `In progress`, and `Done` columns, lets you inspect comment history, create tickets, add operator comments, and move tickets back to `To do` for another local run.
+
+The legacy `ticketing.config.task_file` key is no longer supported. Replace it with `ticketing.backend: local`, set `ticketing.config.store_path` to the SQLite database path, and optionally use `ticketing.config.seed_file` to import tickets from YAML once at startup.
+
 ## Engines
 
 ```yaml

@@ -1,0 +1,1068 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoboDev Local Tickets</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --panel: #ffffff;
+      --ink: #17212b;
+      --muted: #66717d;
+      --line: #d8dde6;
+      --soft: #eef1f5;
+      --accent: #2f6feb;
+      --todo: #0f766e;
+      --progress: #9a6700;
+      --done: #3559b7;
+      --attention: #b42318;
+      --neutral: #7a8699;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1380px, calc(100vw - 2rem));
+      margin: 1rem auto;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.25rem 0;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .workspace {
+      display: block;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      padding: 0;
+      align-items: start;
+      background: transparent;
+      border: 0;
+    }
+
+    .lane {
+      background: #fafbfc;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      display: grid;
+      grid-template-rows: auto minmax(110px, auto);
+      min-height: 0;
+    }
+
+    .lane-header {
+      display: flex;
+      align-items: center;
+      padding: 0.8rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .lane-header h2 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .lane-list {
+      display: grid;
+      gap: 0.6rem;
+      align-content: start;
+      padding: 0.75rem;
+      overflow: auto;
+    }
+
+    .empty-lane,
+    .empty {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .ticket-card {
+      width: 100%;
+      padding: 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      text-align: left;
+      cursor: pointer;
+      display: grid;
+      gap: 0.45rem;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    .ticket-card:hover,
+    .ticket-card.active {
+      border-color: rgba(47, 111, 235, 0.45);
+      box-shadow: 0 0 0 2px rgba(47, 111, 235, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .ticket-card-head {
+      display: flex;
+      align-items: center;
+    }
+
+    .ticket-id {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .ticket-card strong {
+      display: block;
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .ticket-card-meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .ticket-card-meta.attention {
+      color: var(--attention);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0.18rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+      text-transform: capitalize;
+      background: #edf0f3;
+      color: var(--neutral);
+    }
+
+    .pill.todo {
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--todo);
+    }
+
+    .pill.in_progress {
+      background: rgba(154, 103, 0, 0.14);
+      color: var(--progress);
+    }
+
+    .pill.done {
+      background: rgba(53, 89, 183, 0.12);
+      color: var(--done);
+    }
+
+    .pill.failed {
+      background: rgba(180, 35, 24, 0.12);
+      color: var(--attention);
+    }
+
+    .pill.succeeded {
+      background: rgba(53, 89, 183, 0.12);
+      color: var(--done);
+    }
+
+    .pill.running {
+      background: rgba(154, 103, 0, 0.14);
+      color: var(--progress);
+    }
+
+    .pill.neutral {
+      background: #edf0f3;
+      color: var(--neutral);
+    }
+
+    .detail-panel {
+      padding: 0.9rem;
+    }
+
+    .detail-header {
+      display: grid;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .detail-header-row {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .detail-header h2,
+    .composer-panel h2,
+    .activity h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .detail-description,
+    .meta-copy {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fafbfc;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .meta-label {
+      display: block;
+      margin-bottom: 0.35rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .comment-entry {
+      display: grid;
+      gap: 0.45rem;
+      margin: 0 0 1rem;
+    }
+
+    .advanced-fields,
+    .meta-toggle {
+      border-top: 1px solid var(--line);
+      margin-top: 0.9rem;
+      padding-top: 0.9rem;
+    }
+
+    .advanced-fields summary,
+    .meta-toggle summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      list-style: none;
+    }
+
+    .advanced-fields summary::-webkit-details-marker,
+    .meta-toggle summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .advanced-fields summary::after,
+    .meta-toggle summary::after {
+      content: " +";
+    }
+
+    .advanced-fields[open] summary::after,
+    .meta-toggle[open] summary::after {
+      content: " -";
+    }
+
+    .sidebar-view[hidden] {
+      display: none;
+    }
+
+    .activity {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .comment {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.75rem;
+      background: #ffffff;
+    }
+
+    .comment-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.45rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .comment-body {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 0.65rem;
+      grid-template-columns: 1fr;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.3rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 0.72rem 0.78rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 0.8rem;
+    }
+
+    .modal-shell {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgba(23, 33, 43, 0.28);
+    }
+
+    .modal-shell[hidden] {
+      display: none;
+    }
+
+    .modal {
+      width: min(640px, calc(100vw - 2rem));
+      max-height: calc(100vh - 2rem);
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 18px 60px rgba(23, 33, 43, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0.75rem 0.75rem 0;
+    }
+
+    button.primary,
+    button.secondary {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0.68rem 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    button.secondary {
+      background: #ffffff;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    button.primary:disabled,
+    button.secondary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .toast {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      background: rgba(23, 33, 43, 0.94);
+      color: #ffffff;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 900px) {
+      .board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: calc(100vw - 1rem);
+        margin: 0.5rem auto 1rem;
+      }
+
+      .topbar {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .detail-header-row {
+        flex-direction: column;
+      }
+
+      .board {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-shell {
+        padding: 0.5rem;
+      }
+
+      .modal {
+        width: 100%;
+        max-height: calc(100vh - 1rem);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>Local tickets</h1>
+      <button class="secondary" id="focus-create" type="button">New ticket</button>
+    </header>
+
+    <div class="workspace">
+      <section class="panel board" id="ticket-board">
+        <section class="lane">
+          <div class="lane-header">
+            <h2>To do</h2>
+          </div>
+          <div class="lane-list" id="lane-todo"></div>
+        </section>
+
+        <section class="lane">
+          <div class="lane-header">
+            <h2>In progress</h2>
+          </div>
+          <div class="lane-list" id="lane-in_progress"></div>
+        </section>
+
+        <section class="lane">
+          <div class="lane-header">
+            <h2>Done</h2>
+          </div>
+          <div class="lane-list" id="lane-done"></div>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal-shell" id="modal-shell" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <button class="secondary" id="close-modal" type="button">Close</button>
+      </div>
+
+      <section class="detail-panel">
+        <div class="sidebar-view" id="detail-view">
+          <div class="detail-header">
+            <div class="detail-header-row">
+              <div>
+                <h2 id="ticket-title">Select a ticket</h2>
+                <p class="detail-description" id="ticket-description">Pick a card to inspect it.</p>
+              </div>
+              <div class="detail-actions">
+                <span id="ticket-state" class="pill neutral">none</span>
+                <span id="ticket-run-outcome" class="pill neutral" hidden>none</span>
+                <button class="secondary" id="requeue-button" type="button">Move to to do</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="comment-entry">
+            <label for="comment-body">Add note</label>
+            <textarea id="comment-body" placeholder="Leave a short note."></textarea>
+            <div class="button-row">
+              <button class="secondary" id="comment-button" type="button">Add note</button>
+            </div>
+          </div>
+
+          <details class="meta-toggle">
+            <summary>Run details</summary>
+            <div class="meta-box">
+              <p class="meta-copy" id="ticket-meta">Choose a ticket to see tracker status, timestamps, and the latest run.</p>
+            </div>
+          </details>
+
+          <section class="activity">
+            <h3>Activity</h3>
+            <div id="comments" class="comments"></div>
+          </section>
+        </div>
+
+        <div class="sidebar-view composer-panel" id="create-view" hidden>
+          <div class="detail-header">
+            <div class="detail-header-row">
+              <div>
+                <h2>New ticket</h2>
+                <p class="detail-description">Enough detail for a local run.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <div>
+              <label for="create-id">Ticket ID</label>
+              <input id="create-id" placeholder="LOCAL-42">
+            </div>
+            <div>
+              <label for="create-title">Title</label>
+              <input id="create-title" placeholder="Guard stale detail updates">
+            </div>
+            <div class="wide">
+              <label for="create-description">Description</label>
+              <textarea id="create-description" placeholder="Enough context for a local run."></textarea>
+            </div>
+          </div>
+          <details class="advanced-fields">
+            <summary>More fields</summary>
+            <div class="field-grid">
+              <div>
+                <label for="create-type">Type</label>
+                <input id="create-type" placeholder="bug">
+              </div>
+              <div>
+                <label for="create-labels">Labels</label>
+                <input id="create-labels" placeholder="frontend, local">
+              </div>
+              <div>
+                <label for="create-repo">Repository URL</label>
+                <input id="create-repo" placeholder="https://github.com/example/repo">
+              </div>
+              <div>
+                <label for="create-external">External URL</label>
+                <input id="create-external" placeholder="https://local.example/tickets/LOCAL-42">
+              </div>
+            </div>
+          </details>
+          <div class="button-row">
+            <button class="primary" id="create-button" type="button">Create ticket</button>
+            <button class="secondary" id="cancel-create" type="button">Cancel</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let selectedTicketId = "";
+    let ticketsCache = [];
+    let loadSequence = 0;
+    let sidebarMode = "detail";
+
+    const laneConfig = [
+      {key: "todo", label: "To do"},
+      {key: "in_progress", label: "In progress"},
+      {key: "done", label: "Done"},
+    ];
+
+    async function api(path, options = {}) {
+      const response = await fetch(`.${path}`, {
+        headers: {"Content-Type": "application/json"},
+        ...options,
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || `Request failed with ${response.status}`);
+      }
+      return body;
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function formatTime(value) {
+      if (!value) return " - ";
+      return new Date(value).toLocaleString();
+    }
+
+    function safeArray(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
+    function setSidebarMode(mode) {
+      sidebarMode = mode;
+      const detailView = document.getElementById("detail-view");
+      const createView = document.getElementById("create-view");
+      const createButton = document.getElementById("focus-create");
+      const modal = document.getElementById("modal-shell");
+
+      detailView.hidden = mode !== "detail";
+      createView.hidden = mode !== "create";
+      createButton.textContent = mode === "create" ? "Close" : "New ticket";
+      modal.hidden = false;
+    }
+
+    function closeModal() {
+      document.getElementById("modal-shell").hidden = true;
+      document.getElementById("focus-create").textContent = "New ticket";
+      sidebarMode = "detail";
+      selectedTicketId = "";
+      renderBoard(ticketsCache);
+    }
+
+    function trackerStatusClass(status) {
+      const value = status || "todo";
+      return ["todo", "in_progress", "done"].includes(value) ? value : "todo";
+    }
+
+    function trackerStatusLabel(status) {
+      switch (status) {
+        case "done":
+          return "Done";
+        case "in_progress":
+          return "In progress";
+        default:
+          return "To do";
+      }
+    }
+
+    function runOutcomeClass(outcome) {
+      const value = outcome || "idle";
+      if (["failed", "running", "succeeded"].includes(value)) {
+        return value;
+      }
+      return "neutral";
+    }
+
+    function runOutcomeLabel(outcome, needsAttention) {
+      if (needsAttention || outcome === "failed") {
+        return "Needs attention";
+      }
+      if (outcome === "running") {
+        return "Running";
+      }
+      if (outcome === "succeeded") {
+        return "Last run passed";
+      }
+      return "No runs yet";
+    }
+
+    function resetLabel(ticket) {
+      if (ticket.run_outcome === "failed") {
+        return "Try again";
+      }
+      return "Move to to do";
+    }
+
+    function groupTicketsByState(tickets) {
+      const grouped = {
+        done: [],
+        in_progress: [],
+        todo: [],
+      };
+
+      safeArray(tickets).forEach(ticket => {
+        const key = Object.hasOwn(grouped, ticket.tracker_status) ? ticket.tracker_status : "todo";
+        grouped[key].push(ticket);
+      });
+
+      return grouped;
+    }
+
+    function clearBoardSelection() {
+      document.querySelectorAll(".ticket-card.active").forEach(card => card.classList.remove("active"));
+    }
+
+    function clearTicketDetail(message = "Pick a card to inspect it.") {
+      selectedTicketId = "";
+      document.getElementById("ticket-title").textContent = "Select a ticket";
+      document.getElementById("ticket-description").textContent = message;
+      document.getElementById("ticket-meta").textContent = "Choose a ticket to see tracker status, timestamps, and the latest run.";
+      document.getElementById("comment-body").value = "";
+      const stateEl = document.getElementById("ticket-state");
+      stateEl.className = "pill neutral";
+      stateEl.textContent = "No status";
+      const runEl = document.getElementById("ticket-run-outcome");
+      runEl.hidden = true;
+      runEl.className = "pill neutral";
+      runEl.textContent = "No runs yet";
+      const retryButton = document.getElementById("requeue-button");
+      retryButton.disabled = true;
+      retryButton.textContent = "Move to to do";
+      renderComments([]);
+      clearBoardSelection();
+      closeModal();
+    }
+
+    function buildTicketCard(ticket) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ticket-card";
+      if (ticket.ticket.id === selectedTicketId) {
+        button.classList.add("active");
+      }
+
+      const head = document.createElement("div");
+      head.className = "ticket-card-head";
+
+      const id = document.createElement("span");
+      id.className = "ticket-id";
+      id.textContent = ticket.ticket.id;
+
+      const title = document.createElement("strong");
+      title.textContent = ticket.ticket.title;
+
+      const meta = document.createElement("div");
+      meta.className = "ticket-card-meta";
+      if (ticket.needs_attention) {
+        meta.classList.add("attention");
+        meta.textContent = ticket.failure_reason || "Latest run needs attention";
+      } else if (ticket.run_outcome === "running") {
+        meta.textContent = "Run in progress";
+      } else if (ticket.run_summary) {
+        meta.textContent = ticket.run_summary;
+      } else {
+        meta.textContent = ticket.ticket.description || "No extra detail";
+      }
+
+      head.appendChild(id);
+      button.appendChild(head);
+      button.appendChild(title);
+      button.appendChild(meta);
+      button.addEventListener("click", () => loadTicket(ticket.ticket.id).catch(err => showToast(err.message)));
+      return button;
+    }
+
+    function renderBoard(tickets) {
+      const grouped = groupTicketsByState(tickets);
+
+      laneConfig.forEach(lane => {
+        const ticketsInLane = grouped[lane.key];
+        const laneRoot = document.getElementById(`lane-${lane.key}`);
+        laneRoot.innerHTML = "";
+        if (!ticketsInLane.length) {
+          laneRoot.innerHTML = `<div class="empty-lane">No tickets</div>`;
+          return;
+        }
+
+        ticketsInLane.forEach(ticket => laneRoot.appendChild(buildTicketCard(ticket)));
+      });
+    }
+
+    function renderTicketDetail(ticket) {
+      selectedTicketId = ticket.ticket.id;
+      setSidebarMode("detail");
+      document.getElementById("comment-body").value = "";
+      document.getElementById("ticket-title").textContent = `${ticket.ticket.id} - ${ticket.ticket.title}`;
+      document.getElementById("ticket-description").textContent = ticket.ticket.description || "No description provided.";
+
+      const stateEl = document.getElementById("ticket-state");
+      stateEl.className = `pill ${trackerStatusClass(ticket.tracker_status)}`;
+      stateEl.textContent = trackerStatusLabel(ticket.tracker_status);
+
+      const runEl = document.getElementById("ticket-run-outcome");
+      runEl.hidden = ticket.run_outcome === "idle";
+      runEl.className = `pill ${runOutcomeClass(ticket.run_outcome)}`;
+      runEl.textContent = runOutcomeLabel(ticket.run_outcome, ticket.needs_attention);
+
+      const metaParts = [
+        `Tracker status ${trackerStatusLabel(ticket.tracker_status)}`,
+        `Created ${formatTime(ticket.created_at)}`,
+        `Updated ${formatTime(ticket.updated_at)}`,
+      ];
+      if (ticket.run_outcome === "running") {
+        metaParts.push(`Current run started ${formatTime(ticket.in_progress_at)}`);
+      } else if (ticket.run_outcome === "failed") {
+        const reason = ticket.failure_reason || "No failure reason recorded";
+        metaParts.push(`Latest run failed ${formatTime(ticket.failed_at)}`);
+        metaParts.push(`Reason: ${reason}`);
+      } else if (ticket.run_outcome === "succeeded") {
+        metaParts.push(`Latest run completed ${formatTime(ticket.completed_at)}`);
+        if (ticket.run_summary) {
+          metaParts.push(`Summary: ${ticket.run_summary}`);
+        }
+      } else {
+        metaParts.push("No runs yet");
+      }
+      document.getElementById("ticket-meta").textContent = metaParts.join(". ");
+
+      const retryButton = document.getElementById("requeue-button");
+      retryButton.disabled = !ticket.run_again_allowed;
+      retryButton.textContent = resetLabel(ticket);
+    }
+
+    function renderComments(comments) {
+      const safeComments = safeArray(comments);
+      const root = document.getElementById("comments");
+      root.innerHTML = "";
+      if (!safeComments.length) {
+        root.innerHTML = `<div class="empty">No activity yet.</div>`;
+        return;
+      }
+
+      safeComments.forEach(comment => {
+        const article = document.createElement("article");
+        article.className = "comment";
+
+        const head = document.createElement("div");
+        head.className = "comment-head";
+
+        const kind = document.createElement("strong");
+        kind.textContent = comment.kind;
+
+        const createdAt = document.createElement("span");
+        createdAt.textContent = formatTime(comment.created_at);
+
+        const body = document.createElement("div");
+        body.className = "comment-body";
+        body.textContent = comment.body;
+
+        head.appendChild(kind);
+        head.appendChild(createdAt);
+        article.appendChild(head);
+        article.appendChild(body);
+        root.appendChild(article);
+      });
+    }
+
+    async function refreshTickets() {
+      const payload = await api("/api/tickets");
+      ticketsCache = safeArray(payload.tickets);
+      renderBoard(ticketsCache);
+
+      if (!ticketsCache.length) {
+        clearTicketDetail("No tickets yet.");
+        return;
+      }
+
+      if (!selectedTicketId) {
+        return;
+      }
+
+      const hasSelectedTicket = ticketsCache.some(ticket => ticket.ticket.id === selectedTicketId);
+      if (!hasSelectedTicket) {
+        clearTicketDetail();
+      }
+    }
+
+    async function loadTicket(ticketId) {
+      selectedTicketId = ticketId;
+      renderBoard(ticketsCache);
+      const requestId = ++loadSequence;
+      const encodedTicketId = encodeURIComponent(ticketId);
+      const [ticketPayload, commentsPayload] = await Promise.all([
+        api(`/api/tickets/${encodedTicketId}`),
+        api(`/api/tickets/${encodedTicketId}/comments`)
+      ]);
+
+      if (requestId !== loadSequence || selectedTicketId !== ticketId) {
+        return;
+      }
+
+      if (!ticketPayload.ticket) {
+        throw new Error("Ticket response did not include a ticket");
+      }
+
+      renderTicketDetail(ticketPayload.ticket);
+      renderComments(safeArray(commentsPayload.comments));
+      renderBoard(ticketsCache);
+    }
+
+    function resetCreateForm() {
+      document.getElementById("create-id").value = "";
+      document.getElementById("create-type").value = "";
+      document.getElementById("create-title").value = "";
+      document.getElementById("create-description").value = "";
+      document.getElementById("create-labels").value = "";
+      document.getElementById("create-repo").value = "";
+      document.getElementById("create-external").value = "";
+    }
+
+    async function createTicket() {
+      const id = document.getElementById("create-id").value.trim();
+      const title = document.getElementById("create-title").value.trim();
+
+      if (!id) {
+        showToast("Ticket ID is required");
+        return;
+      }
+      if (!title) {
+        showToast("Ticket title is required");
+        return;
+      }
+
+      const labels = document.getElementById("create-labels").value
+        .split(",")
+        .map(label => label.trim())
+        .filter(Boolean);
+
+      const payload = {
+        id,
+        title,
+        description: document.getElementById("create-description").value,
+        ticket_type: document.getElementById("create-type").value,
+        labels,
+        repo_url: document.getElementById("create-repo").value,
+        external_url: document.getElementById("create-external").value,
+      };
+
+      const button = document.getElementById("create-button");
+      button.disabled = true;
+      try {
+        const created = await api("/api/tickets", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+        resetCreateForm();
+        setSidebarMode("detail");
+        showToast(`Created ${created.ticket.ticket.id}`);
+        await refreshTickets();
+        await loadTicket(created.ticket.ticket.id);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function addComment() {
+      if (!selectedTicketId) {
+        showToast("Select a ticket first");
+        return;
+      }
+
+      const body = document.getElementById("comment-body").value.trim();
+      if (!body) {
+        showToast("Comment body is empty");
+        return;
+      }
+
+      const button = document.getElementById("comment-button");
+      button.disabled = true;
+      try {
+        const encodedTicketId = encodeURIComponent(selectedTicketId);
+        await api(`/api/tickets/${encodedTicketId}/comments`, {
+          method: "POST",
+          body: JSON.stringify({body}),
+        });
+
+        document.getElementById("comment-body").value = "";
+        showToast("Note added");
+        await loadTicket(selectedTicketId);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function requeueTicket() {
+      if (!selectedTicketId) {
+        showToast("Select a ticket first");
+        return;
+      }
+
+      const encodedTicketId = encodeURIComponent(selectedTicketId);
+      await api(`/api/tickets/${encodedTicketId}/requeue`, {method: "POST"});
+      const selectedTicket = ticketsCache.find(ticket => ticket.ticket.id === selectedTicketId);
+      const retryingFailedRun = selectedTicket && selectedTicket.run_outcome === "failed";
+      showToast(retryingFailedRun ? "Ticket queued for another run" : "Ticket moved to to do");
+      await refreshTickets();
+      await loadTicket(selectedTicketId);
+    }
+
+    document.getElementById("focus-create").addEventListener("click", () => {
+      if (!document.getElementById("modal-shell").hidden && sidebarMode === "create") {
+        closeModal();
+        return;
+      }
+      setSidebarMode("create");
+      window.setTimeout(() => {
+        document.getElementById("create-id").focus();
+      }, 0);
+    });
+    document.getElementById("cancel-create").addEventListener("click", () => closeModal());
+    document.getElementById("close-modal").addEventListener("click", () => closeModal());
+    document.getElementById("modal-shell").addEventListener("click", event => {
+      if (event.target === event.currentTarget) {
+        closeModal();
+      }
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeModal();
+      }
+    });
+    document.getElementById("create-button").addEventListener("click", () => createTicket().catch(err => showToast(err.message)));
+    document.getElementById("comment-button").addEventListener("click", () => addComment().catch(err => showToast(err.message)));
+    document.getElementById("requeue-button").addEventListener("click", () => requeueTicket().catch(err => showToast(err.message)));
+
+    clearTicketDetail();
+    refreshTickets().catch(err => showToast(err.message));
+  </script>
+</body>
+</html>

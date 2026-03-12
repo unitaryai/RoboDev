@@ -286,6 +286,48 @@ The Linear API key needs **read and write access** to issues and comments in the
 
 ---
 
+## Built-in: Local
+
+The local backend (`pkg/plugin/ticketing/local/`) stores tickets in a local SQLite database and is intended for local development, demos, and evaluation runs where you want durable ticket lifecycle state without depending on GitHub, Linear, or Shortcut.
+
+### Configuration
+
+```yaml
+config:
+  ticketing:
+    backend: local
+    config:
+      store_path: "/data/local-ticketing.db"
+      seed_file: "/data/tasks.yaml"   # optional one-time import
+```
+
+### Behaviour
+
+| Method | Local Action |
+|---|---|
+| `PollReadyTickets` | Reads `To do` tickets whose last run is idle, ordered by creation time |
+| `MarkInProgress` | Moves the ticket to `In progress`, marks the current run as active, and records an audit event |
+| `MarkComplete` | Persists the full task result, adds a system comment, and moves the ticket to `Done` |
+| `MarkFailed` | Persists the failure reason, adds a system comment, and records the last run as failed without changing the tracker-facing board column |
+| `AddComment` | Persists a durable comment on the ticket |
+
+### Local Admin Surface
+
+When the local backend is enabled, RoboDev serves an embedded frontend on a dedicated local UI listener. By default it binds to `http://127.0.0.1:8082/`; override this with the `-local-ui-addr` flag if needed. The UI can:
+
+- list local tickets and inspect their state
+- present a generic local board with `To do`, `In progress`, and `Done` columns
+- show the persisted comment stream
+- create new local tickets
+- add operator comments
+- reset a completed ticket or a failed run back to `To do`
+
+The optional `seed_file` is bootstrap input only. It is imported once when the backend starts and does not remain the source of truth after import.
+
+The legacy `ticketing.config.task_file` key is no longer supported. Use `ticketing.backend: local`, set `ticketing.config.store_path` to the SQLite database path, and optionally set `ticketing.config.seed_file` when you want to bootstrap local tickets from YAML.
+
+---
+
 ## Writing a Custom Ticketing Backend
 
 See the [Writing a Plugin](writing-a-plugin.md) guide for complete examples in Go, Python, and TypeScript. Key design considerations:
