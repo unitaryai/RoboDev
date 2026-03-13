@@ -34,7 +34,7 @@ New configuration fields:
 
 ```yaml
 engines:
-  claude_code:
+  claude-code:
     continuation_prompt: true    # opt-in (default false)
     max_continuations: 3         # maximum operator approvals per TaskRun (default 3)
 ```

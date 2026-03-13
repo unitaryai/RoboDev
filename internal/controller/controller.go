@@ -1863,6 +1863,11 @@ func (r *Reconciler) promptContinuation(ctx context.Context, tr *taskrun.TaskRun
 	tr.ApprovalGateType = "continuation"
 	r.mu.Unlock()
 
+	// The original K8s job has completed; decrement before waiting for approval
+	// to mirror the pre_merge gate flow (resolvePreMergeApproval decrements before
+	// launching the review job).
+	metrics.ActiveJobs.Dec()
+
 	if err := r.taskRunStore.Save(ctx, tr); err != nil {
 		r.logger.ErrorContext(ctx, "failed to save task run before continuation prompt",
 			"task_run_id", tr.ID,
@@ -1873,6 +1878,13 @@ func (r *Reconciler) promptContinuation(ctx context.Context, tr *taskrun.TaskRun
 	r.mu.RLock()
 	cachedTicket := r.ticketCache[tr.TicketID]
 	r.mu.RUnlock()
+
+	if cachedTicket.ID == "" {
+		r.logger.WarnContext(ctx, "ticket not in cache for continuation prompt",
+			"task_run_id", tr.ID,
+			"ticket_id", tr.TicketID,
+		)
+	}
 
 	if err := r.approvalBackend.RequestApproval(ctx, question, cachedTicket, tr.ID, []string{"continue", "stop"}); err != nil {
 		r.logger.ErrorContext(ctx, "failed to send continuation approval request",

@@ -82,8 +82,8 @@ type TaskRun struct {
 	TournamentState           string             `json:"tournament_state,omitempty"`
 
 	// ApprovalGateType records which approval gate this TaskRun is held at
-	// ("pre_start" or "pre_merge"), used by ResolveApproval to dispatch
-	// the correct resolution logic.
+	// ("pre_start", "pre_merge", or "continuation"), used by ResolveApproval
+	// to dispatch the correct resolution logic.
 	ApprovalGateType string `json:"approval_gate_type,omitempty"`
 
 	// SessionID is the Claude Code session ID assigned to the first job for

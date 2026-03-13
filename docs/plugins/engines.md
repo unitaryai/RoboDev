@@ -555,7 +555,7 @@ When an agent exhausts `--max-turns`, the default behaviour is to auto-retry usi
 ```yaml
 config:
   engines:
-    claude_code:
+    claude-code:
       continuation_prompt: true      # enable user-prompted continuation
       max_continuations: 3           # maximum times the operator can approve (default 3)
       session_persistence:
@@ -571,7 +571,7 @@ config:
 
 The Slack message sent to the approval channel looks like:
 
-```
+```text
 Task tr-abc123 has exhausted its turn limit (50 turns, $0.42).
 Progress: "Implemented the feature, tests passing, PR not yet raised."
 
