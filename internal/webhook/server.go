@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -47,21 +48,34 @@ type Server struct {
 	githubTriggerLabels []string
 }
 
-// Option is a functional option for configuring a Server.
-type Option func(*Server)
+// Option is a functional option for configuring a Server. Options may
+// return an error to abort server construction (e.g. when validation of
+// a configuration value fails).
+type Option func(*Server) error
 
 // WithSecret configures a webhook signing secret for the given source.
 // Supported sources: "github", "gitlab", "slack", "shortcut".
 func WithSecret(source, secret string) Option {
-	return func(s *Server) {
+	return func(s *Server) error {
 		s.secrets[source] = secret
+		return nil
 	}
 }
 
 // WithGenericConfig sets the configuration for the generic webhook handler.
+// The supplied config is validated and prepared for use (e.g. pre-constructing
+// the Svix verifier when AuthMode is svix); construction errors abort
+// NewServer rather than failing per-request.
 func WithGenericConfig(cfg *GenericConfig) Option {
-	return func(s *Server) {
+	return func(s *Server) error {
+		if cfg == nil {
+			return fmt.Errorf("generic webhook config: config is nil")
+		}
+		if err := cfg.Prepare(); err != nil {
+			return fmt.Errorf("generic webhook config: %w", err)
+		}
 		s.genericConfig = cfg
+		return nil
 	}
 }
 
@@ -70,8 +84,9 @@ func WithGenericConfig(cfg *GenericConfig) Option {
 // workflow state ID configured on the Shortcut ticketing backend so that only
 // relevant state transitions trigger task processing.
 func WithShortcutTargetStateID(id int64) Option {
-	return func(s *Server) {
+	return func(s *Server) error {
 		s.shortcutTargetStateID = id
+		return nil
 	}
 }
 
@@ -79,8 +94,9 @@ func WithShortcutTargetStateID(id int64) Option {
 // When set, approval actions from Slack (osmia_approval_*) are routed to
 // this handler instead of being logged and discarded.
 func WithApprovalHandler(h ApprovalHandler) Option {
-	return func(s *Server) {
+	return func(s *Server) error {
 		s.approvalHandler = h
+		return nil
 	}
 }
 
@@ -89,15 +105,17 @@ func WithApprovalHandler(h ApprovalHandler) Option {
 // opened/labelled issues are forwarded, which bypasses the trigger-label
 // contract enforced by the polling backend.
 func WithGitHubTriggerLabels(labels []string) Option {
-	return func(s *Server) {
+	return func(s *Server) error {
 		s.githubTriggerLabels = labels
+		return nil
 	}
 }
 
 // NewServer creates a new webhook Server with routes registered for each
 // supported source. The handler receives parsed webhook events. Use
-// functional options to configure per-source secrets.
-func NewServer(logger *slog.Logger, handler EventHandler, opts ...Option) *Server {
+// functional options to configure per-source secrets. Returns an error
+// when any option fails its validation (e.g. a malformed Svix secret).
+func NewServer(logger *slog.Logger, handler EventHandler, opts ...Option) (*Server, error) {
 	s := &Server{
 		mux:     http.NewServeMux(),
 		handler: handler,
@@ -106,7 +124,9 @@ func NewServer(logger *slog.Logger, handler EventHandler, opts ...Option) *Serve
 	}
 
 	for _, opt := range opts {
-		opt(s)
+		if err := opt(s); err != nil {
+			return nil, err
+		}
 	}
 
 	// Register routes.
@@ -117,7 +137,7 @@ func NewServer(logger *slog.Logger, handler EventHandler, opts ...Option) *Serve
 	s.mux.HandleFunc("POST /webhooks/generic", s.handleGeneric)
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
 
-	return s
+	return s, nil
 }
 
 // RegisterRoute adds a custom route to the server's mux. This can be used

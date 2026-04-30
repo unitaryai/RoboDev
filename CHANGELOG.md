@@ -43,6 +43,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Svix-style signature verification on the generic webhook**: new
+  `auth_mode: svix` for sources that sign with Svix conventions (incident.io,
+  Stripe, OpenAI, Linear, and many others). Verification is delegated to the
+  official `github.com/svix/svix-webhooks/go` library, which enforces the
+  five-minute replay window, supports both `svix-*` and enterprise
+  `webhook-*` header prefixes, handles `whsec_`-prefixed secrets, and
+  honours space-delimited signatures for key rotation. The verifier is
+  pre-constructed at controller startup via a new `GenericConfig.Prepare()`
+  method, automatically invoked by `WithGenericConfig`; misconfigured
+  secrets cause `NewServer` to return an error rather than failing at
+  request time.
 - **Escaped dots in generic webhook field_map paths**: path segments containing
   literal dots can now be addressed by escaping the dot with a backslash (e.g.
   `public_alert\.alert_created_v1.id`). This unblocks integration with sources

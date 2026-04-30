@@ -98,7 +98,8 @@ func TestHandleGitLab(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockEventHandler{}
-			srv := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+			srv, err := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+			require.NoError(t, err)
 
 			body, err := json.Marshal(tc.payload)
 			require.NoError(t, err)
@@ -128,7 +129,8 @@ func TestHandleGitLab(t *testing.T) {
 func TestHandleGitLab_IssueFields(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+	require.NoError(t, err)
 
 	payload := glWebhookPayload{
 		ObjectKind: "issue",
@@ -169,7 +171,8 @@ func TestHandleGitLab_IssueFields(t *testing.T) {
 func TestHandleGitLab_MalformedJSON(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/gitlab", bytes.NewReader([]byte(`not json`)))
 	req.Header.Set("Content-Type", "application/json")
@@ -184,7 +187,8 @@ func TestHandleGitLab_MalformedJSON(t *testing.T) {
 
 func TestHandleGitLab_MissingSecret(t *testing.T) {
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock) // no gitlab secret
+	srv, err := NewServer(testLogger(), mock) // no gitlab secret
+	require.NoError(t, err)
 
 	payload := glWebhookPayload{ObjectKind: "issue"}
 	body, _ := json.Marshal(payload)
@@ -202,7 +206,8 @@ func TestHandleGitLab_MissingSecret(t *testing.T) {
 func TestHandleGitLab_HandlerError(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{err: fmt.Errorf("handler failed")}
-	srv := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("gitlab", secret))
+	require.NoError(t, err)
 
 	payload := glWebhookPayload{
 		ObjectKind: "issue",

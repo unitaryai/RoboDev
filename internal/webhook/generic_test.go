@@ -2,14 +2,19 @@ package webhook
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	svix "github.com/svix/svix-webhooks/go"
 )
 
 func TestHandleGeneric_HMAC(t *testing.T) {
@@ -92,7 +97,8 @@ func TestHandleGeneric_HMAC(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockEventHandler{}
-			srv := NewServer(testLogger(), mock, WithGenericConfig(tc.cfg))
+			srv, err := NewServer(testLogger(), mock, WithGenericConfig(tc.cfg))
+			require.NoError(t, err)
 
 			body, err := json.Marshal(tc.payload)
 			require.NoError(t, err)
@@ -167,7 +173,8 @@ func TestHandleGeneric_Bearer(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockEventHandler{}
-			srv := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+			srv, err := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+			require.NoError(t, err)
 
 			payload := map[string]any{"id": "1", "title": "Test"}
 			body, _ := json.Marshal(payload)
@@ -201,7 +208,8 @@ func TestHandleGeneric_CustomSignatureHeader(t *testing.T) {
 	}
 
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+	srv, err := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+	require.NoError(t, err)
 
 	payload := map[string]any{"id": "1", "title": "Test"}
 	body, _ := json.Marshal(payload)
@@ -220,7 +228,8 @@ func TestHandleGeneric_CustomSignatureHeader(t *testing.T) {
 
 func TestHandleGeneric_NotConfigured(t *testing.T) {
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock) // no generic config
+	srv, err := NewServer(testLogger(), mock) // no generic config
+	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/generic", bytes.NewReader([]byte(`{}`)))
 	req.Header.Set("Content-Type", "application/json")
@@ -240,7 +249,8 @@ func TestHandleGeneric_MalformedJSON(t *testing.T) {
 	}
 
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+	srv, err := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+	require.NoError(t, err)
 
 	body := []byte(`not json`)
 	sig := computeGenericHMACSignature(body, secret)
@@ -264,7 +274,8 @@ func TestHandleGeneric_HandlerError(t *testing.T) {
 	}
 
 	mock := &mockEventHandler{err: fmt.Errorf("handler failed")}
-	srv := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+	srv, err := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+	require.NoError(t, err)
 
 	payload := map[string]any{"id": "1", "title": "Test"}
 	body, _ := json.Marshal(payload)
@@ -498,6 +509,288 @@ func TestValidateGenericHMACSignature(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := validateGenericHMACSignature(body, tc.sig, secret)
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestHandleGeneric_Svix(t *testing.T) {
+	// Svix verifies signatures with HMAC-SHA256, which uses 32-byte keys.
+	// Use random material to make the size-32 expectation explicit; the
+	// "whsec_" prefix + base64 encoding matches Svix's wire format.
+	keyBytes := make([]byte, 32)
+	_, err := rand.Read(keyBytes)
+	require.NoError(t, err)
+	wrongKeyBytes := make([]byte, 32)
+	_, err = rand.Read(wrongKeyBytes)
+	require.NoError(t, err)
+	secret := "whsec_" + base64.StdEncoding.EncodeToString(keyBytes)
+	wrongSecret := "whsec_" + base64.StdEncoding.EncodeToString(wrongKeyBytes)
+
+	cfg := &GenericConfig{
+		AuthMode: GenericAuthSvix,
+		Secret:   secret,
+		FieldMapping: map[string]string{
+			"id":    "id",
+			"title": "title",
+		},
+	}
+	require.NoError(t, cfg.Prepare())
+
+	payload := map[string]any{"id": "msg_001", "title": "Test"}
+	body, _ := json.Marshal(payload)
+
+	// Use the library to compute valid signatures so the test exercises
+	// the same code path the production handler relies on.
+	signWith := func(t *testing.T, msgSecret string, ts time.Time) string {
+		t.Helper()
+		wh, err := svix.NewWebhook(msgSecret)
+		require.NoError(t, err)
+		sig, err := wh.Sign("msg_2KWPB", ts, body)
+		require.NoError(t, err)
+		return sig
+	}
+
+	tests := []struct {
+		name        string
+		signSecret  string // empty means do not sign (test missing/invalid)
+		signAt      time.Time
+		idHeader    string
+		tsHeader    string // empty means derive from signAt
+		sigHeader   string // empty means compute via signWith
+		headerStyle string // "webhook" or "svix"
+		wantStatus  int
+		wantCalls   int
+	}{
+		{
+			name:        "valid signature with webhook- prefix",
+			signSecret:  secret,
+			signAt:      time.Now(),
+			idHeader:    "msg_2KWPB",
+			headerStyle: "webhook",
+			wantStatus:  http.StatusOK,
+			wantCalls:   1,
+		},
+		{
+			name:        "valid signature with svix- prefix",
+			signSecret:  secret,
+			signAt:      time.Now(),
+			idHeader:    "msg_2KWPB",
+			headerStyle: "svix",
+			wantStatus:  http.StatusOK,
+			wantCalls:   1,
+		},
+		{
+			name:        "wrong secret rejected",
+			signSecret:  wrongSecret,
+			signAt:      time.Now(),
+			idHeader:    "msg_2KWPB",
+			headerStyle: "webhook",
+			wantStatus:  http.StatusUnauthorized,
+			wantCalls:   0,
+		},
+		{
+			name:        "stale timestamp rejected",
+			signSecret:  secret,
+			signAt:      time.Now().Add(-10 * time.Minute),
+			idHeader:    "msg_2KWPB",
+			headerStyle: "webhook",
+			wantStatus:  http.StatusUnauthorized,
+			wantCalls:   0,
+		},
+		{
+			name:        "missing headers rejected",
+			signSecret:  "",
+			headerStyle: "webhook",
+			wantStatus:  http.StatusUnauthorized,
+			wantCalls:   0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockEventHandler{}
+			srv, err := NewServer(testLogger(), mock, WithGenericConfig(cfg))
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodPost, "/webhooks/generic", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			if tc.signSecret != "" {
+				ts := tc.signAt
+				sig := signWith(t, tc.signSecret, ts)
+				req.Header.Set(tc.headerStyle+"-id", tc.idHeader)
+				req.Header.Set(tc.headerStyle+"-timestamp", strconv.FormatInt(ts.Unix(), 10))
+				req.Header.Set(tc.headerStyle+"-signature", sig)
+			}
+
+			rec := httptest.NewRecorder()
+			srv.ServeHTTP(rec, req)
+
+			assert.Equal(t, tc.wantStatus, rec.Code)
+			assert.Len(t, mock.calls, tc.wantCalls)
+		})
+	}
+}
+
+func TestGenericConfigPrepare(t *testing.T) {
+	keyBytes := make([]byte, 32)
+	_, err := rand.Read(keyBytes)
+	require.NoError(t, err)
+	validSvixSecret := "whsec_" + base64.StdEncoding.EncodeToString(keyBytes)
+
+	tests := []struct {
+		name    string
+		cfg     *GenericConfig
+		wantErr string // substring; empty means success
+	}{
+		{
+			name: "valid hmac config",
+			cfg: &GenericConfig{
+				AuthMode: GenericAuthHMAC,
+				Secret:   "shared-secret",
+			},
+		},
+		{
+			name: "valid bearer config",
+			cfg: &GenericConfig{
+				AuthMode: GenericAuthBearer,
+				Secret:   "shared-token",
+			},
+		},
+		{
+			name: "valid svix config",
+			cfg: &GenericConfig{
+				AuthMode: GenericAuthSvix,
+				Secret:   validSvixSecret,
+			},
+		},
+		{
+			name: "missing secret",
+			cfg: &GenericConfig{
+				AuthMode: GenericAuthHMAC,
+			},
+			wantErr: "secret is required",
+		},
+		{
+			name: "missing auth_mode",
+			cfg: &GenericConfig{
+				Secret: "shared-secret",
+			},
+			wantErr: "auth_mode is required",
+		},
+		{
+			name: "unsupported auth_mode",
+			cfg: &GenericConfig{
+				AuthMode: "nope",
+				Secret:   "shared-secret",
+			},
+			wantErr: `unsupported auth_mode "nope"`,
+		},
+		{
+			name: "svix mode rejects signature_header",
+			cfg: &GenericConfig{
+				AuthMode:        GenericAuthSvix,
+				Secret:          validSvixSecret,
+				SignatureHeader: "X-Custom-Sig",
+			},
+			wantErr: "signature_header is not used in svix mode",
+		},
+		{
+			name: "svix with malformed whsec base64",
+			cfg: &GenericConfig{
+				AuthMode: GenericAuthSvix,
+				Secret:   "whsec_!!!notbase64!!!",
+			},
+			wantErr: "invalid svix secret",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.cfg.Prepare()
+			if tc.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.wantErr)
+		})
+	}
+}
+
+func TestGenericConfigPrepare_Idempotent(t *testing.T) {
+	keyBytes := make([]byte, 32)
+	_, err := rand.Read(keyBytes)
+	require.NoError(t, err)
+	cfg := &GenericConfig{
+		AuthMode: GenericAuthSvix,
+		Secret:   "whsec_" + base64.StdEncoding.EncodeToString(keyBytes),
+	}
+	require.NoError(t, cfg.Prepare())
+	first := cfg.svixWebhook
+	require.NotNil(t, first)
+
+	require.NoError(t, cfg.Prepare())
+	second := cfg.svixWebhook
+	require.NotNil(t, second)
+	// Second call rebuilds the verifier from scratch; identity is not
+	// preserved, but both calls succeed and leave the field populated.
+	_ = first
+	_ = second
+}
+
+func TestNewServer_GenericConfigErrors(t *testing.T) {
+	// WithGenericConfig invokes GenericConfig.Prepare() at server-construction
+	// time, so misconfiguration surfaces as a startup error instead of as a
+	// per-request 500. These cases mirror the validation paths in
+	// TestGenericConfigPrepare to confirm the error is propagated through
+	// NewServer.
+	tests := []struct {
+		name    string
+		cfg     *GenericConfig
+		wantErr string
+	}{
+		{
+			name:    "nil config",
+			cfg:     nil,
+			wantErr: "config is nil",
+		},
+		{
+			name:    "missing secret",
+			cfg:     &GenericConfig{AuthMode: GenericAuthHMAC},
+			wantErr: "secret is required",
+		},
+		{
+			name:    "unsupported auth mode",
+			cfg:     &GenericConfig{AuthMode: "nope", Secret: "x"},
+			wantErr: `unsupported auth_mode "nope"`,
+		},
+		{
+			name: "svix malformed secret",
+			cfg: &GenericConfig{
+				AuthMode: GenericAuthSvix,
+				Secret:   "whsec_!!!notbase64!!!",
+			},
+			wantErr: "invalid svix secret",
+		},
+		{
+			name: "svix mode rejects signature_header",
+			cfg: &GenericConfig{
+				AuthMode:        GenericAuthSvix,
+				Secret:          "whsec_" + base64.StdEncoding.EncodeToString(make([]byte, 32)),
+				SignatureHeader: "X-Foo",
+			},
+			wantErr: "signature_header is not used in svix mode",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockEventHandler{}
+			_, err := NewServer(testLogger(), mock, WithGenericConfig(tc.cfg))
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "generic webhook config")
+			assert.Contains(t, err.Error(), tc.wantErr)
 		})
 	}
 }

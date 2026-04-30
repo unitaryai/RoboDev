@@ -105,7 +105,8 @@ func TestHandleSlack(t *testing.T) {
 			if tc.secret != "" {
 				opts = append(opts, WithSecret("slack", tc.secret))
 			}
-			srv := NewServer(testLogger(), mock, opts...)
+			srv, err := NewServer(testLogger(), mock, opts...)
+			require.NoError(t, err)
 
 			body, err := json.Marshal(tc.payload)
 			require.NoError(t, err)
@@ -228,7 +229,8 @@ func TestHandleSlack_ApprovalCallbacks(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockEventHandler{}
 			ah := &mockApprovalHandler{}
-			srv := NewServer(testLogger(), mock, WithSecret("slack", secret), WithApprovalHandler(ah))
+			srv, err := NewServer(testLogger(), mock, WithSecret("slack", secret), WithApprovalHandler(ah))
+			require.NoError(t, err)
 
 			payload := makePayload(tc.actionID, tc.value)
 			body, err := json.Marshal(payload)
@@ -264,7 +266,8 @@ func TestHandleSlack_ApprovalCallbackWithoutHandler(t *testing.T) {
 	tsStr := strconv.FormatInt(now.Unix(), 10)
 
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock, WithSecret("slack", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("slack", secret))
+	require.NoError(t, err)
 
 	payload := slackInteractionPayload{
 		Type: "block_actions",
@@ -299,7 +302,8 @@ func TestHandleSlack_ApprovalCallbackWithoutHandler(t *testing.T) {
 func TestHandleSlack_MalformedJSON(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock, WithSecret("slack", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("slack", secret))
+	require.NoError(t, err)
 
 	body := []byte(`{invalid`)
 	tsStr := strconv.FormatInt(time.Now().Unix(), 10)
@@ -319,7 +323,8 @@ func TestHandleSlack_MalformedJSON(t *testing.T) {
 func TestHandleSlack_HandlerError(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{err: fmt.Errorf("handler failed")}
-	srv := NewServer(testLogger(), mock, WithSecret("slack", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("slack", secret))
+	require.NoError(t, err)
 
 	payload := slackInteractionPayload{
 		Type: "block_actions",
