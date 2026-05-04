@@ -4720,6 +4720,17 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Svix-style signature verification on the generic webhook</strong>: new
+  <code>auth_mode: svix</code> for sources that sign with Svix conventions (incident.io,
+  Stripe, OpenAI, Linear, and many others). Verification is delegated to the
+  official <code>github.com/svix/svix-webhooks/go</code> library, which enforces the
+  five-minute replay window, supports both <code>svix-*</code> and enterprise
+  <code>webhook-*</code> header prefixes, handles <code>whsec_</code>-prefixed secrets, and
+  honours space-delimited signatures for key rotation. The verifier is
+  pre-constructed at controller startup via a new <code>GenericConfig.Prepare()</code>
+  method, automatically invoked by <code>WithGenericConfig</code>; misconfigured
+  secrets cause <code>NewServer</code> to return an error rather than failing at
+  request time.</li>
 <li><strong>Escaped dots in generic webhook field_map paths</strong>: path segments containing
   literal dots can now be addressed by escaping the dot with a backslash (e.g.
   <code>public_alert\.alert_created_v1.id</code>). This unblocks integration with sources
