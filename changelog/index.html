@@ -4720,6 +4720,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Escaped dots in generic webhook field_map paths</strong>: path segments containing
+  literal dots can now be addressed by escaping the dot with a backslash (e.g.
+  <code>public_alert\.alert_created_v1.id</code>). This unblocks integration with sources
+  like incident.io, where the event type itself appears as a wrapper key in
+  the payload. A literal backslash in a segment is written as <code>\\</code>.</li>
 <li><strong>Smart secret key resolution</strong>: backends now try well-known key names
   (e.g. <code>SHORTCUT_API_TOKEN</code>, <code>GITLAB_TOKEN</code>, <code>SLACK_BOT_TOKEN</code>) before falling
   back to <code>token</code>. A single shared secret with descriptive keys works out of the
