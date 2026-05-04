@@ -40,6 +40,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   supplied URL is an instance URL (e.g. `https://gitlab.com`) rather than a full
   API URL. Previously, omitting the suffix caused all API requests to hit the
   GitLab web frontend, returning HTML instead of JSON.
+- **Generic webhook silently ignored from YAML config**: `webhook.generic` in
+  `osmia-config.yaml` was parsed into a `GenericWebhookConfig` struct but never
+  wired into the webhook server in `main.go`, so any configuration there was a
+  no-op. The runtime schema (`AuthMode`, `SignatureHeader`, `FieldMapping`) was
+  also wider than the config struct (`Secret`, `AuthToken`, `FieldMap`), with
+  no conversion in either direction. The config struct now mirrors the runtime
+  schema and the controller passes it through at startup, making the existing
+  `hmac` and `bearer` auth modes (and the field_map JSON extraction)
+  configurable from YAML.
 
 ### Added
 

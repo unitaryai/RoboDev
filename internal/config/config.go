@@ -141,10 +141,26 @@ type WebhookSourceConfig struct {
 }
 
 // GenericWebhookConfig holds settings for the generic webhook handler.
+// The schema mirrors the runtime webhook.GenericConfig so configuration
+// can be supplied through osmia-config.yaml.
 type GenericWebhookConfig struct {
-	Secret    string            `yaml:"secret,omitempty"`     // HMAC secret
-	AuthToken string            `yaml:"auth_token,omitempty"` // bearer token
-	FieldMap  map[string]string `yaml:"field_map,omitempty"`  // JSON field mapping
+	// AuthMode is the authentication method for incoming requests.
+	// Supported values: "hmac", "bearer". Required when the generic
+	// webhook is configured.
+	AuthMode string `yaml:"auth_mode"`
+
+	// Secret is the HMAC signing secret or bearer token, depending on
+	// AuthMode.
+	Secret string `yaml:"secret"`
+
+	// SignatureHeader overrides the default header used to read the
+	// HMAC signature ("X-Webhook-Signature"). Only relevant in HMAC mode.
+	SignatureHeader string `yaml:"signature_header,omitempty"`
+
+	// FieldMapping maps dot-notation JSON paths in the request body to
+	// ticket fields. Supported target fields: id, title, description,
+	// ticket_type, repo_url, external_url.
+	FieldMapping map[string]string `yaml:"field_mapping,omitempty"`
 }
 
 // SecretResolverConfig configures the task-scoped secret resolver.
