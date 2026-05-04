@@ -111,7 +111,8 @@ func TestHandleShortcut(t *testing.T) {
 			if tc.secret != "" {
 				opts = append(opts, WithSecret("shortcut", tc.secret))
 			}
-			srv := NewServer(testLogger(), mock, opts...)
+			srv, err := NewServer(testLogger(), mock, opts...)
+			require.NoError(t, err)
 
 			body, err := json.Marshal(tc.payload)
 			require.NoError(t, err)
@@ -146,7 +147,8 @@ func TestHandleShortcut(t *testing.T) {
 
 func TestHandleShortcut_MultipleActions(t *testing.T) {
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock)
+	srv, err := NewServer(testLogger(), mock)
+	require.NoError(t, err)
 
 	payload := scWebhookPayload{
 		Actions: []scAction{
@@ -189,7 +191,8 @@ func TestHandleShortcut_MultipleActions(t *testing.T) {
 
 func TestHandleShortcut_MalformedJSON(t *testing.T) {
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock)
+	srv, err := NewServer(testLogger(), mock)
+	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/shortcut", bytes.NewReader([]byte(`not json`)))
 	req.Header.Set("Content-Type", "application/json")
@@ -202,7 +205,8 @@ func TestHandleShortcut_MalformedJSON(t *testing.T) {
 
 func TestHandleShortcut_HandlerError(t *testing.T) {
 	mock := &mockEventHandler{err: fmt.Errorf("handler failed")}
-	srv := NewServer(testLogger(), mock)
+	srv, err := NewServer(testLogger(), mock)
+	require.NoError(t, err)
 
 	payload := scWebhookPayload{
 		Actions: []scAction{
@@ -283,7 +287,8 @@ func TestHandleShortcut_TargetStateFilter(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockEventHandler{}
-			srv := NewServer(testLogger(), mock, WithShortcutTargetStateID(targetState))
+			srv, err := NewServer(testLogger(), mock, WithShortcutTargetStateID(targetState))
+			require.NoError(t, err)
 
 			payload := scWebhookPayload{Actions: []scAction{tc.action}}
 			body, _ := json.Marshal(payload)
@@ -303,7 +308,8 @@ func TestHandleShortcut_TargetStateFilter(t *testing.T) {
 func TestHandleShortcut_NoTargetStateFilter_AllUpdatesForwarded(t *testing.T) {
 	// Without a target state ID, all story updates pass through (existing behaviour).
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock) // no WithShortcutTargetStateID
+	srv, err := NewServer(testLogger(), mock) // no WithShortcutTargetStateID
+	require.NoError(t, err)
 
 	payload := scWebhookPayload{
 		Actions: []scAction{
@@ -331,7 +337,8 @@ func TestHandleShortcut_NoTargetStateFilter_AllUpdatesForwarded(t *testing.T) {
 }
 
 func TestWithShortcutTargetStateID(t *testing.T) {
-	srv := NewServer(testLogger(), &mockEventHandler{}, WithShortcutTargetStateID(500))
+	srv, err := NewServer(testLogger(), &mockEventHandler{}, WithShortcutTargetStateID(500))
+	require.NoError(t, err)
 	assert.Equal(t, int64(500), srv.shortcutTargetStateID)
 }
 

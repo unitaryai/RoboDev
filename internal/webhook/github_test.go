@@ -130,7 +130,8 @@ func TestHandleGitHub(t *testing.T) {
 			if tc.secret != "" {
 				opts = append(opts, WithSecret("github", tc.secret))
 			}
-			srv := NewServer(testLogger(), mock, opts...)
+			srv, err := NewServer(testLogger(), mock, opts...)
+			require.NoError(t, err)
 
 			body, err := json.Marshal(tc.payload)
 			require.NoError(t, err)
@@ -169,7 +170,8 @@ func TestHandleGitHub(t *testing.T) {
 func TestHandleGitHub_MalformedJSON(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{}
-	srv := NewServer(testLogger(), mock, WithSecret("github", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("github", secret))
+	require.NoError(t, err)
 
 	body := []byte(`{invalid json`)
 	sig := computeGitHubSignature(body, secret)
@@ -189,7 +191,8 @@ func TestHandleGitHub_MalformedJSON(t *testing.T) {
 func TestHandleGitHub_HandlerError(t *testing.T) {
 	secret := "test-secret"
 	mock := &mockEventHandler{err: fmt.Errorf("handler failed")}
-	srv := NewServer(testLogger(), mock, WithSecret("github", secret))
+	srv, err := NewServer(testLogger(), mock, WithSecret("github", secret))
+	require.NoError(t, err)
 
 	payload := ghWebhookPayload{
 		Action: "opened",
@@ -258,7 +261,8 @@ func TestHandleGitHub_TriggerLabelGating(t *testing.T) {
 			if len(tc.triggerLabels) > 0 {
 				opts = append(opts, WithGitHubTriggerLabels(tc.triggerLabels))
 			}
-			srv := NewServer(testLogger(), mock, opts...)
+			srv, err := NewServer(testLogger(), mock, opts...)
+			require.NoError(t, err)
 
 			payload := ghWebhookPayload{
 				Action: "opened",

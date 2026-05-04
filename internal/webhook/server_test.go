@@ -17,11 +17,12 @@ func testLogger() *slog.Logger {
 
 func TestNewServer_RoutesRegistered(t *testing.T) {
 	handler := &mockEventHandler{}
-	srv := NewServer(testLogger(), handler,
+	srv, err := NewServer(testLogger(), handler,
 		WithSecret("github", "test-secret"),
 		WithSecret("gitlab", "test-secret"),
 		WithSecret("slack", "test-secret"),
 	)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name   string
@@ -61,7 +62,8 @@ func TestNewServer_RoutesRegistered(t *testing.T) {
 
 func TestServer_RegisterRoute(t *testing.T) {
 	handler := &mockEventHandler{}
-	srv := NewServer(testLogger(), handler)
+	srv, err := NewServer(testLogger(), handler)
+	require.NoError(t, err)
 
 	srv.RegisterRoute("GET /custom", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTeapot)
@@ -75,7 +77,8 @@ func TestServer_RegisterRoute(t *testing.T) {
 
 func TestServer_Healthz(t *testing.T) {
 	handler := &mockEventHandler{}
-	srv := NewServer(testLogger(), handler)
+	srv, err := NewServer(testLogger(), handler)
+	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -87,9 +90,10 @@ func TestServer_Healthz(t *testing.T) {
 
 func TestServer_ShutdownNilServer(t *testing.T) {
 	handler := &mockEventHandler{}
-	srv := NewServer(testLogger(), handler)
+	srv, err := NewServer(testLogger(), handler)
+	require.NoError(t, err)
 
 	// Shutdown before ListenAndServe should not panic.
-	err := srv.Shutdown(t.Context())
+	err = srv.Shutdown(t.Context())
 	assert.NoError(t, err)
 }
