@@ -756,3 +756,110 @@ func TestLoad_FileNotFound(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reading config file")
 }
+
+func TestLoad_ExpandsEnvVars(t *testing.T) {
+	tests := []struct {
+		name      string
+		envVars   map[string]string
+		unsetVars []string // variables that must be unset before the test runs
+		yaml      string
+		wantToken string
+	}{
+		{
+			name:    "expands ${VAR} form inside double-quoted scalar",
+			envVars: map[string]string{"OSMIA_TEST_TOKEN": "from-braced-env"},
+			yaml: `
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: "${OSMIA_TEST_TOKEN}"
+`,
+			wantToken: "from-braced-env",
+		},
+		{
+			name:    "expands $VAR form inside double-quoted scalar",
+			envVars: map[string]string{"OSMIA_TEST_TOKEN": "from-bare-env"},
+			yaml: `
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: "$OSMIA_TEST_TOKEN"
+`,
+			wantToken: "from-bare-env",
+		},
+		{
+			name:      "unset variable expands to empty string",
+			unsetVars: []string{"OSMIA_TEST_UNSET"},
+			yaml: `
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: "prefix-${OSMIA_TEST_UNSET}-suffix"
+`,
+			wantToken: "prefix--suffix",
+		},
+		{
+			name: "config without env references is unchanged",
+			yaml: `
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: plain-value
+`,
+			wantToken: "plain-value",
+		},
+		{
+			name:    "double-quoting suppresses comment parsing in expanded value",
+			envVars: map[string]string{"OSMIA_TEST_TOKEN": "abc # not-a-comment"},
+			yaml: `
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: "${OSMIA_TEST_TOKEN}"
+`,
+			wantToken: "abc # not-a-comment",
+		},
+		{
+			name:    "double-quoting contains values with YAML-significant characters",
+			envVars: map[string]string{"OSMIA_TEST_TOKEN": "{a: b}"},
+			yaml: `
+ticketing:
+  backend: shortcut
+  config:
+    token_secret: "${OSMIA_TEST_TOKEN}"
+`,
+			wantToken: "{a: b}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.envVars {
+				t.Setenv(k, v)
+			}
+			// Explicitly clear any vars the test asserts as unset, in case
+			// they leaked in from the runner environment, and restore the
+			// previous value (if any) when the subtest ends.
+			for _, k := range tt.unsetVars {
+				prev, had := os.LookupEnv(k)
+				require.NoError(t, os.Unsetenv(k))
+				if had {
+					t.Cleanup(func() { _ = os.Setenv(k, prev) })
+				}
+			}
+
+			tmp := filepath.Join(t.TempDir(), "osmia-config.yaml")
+			err := os.WriteFile(tmp, []byte(tt.yaml), 0o600)
+			require.NoError(t, err)
+
+			cfg, err := Load(tmp)
+			require.NoError(t, err)
+
+			raw, ok := cfg.Ticketing.Config["token_secret"]
+			require.True(t, ok, "token_secret should be present in ticketing.config")
+			got, ok := raw.(string)
+			require.True(t, ok, "token_secret should be a string, got %T", raw)
+			assert.Equal(t, tt.wantToken, got)
+		})
+	}
+}

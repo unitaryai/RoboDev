@@ -43,6 +43,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Environment variable substitution in config files**: `${VAR}` and `$VAR`
+  references in any string field of `osmia-config.yaml` are now expanded
+  against the process environment at startup. Combined with the new
+  controller `env`/`envFrom` chart values, this lets operators inject
+  secrets from Kubernetes Secrets (or other sources) without baking them
+  into the chart's `config:` block. Unset variables expand to empty strings.
+- **Controller `env` / `envFrom` chart values**: the helm chart now exposes
+  `env: []` and `envFrom: []` value lists that are rendered onto the
+  controller container spec, providing the wiring needed to pair with the
+  config-side env var substitution above.
 - **Svix-style signature verification on the generic webhook**: new
   `auth_mode: svix` for sources that sign with Svix conventions (incident.io,
   Stripe, OpenAI, Linear, and many others). Verification is delegated to the

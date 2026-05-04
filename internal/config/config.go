@@ -646,11 +646,34 @@ type TranscriptConfig struct {
 
 // Load reads and parses a Osmia configuration file from the given path.
 // It returns an error if the file cannot be read, parsed, or fails validation.
+//
+// Environment variable references of the form ${VAR} or $VAR in string
+// values are expanded against the process environment before parsing.
+// This allows operators to inject secrets from Kubernetes Secrets (via the
+// chart's env/envFrom values) without baking them into the ArgoCD-tracked
+// configuration. Unset variables expand to empty strings per os.ExpandEnv
+// semantics. The expansion is not escapable — a literal "$" followed by
+// an identifier must be supplied via an env var.
+//
+// Important: wrap every reference in YAML double quotes. Substitution
+// happens on the raw bytes before YAML parsing, so a substituted value
+// containing YAML-significant characters can otherwise be misinterpreted:
+// a value with " # " is silently truncated at the comment marker, and a
+// value containing a newline can structurally inject extra YAML keys.
+// Double-quoted scalars suppress comment parsing and contain the value
+// safely:
+//
+//	webhook:
+//	  generic:
+//	    secret: "${INCIDENT_IO_WEBHOOK_SECRET}"   # safe
+//	    secret: ${INCIDENT_IO_WEBHOOK_SECRET}     # unsafe — do not use
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config file: %w", err)
 	}
+
+	data = []byte(os.ExpandEnv(string(data)))
 
 	cfg := &Config{}
 	if err := yaml.Unmarshal(data, cfg); err != nil {
