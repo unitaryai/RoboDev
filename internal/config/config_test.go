@@ -797,6 +797,41 @@ webhook:
 	}, cfg.Webhook.Generic.FieldMapping)
 }
 
+func TestLoad_GenericWebhookConfig_SecretRef(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "osmia-config.yaml")
+	err := os.WriteFile(tmp, []byte(`
+ticketing:
+  backend: github
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+    secret_ref:
+      name: webhook-secrets
+      key: GENERIC_WEBHOOK_SECRET
+    field_mapping:
+      issue.id: id
+`), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := Load(tmp)
+	require.NoError(t, err)
+
+	require.NotNil(t, cfg.Webhook.Generic)
+	require.NotNil(t, cfg.Webhook.Generic.SecretRef)
+	assert.Equal(t, "", cfg.Webhook.Generic.Secret)
+	assert.Equal(t, "webhook-secrets", cfg.Webhook.Generic.SecretRef.Name)
+	assert.Equal(t, "GENERIC_WEBHOOK_SECRET", cfg.Webhook.Generic.SecretRef.Key)
+}
+
 func TestLoad_GenericWebhookValidation(t *testing.T) {
 	baseRequired := `
 ticketing:
@@ -858,14 +893,64 @@ webhook:
 			wantErrMsg: `webhook.generic.auth_mode "nope" is not supported`,
 		},
 		{
-			name: "missing secret",
+			name: "neither secret nor secret_ref",
 			genericCfg: `
 webhook:
   enabled: true
   generic:
     auth_mode: hmac
 `,
-			wantErrMsg: "webhook.generic.secret is required",
+			wantErrMsg: "one of secret or secret_ref is required",
+		},
+		{
+			name: "both secret and secret_ref set",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+    secret: inline
+    secret_ref:
+      name: webhook-secrets
+      key: GENERIC_WEBHOOK_SECRET
+`,
+			wantErrMsg: "secret and secret_ref are mutually exclusive",
+		},
+		{
+			name: "secret_ref missing name",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+    secret_ref:
+      key: GENERIC_WEBHOOK_SECRET
+`,
+			wantErrMsg: "webhook.generic.secret_ref.name is required",
+		},
+		{
+			name: "secret_ref missing key",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+    secret_ref:
+      name: webhook-secrets
+`,
+			wantErrMsg: "webhook.generic.secret_ref.key is required",
+		},
+		{
+			name: "valid secret_ref config",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+    secret_ref:
+      name: webhook-secrets
+      key: GENERIC_WEBHOOK_SECRET
+`,
 		},
 		{
 			name:       "no generic block — validation skipped",

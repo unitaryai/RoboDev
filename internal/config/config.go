@@ -143,6 +143,12 @@ type WebhookSourceConfig struct {
 // GenericWebhookConfig holds settings for the generic webhook handler.
 // The schema mirrors the runtime webhook.GenericConfig so configuration
 // can be supplied through osmia-config.yaml.
+//
+// The signing secret may be supplied either inline via Secret or by
+// reference to a Kubernetes Secret via SecretRef. Inline values are
+// useful in tests and local development; SecretRef should be preferred
+// in production so the secret is not stored in ArgoCD-tracked YAML.
+// Exactly one of the two fields must be set.
 type GenericWebhookConfig struct {
 	// AuthMode is the authentication method for incoming requests.
 	// Supported values: "hmac", "bearer". Required when the generic
@@ -150,8 +156,13 @@ type GenericWebhookConfig struct {
 	AuthMode string `yaml:"auth_mode"`
 
 	// Secret is the HMAC signing secret or bearer token, depending on
-	// AuthMode.
-	Secret string `yaml:"secret"`
+	// AuthMode. Mutually exclusive with SecretRef.
+	Secret string `yaml:"secret,omitempty"`
+
+	// SecretRef is a Kubernetes Secret reference resolved by the
+	// controller at startup. The resolved value is used in place of
+	// Secret for signature verification. Mutually exclusive with Secret.
+	SecretRef *GenericWebhookSecretRef `yaml:"secret_ref,omitempty"`
 
 	// SignatureHeader overrides the default header used to read the
 	// HMAC signature ("X-Webhook-Signature"). Only relevant in HMAC mode.
@@ -161,6 +172,17 @@ type GenericWebhookConfig struct {
 	// ticket fields. Supported target fields: id, title, description,
 	// ticket_type, repo_url, external_url.
 	FieldMapping map[string]string `yaml:"field_mapping,omitempty"`
+}
+
+// GenericWebhookSecretRef references a key in a Kubernetes Secret living
+// in the controller's namespace. The controller resolves the value at
+// startup and rejects the configuration if the Secret or key is absent.
+type GenericWebhookSecretRef struct {
+	// Name is the metadata name of the Kubernetes Secret to read.
+	Name string `yaml:"name"`
+
+	// Key is the field within the Secret's Data map to read.
+	Key string `yaml:"key"`
 }
 
 // SecretResolverConfig configures the task-scoped secret resolver.

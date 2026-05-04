@@ -837,9 +837,25 @@ func main() {
 			whOpts = append(whOpts, webhook.WithSecret("shortcut", cfg.Webhook.Shortcut.Secret))
 		}
 		if cfg.Webhook.Generic != nil {
+			secret := cfg.Webhook.Generic.Secret
+			if ref := cfg.Webhook.Generic.SecretRef; ref != nil {
+				resolved, err := readSecretValue(context.Background(), k8sClient, *namespace, ref.Name, ref.Key)
+				if err != nil {
+					logger.Error("failed to resolve generic webhook secret_ref", "error", err)
+					os.Exit(1)
+				}
+				if resolved == "" {
+					logger.Error("generic webhook secret_ref resolved to empty value",
+						"secret_name", ref.Name,
+						"secret_key", ref.Key,
+					)
+					os.Exit(1)
+				}
+				secret = resolved
+			}
 			whOpts = append(whOpts, webhook.WithGenericConfig(&webhook.GenericConfig{
 				AuthMode:        webhook.GenericAuthMode(cfg.Webhook.Generic.AuthMode),
-				Secret:          cfg.Webhook.Generic.Secret,
+				Secret:          secret,
 				SignatureHeader: cfg.Webhook.Generic.SignatureHeader,
 				FieldMapping:    cfg.Webhook.Generic.FieldMapping,
 			}))

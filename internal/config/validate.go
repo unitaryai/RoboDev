@@ -166,8 +166,19 @@ func (c *Config) Validate() error {
 		default:
 			return fmt.Errorf("webhook.generic.auth_mode %q is not supported (must be \"hmac\" or \"bearer\")", g.AuthMode)
 		}
-		if g.Secret == "" {
-			return fmt.Errorf("webhook.generic.secret is required")
+		switch {
+		case g.Secret == "" && g.SecretRef == nil:
+			return fmt.Errorf("webhook.generic: one of secret or secret_ref is required")
+		case g.Secret != "" && g.SecretRef != nil:
+			return fmt.Errorf("webhook.generic: secret and secret_ref are mutually exclusive")
+		}
+		if g.SecretRef != nil {
+			if g.SecretRef.Name == "" {
+				return fmt.Errorf("webhook.generic.secret_ref.name is required")
+			}
+			if g.SecretRef.Key == "" {
+				return fmt.Errorf("webhook.generic.secret_ref.key is required")
+			}
 		}
 	}
 

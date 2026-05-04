@@ -68,6 +68,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `public_alert\.alert_created_v1.id`). This unblocks integration with sources
   like incident.io, where the event type itself appears as a wrapper key in
   the payload. A literal backslash in a segment is written as `\\`.
+- **`secret_ref` field on the generic webhook config**: webhook signing
+  secrets can now be sourced from a Kubernetes Secret instead of stored
+  inline in `osmia-config.yaml`, mirroring the existing `token_secret`
+  pattern used by the SCM and notifications backends. Set
+  `webhook.generic.secret_ref.name` to the K8s Secret name and
+  `webhook.generic.secret_ref.key` to the field within it; the controller
+  resolves the value at startup via the Kubernetes API. The original
+  inline `secret:` field still works for tests and local development;
+  `secret` and `secret_ref` are mutually exclusive.
 - **Smart secret key resolution**: backends now try well-known key names
   (e.g. `SHORTCUT_API_TOKEN`, `GITLAB_TOKEN`, `SLACK_BOT_TOKEN`) before falling
   back to `token`. A single shared secret with descriptive keys works out of the
