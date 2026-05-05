@@ -4726,9 +4726,24 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   schema and the controller passes it through at startup, making the existing
   <code>hmac</code> and <code>bearer</code> auth modes (and the field_map JSON extraction)
   configurable from YAML.</li>
+<li><strong><code>svix</code> auth_mode rejected by YAML validator</strong>: the runtime webhook package
+  accepted <code>auth_mode: svix</code>, but <code>internal/config/validate.go</code> only listed
+  <code>hmac</code> and <code>bearer</code>, so any YAML config requesting Svix verification was
+  rejected at controller startup before reaching the webhook layer. The
+  validator now accepts <code>svix</code> and the surrounding error messages list it.</li>
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Environment variable substitution in config files</strong>: <code>${VAR}</code> and <code>$VAR</code>
+  references in any string field of <code>osmia-config.yaml</code> are now expanded
+  against the process environment at startup. Combined with the new
+  controller <code>env</code>/<code>envFrom</code> chart values, this lets operators inject
+  secrets from Kubernetes Secrets (or other sources) without baking them
+  into the chart's <code>config:</code> block. Unset variables expand to empty strings.</li>
+<li><strong>Controller <code>env</code> / <code>envFrom</code> chart values</strong>: the helm chart now exposes
+  <code>env: []</code> and <code>envFrom: []</code> value lists that are rendered onto the
+  controller container spec, providing the wiring needed to pair with the
+  config-side env var substitution above.</li>
 <li><strong>Svix-style signature verification on the generic webhook</strong>: new
   <code>auth_mode: svix</code> for sources that sign with Svix conventions (incident.io,
   Stripe, OpenAI, Linear, and many others). Verification is delegated to the
