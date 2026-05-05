@@ -110,6 +110,30 @@ sessionPersistence:
 #       binaryPath: /plugin
 plugins: []
 
+# Additional environment variables for the controller container. Combined
+# with osmia-config.yaml's ${VAR} substitution, this lets operators inject
+# secrets from Kubernetes Secrets without baking them into the chart values.
+# Each entry follows the standard core.v1.EnvVar shape (name + value or
+# valueFrom). Wrap matching `${VAR}` references inside `config:` in YAML
+# double quotes — see the controller config docstring for why this matters.
+env: []
+#  - name: INCIDENT_IO_WEBHOOK_SECRET
+#    valueFrom:
+#      secretKeyRef:
+#        name: first-responder
+#        key: INCIDENT_IO_WEBHOOK_SECRET
+# Then inside `config:`:
+#   webhook:
+#     generic:
+#       secret: "${INCIDENT_IO_WEBHOOK_SECRET}"
+
+# Bulk environment-variable sources for the controller container. Useful
+# when injecting every key of a Secret or ConfigMap as env vars in one go.
+# Each entry follows the standard core.v1.EnvFromSource shape.
+envFrom: []
+#  - secretRef:
+#      name: first-responder
+
 # Webhook receiver — when enabled, the controller accepts webhook events
 # in addition to (or instead of) polling the ticketing backend.
 webhook:
