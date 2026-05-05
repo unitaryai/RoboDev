@@ -953,6 +953,18 @@ webhook:
 `,
 		},
 		{
+			name: "valid svix config with secret_ref",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: svix
+    secret_ref:
+      name: webhook-secrets
+      key: GENERIC_WEBHOOK_SECRET
+`,
+		},
+		{
 			name:       "no generic block — validation skipped",
 			genericCfg: "",
 		},
