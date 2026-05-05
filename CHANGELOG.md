@@ -49,6 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   schema and the controller passes it through at startup, making the existing
   `hmac` and `bearer` auth modes (and the field_map JSON extraction)
   configurable from YAML.
+- **`svix` auth_mode rejected by YAML validator**: the runtime webhook package
+  accepted `auth_mode: svix`, but `internal/config/validate.go` only listed
+  `hmac` and `bearer`, so any YAML config requesting Svix verification was
+  rejected at controller startup before reaching the webhook layer. The
+  validator now accepts `svix` and the surrounding error messages list it.
 
 ### Added
 

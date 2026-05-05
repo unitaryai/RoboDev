@@ -159,12 +159,12 @@ func (c *Config) Validate() error {
 
 	if g := c.Webhook.Generic; g != nil {
 		switch g.AuthMode {
-		case "hmac", "bearer":
+		case "hmac", "bearer", "svix":
 			// valid
 		case "":
-			return fmt.Errorf("webhook.generic.auth_mode is required (must be \"hmac\" or \"bearer\")")
+			return fmt.Errorf("webhook.generic.auth_mode is required (must be \"hmac\", \"bearer\", or \"svix\")")
 		default:
-			return fmt.Errorf("webhook.generic.auth_mode %q is not supported (must be \"hmac\" or \"bearer\")", g.AuthMode)
+			return fmt.Errorf("webhook.generic.auth_mode %q is not supported (must be \"hmac\", \"bearer\", or \"svix\")", g.AuthMode)
 		}
 		if g.Secret == "" {
 			return fmt.Errorf("webhook.generic.secret is required")

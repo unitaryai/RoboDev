@@ -868,6 +868,16 @@ webhook:
 			wantErrMsg: "webhook.generic.secret is required",
 		},
 		{
+			name: "valid svix config",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: svix
+    secret: whsec_abc123
+`,
+		},
+		{
 			name:       "no generic block — validation skipped",
 			genericCfg: "",
 		},
