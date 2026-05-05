@@ -756,3 +756,136 @@ func TestLoad_FileNotFound(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reading config file")
 }
+
+func TestLoad_GenericWebhookConfig(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "osmia-config.yaml")
+	err := os.WriteFile(tmp, []byte(`
+ticketing:
+  backend: github
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+    secret: shared-hmac-secret
+    signature_header: X-Custom-Signature
+    field_mapping:
+      issue.id: id
+      issue.title: title
+      issue.body: description
+`), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := Load(tmp)
+	require.NoError(t, err)
+
+	require.NotNil(t, cfg.Webhook.Generic)
+	assert.Equal(t, "hmac", cfg.Webhook.Generic.AuthMode)
+	assert.Equal(t, "shared-hmac-secret", cfg.Webhook.Generic.Secret)
+	assert.Equal(t, "X-Custom-Signature", cfg.Webhook.Generic.SignatureHeader)
+	assert.Equal(t, map[string]string{
+		"issue.id":    "id",
+		"issue.title": "title",
+		"issue.body":  "description",
+	}, cfg.Webhook.Generic.FieldMapping)
+}
+
+func TestLoad_GenericWebhookValidation(t *testing.T) {
+	baseRequired := `
+ticketing:
+  backend: github
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`
+
+	tests := []struct {
+		name       string
+		genericCfg string
+		wantErrMsg string
+	}{
+		{
+			name: "valid hmac config",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+    secret: shared-hmac-secret
+`,
+		},
+		{
+			name: "valid bearer config",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: bearer
+    secret: shared-bearer-token
+`,
+		},
+		{
+			name: "missing auth_mode",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    secret: shared-secret
+`,
+			wantErrMsg: "webhook.generic.auth_mode is required",
+		},
+		{
+			name: "unsupported auth_mode",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: nope
+    secret: shared-secret
+`,
+			wantErrMsg: `webhook.generic.auth_mode "nope" is not supported`,
+		},
+		{
+			name: "missing secret",
+			genericCfg: `
+webhook:
+  enabled: true
+  generic:
+    auth_mode: hmac
+`,
+			wantErrMsg: "webhook.generic.secret is required",
+		},
+		{
+			name:       "no generic block — validation skipped",
+			genericCfg: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmp := filepath.Join(t.TempDir(), "osmia-config.yaml")
+			err := os.WriteFile(tmp, []byte(baseRequired+tt.genericCfg), 0o600)
+			require.NoError(t, err)
+
+			_, err = Load(tmp)
+			if tt.wantErrMsg == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErrMsg)
+		})
+	}
+}

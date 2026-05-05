@@ -836,6 +836,14 @@ func main() {
 		if cfg.Webhook.Shortcut != nil {
 			whOpts = append(whOpts, webhook.WithSecret("shortcut", cfg.Webhook.Shortcut.Secret))
 		}
+		if cfg.Webhook.Generic != nil {
+			whOpts = append(whOpts, webhook.WithGenericConfig(&webhook.GenericConfig{
+				AuthMode:        webhook.GenericAuthMode(cfg.Webhook.Generic.AuthMode),
+				Secret:          cfg.Webhook.Generic.Secret,
+				SignatureHeader: cfg.Webhook.Generic.SignatureHeader,
+				FieldMapping:    cfg.Webhook.Generic.FieldMapping,
+			}))
+		}
 		if scBackend != nil && scBackend.WorkflowStateID() != 0 {
 			whOpts = append(whOpts, webhook.WithShortcutTargetStateID(scBackend.WorkflowStateID()))
 		}

@@ -157,5 +157,19 @@ func (c *Config) Validate() error {
 		cc.AgentTeams.TeammateModel = strings.TrimSpace(cc.AgentTeams.TeammateModel)
 	}
 
+	if g := c.Webhook.Generic; g != nil {
+		switch g.AuthMode {
+		case "hmac", "bearer":
+			// valid
+		case "":
+			return fmt.Errorf("webhook.generic.auth_mode is required (must be \"hmac\" or \"bearer\")")
+		default:
+			return fmt.Errorf("webhook.generic.auth_mode %q is not supported (must be \"hmac\" or \"bearer\")", g.AuthMode)
+		}
+		if g.Secret == "" {
+			return fmt.Errorf("webhook.generic.secret is required")
+		}
+	}
+
 	return nil
 }
