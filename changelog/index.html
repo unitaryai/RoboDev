@@ -4717,6 +4717,15 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   supplied URL is an instance URL (e.g. <code>https://gitlab.com</code>) rather than a full
   API URL. Previously, omitting the suffix caused all API requests to hit the
   GitLab web frontend, returning HTML instead of JSON.</li>
+<li><strong>Generic webhook silently ignored from YAML config</strong>: <code>webhook.generic</code> in
+  <code>osmia-config.yaml</code> was parsed into a <code>GenericWebhookConfig</code> struct but never
+  wired into the webhook server in <code>main.go</code>, so any configuration there was a
+  no-op. The runtime schema (<code>AuthMode</code>, <code>SignatureHeader</code>, <code>FieldMapping</code>) was
+  also wider than the config struct (<code>Secret</code>, <code>AuthToken</code>, <code>FieldMap</code>), with
+  no conversion in either direction. The config struct now mirrors the runtime
+  schema and the controller passes it through at startup, making the existing
+  <code>hmac</code> and <code>bearer</code> auth modes (and the field_map JSON extraction)
+  configurable from YAML.</li>
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
