@@ -852,7 +852,12 @@ func main() {
 		whOpts = append(whOpts, webhook.WithApprovalHandler(approvalHandler))
 
 		whHandler := &webhookAdapter{reconciler: reconciler, logger: logger}
-		webhookSrv = webhook.NewServer(logger, whHandler, whOpts...)
+		var err error
+		webhookSrv, err = webhook.NewServer(logger, whHandler, whOpts...)
+		if err != nil {
+			logger.Error("failed to create webhook server", "error", err)
+			os.Exit(1)
+		}
 		webhookAddr := fmt.Sprintf(":%d", webhookPort)
 		go func() {
 			logger.Info("starting webhook server", "addr", webhookAddr)

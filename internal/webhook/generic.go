@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	svix "github.com/svix/svix-webhooks/go"
 	"github.com/unitaryai/osmia/pkg/plugin/ticketing"
 )
 
@@ -23,23 +24,76 @@ const (
 
 	// GenericAuthBearer validates requests using a bearer token.
 	GenericAuthBearer GenericAuthMode = "bearer"
+
+	// GenericAuthSvix validates requests using Svix-style signing
+	// (used by incident.io, Stripe, OpenAI, Linear, and many other SaaS
+	// providers built on Svix). Verification is delegated to the official
+	// Svix Go library, which enforces a fixed five-minute timestamp
+	// tolerance and accepts both "svix-*" and enterprise "webhook-*"
+	// header prefixes.
+	GenericAuthSvix GenericAuthMode = "svix"
 )
 
 // GenericConfig holds the configuration for the generic webhook handler.
+//
+// Callers should invoke Prepare() at startup (after populating the fields)
+// to validate the configuration and pre-construct any auth-mode-specific
+// verifiers. Skipping Prepare() leaves Svix mode unusable — every request
+// will be rejected with a 500 because the verifier is nil.
 type GenericConfig struct {
-	// AuthMode is the authentication method: "hmac" or "bearer".
+	// AuthMode is the authentication method: "hmac", "bearer", or "svix".
 	AuthMode GenericAuthMode `json:"auth_mode" yaml:"auth_mode"`
 
-	// Secret is the HMAC secret or bearer token, depending on AuthMode.
+	// Secret is the HMAC secret, Svix signing key, or bearer token,
+	// depending on AuthMode. For Svix mode, a "whsec_" prefix is
+	// recognised and the remainder is base64-decoded before use.
 	Secret string `json:"secret" yaml:"secret"`
 
 	// SignatureHeader is the header containing the HMAC signature.
-	// Defaults to "X-Webhook-Signature" if empty.
+	// Defaults to "X-Webhook-Signature" if empty. Only used in HMAC mode;
+	// Svix mode rejects this field at Prepare() time because Svix uses
+	// fixed headers (svix-* or webhook-*).
 	SignatureHeader string `json:"signature_header" yaml:"signature_header"`
 
 	// FieldMapping maps dot-notation JSON paths to ticket fields.
 	// Supported target fields: id, title, description, ticket_type, repo_url, external_url.
 	FieldMapping map[string]string `json:"field_mapping" yaml:"field_mapping"`
+
+	// svixWebhook is the pre-constructed Svix verifier, populated by
+	// Prepare() when AuthMode is svix. nil for other auth modes.
+	svixWebhook *svix.Webhook
+}
+
+// Prepare validates the configuration and pre-constructs any runtime
+// objects needed for request handling. It is idempotent and may be called
+// more than once; each call re-runs validation and rebuilds the Svix
+// verifier when applicable.
+//
+// In production code, callers should invoke Prepare() at controller
+// startup so misconfigured secrets surface as a startup failure rather
+// than as a per-request 500.
+func (g *GenericConfig) Prepare() error {
+	if g.Secret == "" {
+		return fmt.Errorf("secret is required")
+	}
+	switch g.AuthMode {
+	case GenericAuthHMAC, GenericAuthBearer:
+		g.svixWebhook = nil
+	case GenericAuthSvix:
+		if g.SignatureHeader != "" {
+			return fmt.Errorf("signature_header is not used in svix mode (Svix uses fixed svix-* or webhook-* headers)")
+		}
+		wh, err := svix.NewWebhook(g.Secret)
+		if err != nil {
+			return fmt.Errorf("invalid svix secret: %w", err)
+		}
+		g.svixWebhook = wh
+	case "":
+		return fmt.Errorf("auth_mode is required")
+	default:
+		return fmt.Errorf("unsupported auth_mode %q", g.AuthMode)
+	}
+	return nil
 }
 
 // handleGeneric processes incoming generic webhook deliveries. It supports
@@ -80,6 +134,17 @@ func (s *Server) handleGeneric(w http.ResponseWriter, r *http.Request) {
 		if auth != expected {
 			s.logger.Warn("invalid generic webhook bearer token")
 			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+	case GenericAuthSvix:
+		if cfg.svixWebhook == nil {
+			s.logger.Error("svix webhook not prepared; call GenericConfig.Prepare() at startup")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if err := cfg.svixWebhook.Verify(body, r.Header); err != nil {
+			s.logger.Warn("invalid generic webhook svix signature", slog.String("error", err.Error()))
+			http.Error(w, "invalid signature", http.StatusUnauthorized)
 			return
 		}
 	default:
@@ -141,10 +206,17 @@ func (s *Server) handleGeneric(w http.ResponseWriter, r *http.Request) {
 }
 
 // extractJSONPath extracts a value from a nested map using simple dot-notation
-// paths (e.g. "issue.title"). This is intentionally simple — it does not
-// support array indexing or complex JSONPath expressions.
+// paths (e.g. "issue.title"). Path segments containing literal dots can be
+// addressed by escaping the dot with a backslash. For example, given a payload
+// with a top-level key "public_alert.alert_created_v1" (an event-namespaced
+// wrapper key, as used by incident.io), the path
+// `public_alert\.alert_created_v1.id` resolves the "id" field inside that
+// wrapper. A literal backslash in a segment is written as `\\`.
+//
+// This is intentionally simple — it does not support array indexing or
+// complex JSONPath expressions.
 func extractJSONPath(data map[string]any, path string) string {
-	parts := strings.Split(path, ".")
+	parts := splitEscapedPath(path)
 	var current any = data
 
 	for _, part := range parts {
@@ -172,6 +244,35 @@ func extractJSONPath(data map[string]any, path string) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+// splitEscapedPath splits a dot-notation path on unescaped dots. A backslash
+// escapes the following character, allowing path segments to contain literal
+// dots (`\.`) or backslashes (`\\`). A trailing backslash with nothing to
+// escape is treated as a literal backslash.
+func splitEscapedPath(path string) []string {
+	var parts []string
+	var current strings.Builder
+	escaped := false
+	for _, r := range path {
+		switch {
+		case escaped:
+			current.WriteRune(r)
+			escaped = false
+		case r == '\\':
+			escaped = true
+		case r == '.':
+			parts = append(parts, current.String())
+			current.Reset()
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if escaped {
+		current.WriteRune('\\')
+	}
+	parts = append(parts, current.String())
+	return parts
 }
 
 // validateGenericHMACSignature checks the signature header against the
