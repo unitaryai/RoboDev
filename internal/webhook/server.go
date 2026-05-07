@@ -3,9 +3,12 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
+
+	svix "github.com/svix/svix-webhooks/go"
 )
 
 // ApprovalHandler handles approval/rejection callbacks from interactive
@@ -28,6 +31,15 @@ type Server struct {
 
 	// genericConfig holds the configuration for the generic webhook handler.
 	genericConfig *GenericConfig
+
+	// incidentConfig holds the configuration for the incident.io webhook
+	// handler. It is the typed sibling of genericConfig — incident.io's
+	// payload schema is fixed, so no field_mapping is required.
+	incidentConfig *IncidentIOConfig
+
+	// incidentHandler, when set, receives parsed incident.io webhook events.
+	// Without this handler, the /webhooks/incident-io endpoint responds 500.
+	incidentHandler IncidentHandler
 
 	// approvalHandler, when set, receives approval/rejection callbacks from
 	// interactive webhook sources (e.g. Slack buttons) instead of forwarding
@@ -75,6 +87,33 @@ func WithGenericConfig(cfg *GenericConfig) Option {
 			return fmt.Errorf("generic webhook config: %w", err)
 		}
 		s.genericConfig = cfg
+		return nil
+	}
+}
+
+// WithIncidentConfig sets the configuration for the incident.io webhook
+// handler. The supplied config is validated and prepared for use (the
+// Svix verifier is pre-constructed). Construction errors abort NewServer
+// rather than failing per-request.
+func WithIncidentConfig(cfg *IncidentIOConfig) Option {
+	return func(s *Server) error {
+		if cfg == nil {
+			return fmt.Errorf("incident.io webhook config: config is nil")
+		}
+		if err := cfg.Prepare(); err != nil {
+			return fmt.Errorf("incident.io webhook config: %w", err)
+		}
+		s.incidentConfig = cfg
+		return nil
+	}
+}
+
+// WithIncidentHandler sets the handler for parsed incident.io webhook
+// events. Mirrors WithApprovalHandler. Without a handler the
+// /webhooks/incident-io endpoint responds 500 with "no handler configured".
+func WithIncidentHandler(h IncidentHandler) Option {
+	return func(s *Server) error {
+		s.incidentHandler = h
 		return nil
 	}
 }
@@ -135,6 +174,7 @@ func NewServer(logger *slog.Logger, handler EventHandler, opts ...Option) (*Serv
 	s.mux.HandleFunc("POST /webhooks/slack", s.handleSlack)
 	s.mux.HandleFunc("POST /webhooks/shortcut", s.handleShortcut)
 	s.mux.HandleFunc("POST /webhooks/generic", s.handleGeneric)
+	s.mux.HandleFunc("POST /webhooks/incident-io", s.handleIncidentIO)
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
 
 	return s, nil
@@ -185,4 +225,41 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
+}
+
+// readRequestBody reads the entire request body and writes a 400
+// response on failure. Used by webhook handlers that need to validate
+// the body before parsing it. The bool return is false on failure (and
+// in that case body is nil and the response has already been written).
+func (s *Server) readRequestBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.logger.Error("failed to read request body", slog.String("error", err.Error()))
+		http.Error(w, "failed to read request body", http.StatusBadRequest)
+		return nil, false
+	}
+	return body, true
+}
+
+// verifySvixSignature validates a Svix-signed webhook request using the
+// supplied verifier. On failure it writes the appropriate HTTP error
+// response (401 for invalid signature, 500 if the verifier is nil) and
+// returns false. The source argument is added as a structured log field
+// so log streams can distinguish svix failures from different webhook
+// endpoints.
+func (s *Server) verifySvixSignature(w http.ResponseWriter, r *http.Request, body []byte, verifier *svix.Webhook, source string) bool {
+	if verifier == nil {
+		s.logger.Error("svix webhook not prepared; call Prepare() at startup",
+			slog.String("source", source))
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return false
+	}
+	if err := verifier.Verify(body, r.Header); err != nil {
+		s.logger.Warn("invalid svix signature",
+			slog.String("source", source),
+			slog.String("error", err.Error()))
+		http.Error(w, "invalid signature", http.StatusUnauthorized)
+		return false
+	}
+	return true
 }

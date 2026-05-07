@@ -14,7 +14,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"net/http"
 	"time"
+
+	svix "github.com/svix/svix-webhooks/go"
 )
 
 // Supported incident.io webhook event types. incident.io wraps each event
@@ -32,6 +36,51 @@ const (
 // before invoking this interface, mirroring the ApprovalHandler pattern.
 type IncidentHandler interface {
 	HandleIncidentEvent(ctx context.Context, evt IncidentEvent) error
+}
+
+// IncidentIOConfig holds the runtime configuration for the incident.io
+// webhook handler, mirroring the GenericConfig pattern. Currently only
+// Svix-style signing is supported (which is what incident.io emits); the
+// AuthMode field is preserved for future flexibility.
+//
+// Callers must invoke Prepare() at startup after populating the fields so
+// the Svix verifier is constructed once rather than per-request. Skipping
+// Prepare() leaves Svix mode unusable — every request will be rejected
+// with a 500 because the verifier is nil.
+type IncidentIOConfig struct {
+	// AuthMode is the authentication method. Only "svix" is currently
+	// supported.
+	AuthMode string
+
+	// Secret is the Svix signing key. A "whsec_" prefix is recognised and
+	// the remainder is base64-decoded by the Svix library before use.
+	Secret string
+
+	// svixWebhook is the pre-constructed Svix verifier, populated by
+	// Prepare().
+	svixWebhook *svix.Webhook
+}
+
+// Prepare validates the configuration and pre-constructs the Svix
+// verifier. It is idempotent; repeat calls re-run validation and rebuild
+// the verifier.
+func (i *IncidentIOConfig) Prepare() error {
+	if i.Secret == "" {
+		return fmt.Errorf("secret is required")
+	}
+	switch i.AuthMode {
+	case "svix":
+		wh, err := svix.NewWebhook(i.Secret)
+		if err != nil {
+			return fmt.Errorf("invalid svix secret: %w", err)
+		}
+		i.svixWebhook = wh
+	case "":
+		return fmt.Errorf("auth_mode is required")
+	default:
+		return fmt.Errorf("unsupported auth_mode %q (only \"svix\" is supported)", i.AuthMode)
+	}
+	return nil
 }
 
 // IncidentEvent is a parsed incident.io webhook delivery, suitable for
@@ -108,6 +157,59 @@ type incidentStatusUpdatedBody struct {
 	Message        string            `json:"message"`
 	NewStatus      *IncidentStatusV2 `json:"new_status"`
 	PreviousStatus *IncidentStatusV2 `json:"previous_status"`
+}
+
+// handleIncidentIO processes incoming incident.io webhook deliveries.
+// Verification is delegated to the shared Svix helper on Server; parsing
+// is delegated to ParseIncidentEvent; dispatch is delegated to the
+// configured IncidentHandler. The handler intentionally bypasses the
+// ticketing pipeline (handleGeneric → ProcessTicket) — see the file
+// header for the rationale.
+func (s *Server) handleIncidentIO(w http.ResponseWriter, r *http.Request) {
+	if s.incidentConfig == nil {
+		s.logger.Error("incident.io webhook not configured")
+		http.Error(w, "incident.io webhook not configured", http.StatusInternalServerError)
+		return
+	}
+
+	body, ok := s.readRequestBody(w, r)
+	if !ok {
+		return
+	}
+
+	if !s.verifySvixSignature(w, r, body, s.incidentConfig.svixWebhook, "incident-io") {
+		return
+	}
+
+	evt, err := ParseIncidentEvent(body)
+	if err != nil {
+		s.logger.Warn("malformed incident.io payload", slog.String("error", err.Error()))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if s.incidentHandler == nil {
+		s.logger.Error("incident.io webhook handler not configured",
+			slog.String("event_type", evt.EventType),
+			slog.String("incident_id", evt.Incident.ID))
+		http.Error(w, "no handler configured", http.StatusInternalServerError)
+		return
+	}
+
+	if err := s.incidentHandler.HandleIncidentEvent(r.Context(), evt); err != nil {
+		s.logger.Error("incident.io handler returned error",
+			slog.String("event_type", evt.EventType),
+			slog.String("incident_id", evt.Incident.ID),
+			slog.String("error", err.Error()))
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	s.logger.Info("processed incident.io webhook",
+		slog.String("event_type", evt.EventType),
+		slog.String("incident_id", evt.Incident.ID),
+		slog.String("incident_reference", evt.Incident.Reference))
+	w.WriteHeader(http.StatusOK)
 }
 
 // ParseIncidentEvent decodes an incident.io webhook delivery body. The

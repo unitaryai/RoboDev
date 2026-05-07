@@ -1,13 +1,21 @@
 package webhook
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	svix "github.com/svix/svix-webhooks/go"
 )
 
 const incidentCreatedV2Payload = `{
@@ -205,4 +213,265 @@ type noopIncidentHandler struct{}
 
 func (noopIncidentHandler) HandleIncidentEvent(_ context.Context, _ IncidentEvent) error {
 	return nil
+}
+
+// mockIncidentHandler captures HandleIncidentEvent invocations for assertion.
+// err, when non-nil, is returned to simulate downstream failure paths.
+type mockIncidentHandler struct {
+	calls []IncidentEvent
+	err   error
+}
+
+func (m *mockIncidentHandler) HandleIncidentEvent(_ context.Context, evt IncidentEvent) error {
+	m.calls = append(m.calls, evt)
+	return m.err
+}
+
+// newSvixSecret returns a fresh whsec_-prefixed Svix signing key.
+// Svix verifies HMAC-SHA256 with 32-byte keys; using random bytes makes
+// the size expectation explicit and avoids cross-test interference.
+func newSvixSecret(t *testing.T) string {
+	t.Helper()
+	keyBytes := make([]byte, 32)
+	_, err := rand.Read(keyBytes)
+	require.NoError(t, err)
+	return "whsec_" + base64.StdEncoding.EncodeToString(keyBytes)
+}
+
+// signSvix attaches valid svix-* headers to a request using the given
+// secret and timestamp. msgID is the message identifier echoed in
+// svix-id; any non-empty value works for verification.
+func signSvix(t *testing.T, req *http.Request, secret string, body []byte, ts time.Time, msgID string) {
+	t.Helper()
+	wh, err := svix.NewWebhook(secret)
+	require.NoError(t, err)
+	sig, err := wh.Sign(msgID, ts, body)
+	require.NoError(t, err)
+	req.Header.Set("svix-id", msgID)
+	req.Header.Set("svix-timestamp", strconv.FormatInt(ts.Unix(), 10))
+	req.Header.Set("svix-signature", sig)
+}
+
+func TestHandleIncidentIO(t *testing.T) {
+	secret := newSvixSecret(t)
+	wrongSecret := newSvixSecret(t)
+
+	tests := []struct {
+		name       string
+		body       string
+		signSecret string // empty means no signature headers attached
+		signAt     time.Time
+		wantStatus int
+		wantCalls  int
+		// assertEvent runs against the captured event when wantCalls == 1.
+		assertEvent func(t *testing.T, evt IncidentEvent)
+	}{
+		{
+			name:       "valid created_v2 payload",
+			body:       incidentCreatedV2Payload,
+			signSecret: secret,
+			signAt:     time.Now(),
+			wantStatus: http.StatusOK,
+			wantCalls:  1,
+			assertEvent: func(t *testing.T, evt IncidentEvent) {
+				assert.Equal(t, EventIncidentCreatedV2, evt.EventType)
+				assert.Equal(t, "01HZ0000000000000000000001", evt.Incident.ID)
+				assert.Equal(t, "INC-123", evt.Incident.Reference)
+				assert.Nil(t, evt.NewStatus)
+			},
+		},
+		{
+			name:       "valid status_updated_v2 payload",
+			body:       incidentStatusUpdatedV2Payload,
+			signSecret: secret,
+			signAt:     time.Now(),
+			wantStatus: http.StatusOK,
+			wantCalls:  1,
+			assertEvent: func(t *testing.T, evt IncidentEvent) {
+				assert.Equal(t, EventIncidentStatusUpdatedV2, evt.EventType)
+				require.NotNil(t, evt.NewStatus)
+				assert.Equal(t, "closed", evt.NewStatus.Category)
+				require.NotNil(t, evt.PreviousStatus)
+				assert.Equal(t, "live", evt.PreviousStatus.Category)
+			},
+		},
+		{
+			name:       "wrong secret rejected",
+			body:       incidentCreatedV2Payload,
+			signSecret: wrongSecret,
+			signAt:     time.Now(),
+			wantStatus: http.StatusUnauthorized,
+			wantCalls:  0,
+		},
+		{
+			name:       "stale timestamp rejected",
+			body:       incidentCreatedV2Payload,
+			signSecret: secret,
+			signAt:     time.Now().Add(-10 * time.Minute),
+			wantStatus: http.StatusUnauthorized,
+			wantCalls:  0,
+		},
+		{
+			name:       "missing signature headers rejected",
+			body:       incidentCreatedV2Payload,
+			signSecret: "",
+			wantStatus: http.StatusUnauthorized,
+			wantCalls:  0,
+		},
+		{
+			name:       "malformed JSON returns 400",
+			body:       `{not json`,
+			signSecret: secret,
+			signAt:     time.Now(),
+			wantStatus: http.StatusBadRequest,
+			wantCalls:  0,
+		},
+		{
+			name:       "unsupported event_type returns 400",
+			body:       `{"event_type": "public_incident.incident_deleted_v2", "public_incident.incident_deleted_v2": {"id": "x"}}`,
+			signSecret: secret,
+			signAt:     time.Now(),
+			wantStatus: http.StatusBadRequest,
+			wantCalls:  0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &IncidentIOConfig{AuthMode: "svix", Secret: secret}
+			handler := &mockIncidentHandler{}
+			srv, err := NewServer(testLogger(), &mockEventHandler{},
+				WithIncidentConfig(cfg),
+				WithIncidentHandler(handler),
+			)
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodPost, "/webhooks/incident-io",
+				bytes.NewReader([]byte(tc.body)))
+			req.Header.Set("Content-Type", "application/json")
+
+			if tc.signSecret != "" {
+				signSvix(t, req, tc.signSecret, []byte(tc.body), tc.signAt, "msg_test_001")
+			}
+
+			rec := httptest.NewRecorder()
+			srv.ServeHTTP(rec, req)
+
+			assert.Equal(t, tc.wantStatus, rec.Code)
+			assert.Len(t, handler.calls, tc.wantCalls)
+
+			if tc.wantCalls == 1 && tc.assertEvent != nil {
+				tc.assertEvent(t, handler.calls[0])
+			}
+		})
+	}
+}
+
+func TestHandleIncidentIO_NotConfigured(t *testing.T) {
+	// Server built without WithIncidentConfig: the route exists but the
+	// endpoint must respond 500 rather than panic on a nil config.
+	srv, err := NewServer(testLogger(), &mockEventHandler{})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/incident-io",
+		bytes.NewReader([]byte(incidentCreatedV2Payload)))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestHandleIncidentIO_NoHandlerConfigured(t *testing.T) {
+	// Server has incidentConfig but no IncidentHandler. Verification
+	// succeeds but dispatch has nowhere to go — 500 rather than dropping
+	// the event silently.
+	secret := newSvixSecret(t)
+	cfg := &IncidentIOConfig{AuthMode: "svix", Secret: secret}
+	srv, err := NewServer(testLogger(), &mockEventHandler{}, WithIncidentConfig(cfg))
+	require.NoError(t, err)
+
+	body := []byte(incidentCreatedV2Payload)
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/incident-io",
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	signSvix(t, req, secret, body, time.Now(), "msg_test_002")
+
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestHandleIncidentIO_HandlerError(t *testing.T) {
+	// When the IncidentHandler returns an error, the server must respond
+	// 5xx so the sender (incident.io / Svix) retries the delivery.
+	secret := newSvixSecret(t)
+	cfg := &IncidentIOConfig{AuthMode: "svix", Secret: secret}
+	handler := &mockIncidentHandler{err: fmt.Errorf("downstream boom")}
+	srv, err := NewServer(testLogger(), &mockEventHandler{},
+		WithIncidentConfig(cfg),
+		WithIncidentHandler(handler),
+	)
+	require.NoError(t, err)
+
+	body := []byte(incidentCreatedV2Payload)
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/incident-io",
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	signSvix(t, req, secret, body, time.Now(), "msg_test_003")
+
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Len(t, handler.calls, 1, "handler was invoked even though it returned an error")
+}
+
+func TestIncidentIOConfig_Prepare(t *testing.T) {
+	tests := []struct {
+		name      string
+		cfg       *IncidentIOConfig
+		wantInErr string
+	}{
+		{
+			name: "valid svix config",
+			cfg:  &IncidentIOConfig{AuthMode: "svix", Secret: newSvixSecret(t)},
+		},
+		{
+			name:      "missing secret",
+			cfg:       &IncidentIOConfig{AuthMode: "svix", Secret: ""},
+			wantInErr: "secret is required",
+		},
+		{
+			name:      "missing auth_mode",
+			cfg:       &IncidentIOConfig{AuthMode: "", Secret: newSvixSecret(t)},
+			wantInErr: "auth_mode is required",
+		},
+		{
+			name:      "unsupported auth_mode",
+			cfg:       &IncidentIOConfig{AuthMode: "hmac", Secret: newSvixSecret(t)},
+			wantInErr: "unsupported auth_mode \"hmac\"",
+		},
+		{
+			name:      "malformed svix secret",
+			cfg:       &IncidentIOConfig{AuthMode: "svix", Secret: "not-a-real-key"},
+			wantInErr: "invalid svix secret",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.cfg.Prepare()
+			if tc.wantInErr == "" {
+				assert.NoError(t, err)
+				assert.NotNil(t, tc.cfg.svixWebhook, "Prepare must populate the verifier on success")
+				return
+			}
+			require.Error(t, err)
+			assert.True(t, strings.Contains(err.Error(), tc.wantInErr),
+				"expected error to contain %q, got %q", tc.wantInErr, err.Error())
+		})
+	}
 }
