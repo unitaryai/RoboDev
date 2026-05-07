@@ -1028,7 +1028,7 @@ webhook:
 incident_triage:
   engine: claude-code
   append_system_prompt: |
-    You are a triage agent. Invoke /first-responder-classifier.
+    You are a triage agent. Invoke /incident-classifier.
 `), 0o600)
 	require.NoError(t, err)
 
@@ -1040,7 +1040,7 @@ incident_triage:
 	assert.Equal(t, "whsec_abc123", cfg.Webhook.IncidentIO.Secret)
 
 	assert.Equal(t, "claude-code", cfg.IncidentTriage.Engine)
-	assert.Contains(t, cfg.IncidentTriage.AppendSystemPrompt, "first-responder-classifier")
+	assert.Contains(t, cfg.IncidentTriage.AppendSystemPrompt, "incident-classifier")
 }
 
 func TestLoad_IncidentIOWebhookValidation(t *testing.T) {

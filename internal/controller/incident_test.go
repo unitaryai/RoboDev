@@ -77,7 +77,7 @@ func incidentTestConfig() *config.Config {
 
 func TestProcessIncidentEvent(t *testing.T) {
 	cfg := incidentTestConfig()
-	cfg.IncidentTriage.AppendSystemPrompt = "Invoke /first-responder-classifier."
+	cfg.IncidentTriage.AppendSystemPrompt = "Invoke /incident-classifier."
 	logger := testLogger()
 	k8s := fake.NewSimpleClientset()
 
@@ -113,7 +113,7 @@ func TestProcessIncidentEvent(t *testing.T) {
 	assert.Contains(t, eng.lastTask.Labels, "osmia:event:"+webhook.EventIncidentCreatedV2)
 
 	// AppendSystemPrompt override propagates into the per-call EngineConfig.
-	assert.Equal(t, "Invoke /first-responder-classifier.", eng.lastConfig.AppendSystemPrompt)
+	assert.Equal(t, "Invoke /incident-classifier.", eng.lastConfig.AppendSystemPrompt)
 
 	// K8s Job must be created.
 	jobs, err := k8s.BatchV1().Jobs("test-ns").List(ctx, metav1.ListOptions{})

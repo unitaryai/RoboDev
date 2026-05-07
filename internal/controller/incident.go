@@ -1,15 +1,14 @@
 package controller
 
-// This file is the second of N reconciler entry points (the first being
-// ProcessTicket for SCM tickets). It runs in parallel to ProcessTicket
-// rather than sharing code with it. Step 2 of the use-case abstraction
-// work will lift both flows behind a common interface; until then,
-// ProcessIncidentEvent is intentionally incident.io-specific and shares
-// only the launch primitives (engine config, JobBuilder, k8s client,
-// taskRuns map).
-//
-// See thoughts/shared/designs/2026-05-06-osmia-non-ticketing-webhook-flow.md
-// in the unitaryai/internal/first-responder repo for the full rationale.
+// ProcessIncidentEvent is a reconciler entry point that runs in parallel
+// to ProcessTicket rather than sharing code with it. It handles the
+// incident.io webhook flow, where the agent is launched without a
+// repository or merge-request lifecycle. A future refactor will lift
+// both ProcessTicket and ProcessIncidentEvent behind a common interface;
+// until then, the duplication is bounded and intentional. Shared
+// primitives (engine config, JobBuilder, k8s client, taskRuns map) are
+// reused; the SCM-specific bits (engineSelector chain, repo-URL gate,
+// ticketing.MarkInProgress, etc.) are skipped.
 
 import (
 	"context"
@@ -26,8 +25,8 @@ import (
 )
 
 // defaultIncidentEngine is the engine used when IncidentTriage.Engine is
-// unset. claude-code is the only engine wired into the dev cluster today;
-// future use cases (or a fallback configuration) can override via config.
+// unset. claude-code is the typical default; operators can override via
+// config to dispatch to any registered engine.
 const defaultIncidentEngine = "claude-code"
 
 // eventTypeSuffix maps an incident.io event type to a short
@@ -70,12 +69,12 @@ func eventTypeSuffix(eventType string) string {
 // via MCP), and ticketing.MarkInProgress (no ticketing backend knows
 // about incident UUIDs).
 //
-// Known v0 imperfection: handleJobComplete will call
-// r.ticketing.MarkComplete with this TaskRun's TicketID set to
-// evt.Incident.ID; the configured ticketing backend (e.g. GitHub) will
-// not recognise the ID and log a "not found" error. This is logged but
-// non-fatal. The clean fix lives with Step 2 of the abstraction (a
-// completion-handler dispatch keyed on the use-case marker).
+// Known limitation: when this TaskRun completes, handleJobComplete will
+// call r.ticketing.MarkComplete with the incident ID as the TicketID,
+// which the configured ticketing backend will not recognise. The
+// resulting "not found" error is logged but non-fatal. The clean fix
+// requires the use-case-aware completion-handler dispatch that the
+// upcoming abstraction will provide.
 func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.IncidentEvent) error {
 	idempotencyKey := evt.Incident.ID + ":" + evt.EventType
 

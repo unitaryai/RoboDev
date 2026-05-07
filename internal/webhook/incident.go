@@ -1,14 +1,11 @@
 package webhook
 
-// This file is the second of N webhook use cases (the first being
-// `handleGeneric` for SCM ticketing). It deliberately runs in parallel
-// to the ticketing flow rather than sharing code with it. Step 2 of the
-// use-case abstraction work will lift both flows behind a common
-// interface; until then, the parser, types, and (in subsequent commits)
-// handler/reconciler method are intentionally incident.io-specific.
-//
-// See thoughts/shared/designs/2026-05-06-osmia-non-ticketing-webhook-flow.md
-// in the unitaryai/internal/first-responder repo for the full rationale.
+// This file handles incident.io webhook deliveries on a path that is
+// deliberately separate from the SCM ticketing flow in `handleGeneric`.
+// The parser, types, and HTTP handler are intentionally incident.io-
+// specific rather than abstracted: a future refactor will lift both
+// flows behind a common interface once a second non-ticketing consumer
+// exists to inform the abstraction's shape.
 
 import (
 	"context"
