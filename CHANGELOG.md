@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Structured `source` log field on generic webhook svix failures**: the
+  `handleGeneric` svix verification branch now routes through a shared
+  `verifySvixSignature` helper. Behaviour (status codes, response bodies)
+  is unchanged, but two log messages are reshaped: `"invalid generic
+  webhook svix signature"` becomes `"invalid svix signature"` with
+  `source=generic` as a structured field, and `"svix webhook not
+  prepared; call GenericConfig.Prepare() at startup"` becomes the more
+  general `"svix webhook not prepared; call Prepare() at startup"` with
+  the same `source` field. Anyone alerting on the literal old strings
+  will need to migrate to the structured field.
 - **Quieter Slack notifications**: the original "started working on" message is
   now updated in-place with status changes (retrying, completed, failed) instead
   of posting new messages. Completion details go in the thread only — the
@@ -57,6 +67,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **incident.io webhook flow**: new `POST /webhooks/incident-io` endpoint
+  with a typed handler for `public_incident.incident_created_v2` and
+  `public_incident.incident_status_updated_v2` events. The endpoint
+  bypasses the SCM ticketing pipeline entirely — events are dispatched
+  to a new `Reconciler.ProcessIncidentEvent` reconciler path that
+  launches an agent run without requiring a `RepoURL`. Configuration
+  lives in two new YAML blocks: `webhook.incident_io` (sibling of
+  `webhook.generic`, currently `auth_mode: svix` only) and a top-level
+  `incident_triage` block carrying the engine name (default
+  `claude-code`) and an `append_system_prompt` override that is applied
+  per-call to the engine's `EngineConfig`. Without the YAML blocks the
+  endpoint returns 500 and existing deployments are unaffected. The
+  parallel `handleIncidentIO` / `ProcessIncidentEvent` shape is
+  intentional: a future refactor will lift both this and the existing
+  ticketing flow behind a common use-case interface.
 - **Environment variable substitution in config files**: `${VAR}` and `$VAR`
   references in any string field of `osmia-config.yaml` are now expanded
   against the process environment at startup. Combined with the new
