@@ -1,0 +1,208 @@
+package controller
+
+// This file is the second of N reconciler entry points (the first being
+// ProcessTicket for SCM tickets). It runs in parallel to ProcessTicket
+// rather than sharing code with it. Step 2 of the use-case abstraction
+// work will lift both flows behind a common interface; until then,
+// ProcessIncidentEvent is intentionally incident.io-specific and shares
+// only the launch primitives (engine config, JobBuilder, k8s client,
+// taskRuns map).
+//
+// See thoughts/shared/designs/2026-05-06-osmia-non-ticketing-webhook-flow.md
+// in the unitaryai/internal/first-responder repo for the full rationale.
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/unitaryai/osmia/internal/metrics"
+	"github.com/unitaryai/osmia/internal/taskrun"
+	"github.com/unitaryai/osmia/internal/webhook"
+	"github.com/unitaryai/osmia/pkg/engine"
+)
+
+// defaultIncidentEngine is the engine used when IncidentTriage.Engine is
+// unset. claude-code is the only engine wired into the dev cluster today;
+// future use cases (or a fallback configuration) can override via config.
+const defaultIncidentEngine = "claude-code"
+
+// eventTypeSuffix maps an incident.io event type to a short
+// DNS-1123-safe code used as part of the TaskRun ID (and hence the K8s
+// Job name and label values). Short codes are required because both K8s
+// names and label values are bounded at 63 characters; combined with a
+// 26-char incident ULID and a millisecond timestamp, the verbose form
+// of the event type would exceed that.
+//
+// Unknown event types should never reach this function — the webhook
+// parser rejects them before dispatch — but the default returns a
+// length-bounded marker rather than panicking.
+func eventTypeSuffix(eventType string) string {
+	switch eventType {
+	case webhook.EventIncidentCreatedV2:
+		return "created"
+	case webhook.EventIncidentStatusUpdatedV2:
+		return "updated"
+	default:
+		return "evt"
+	}
+}
+
+// ProcessIncidentEvent launches an agent run in response to an
+// incident.io webhook event, bypassing the SCM ticketing pipeline. It is
+// the entry point that webhook.IncidentHandler implementations should
+// call (typically through an adapter in cmd/osmia/main.go).
+//
+// Idempotency: keyed on incident_id:event_type so that "incident_created_v2"
+// and "incident_status_updated_v2" for the same incident produce distinct
+// task runs. Same key with the existing run not yet terminal returns nil
+// (no-op); same key with a terminated run falls through to launch a fresh
+// run, mirroring ProcessTicket's behaviour.
+//
+// What this skips compared to ProcessTicket: the engine selector chain
+// (engine name comes directly from config.IncidentTriage.Engine), cost
+// estimation (no historical data for incidents), the tournament
+// coordinator (single-engine flow), the pre-start approval gate, the
+// episodic memory query, runNotifyStart (the agent posts to Slack itself
+// via MCP), and ticketing.MarkInProgress (no ticketing backend knows
+// about incident UUIDs).
+//
+// Known v0 imperfection: handleJobComplete will call
+// r.ticketing.MarkComplete with this TaskRun's TicketID set to
+// evt.Incident.ID; the configured ticketing backend (e.g. GitHub) will
+// not recognise the ID and log a "not found" error. This is logged but
+// non-fatal. The clean fix lives with Step 2 of the abstraction (a
+// completion-handler dispatch keyed on the use-case marker).
+func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.IncidentEvent) error {
+	idempotencyKey := evt.Incident.ID + ":" + evt.EventType
+
+	r.mu.RLock()
+	if existing, ok := r.taskRuns[idempotencyKey]; ok {
+		r.mu.RUnlock()
+		if !existing.IsTerminal() {
+			r.logger.InfoContext(ctx, "incident task run already exists, skipping",
+				"incident_id", evt.Incident.ID,
+				"event_type", evt.EventType,
+				"state", existing.State,
+			)
+			return nil
+		}
+	} else {
+		r.mu.RUnlock()
+	}
+
+	engineName := r.config.IncidentTriage.Engine
+	if engineName == "" {
+		engineName = defaultIncidentEngine
+	}
+	eng, ok := r.engines[engineName]
+	if !ok {
+		return fmt.Errorf("incident triage engine %q not registered", engineName)
+	}
+
+	task := engine.Task{
+		ID:          evt.Incident.ID,
+		TicketID:    evt.Incident.ID,
+		Title:       evt.Incident.Name,
+		Description: evt.Incident.Summary,
+		TicketURL:   evt.Incident.Permalink,
+		Labels: []string{
+			"osmia:source:incident-io",
+			"osmia:event:" + evt.EventType,
+		},
+	}
+
+	// TaskRun ID must be DNS-1123 (lowercase alphanumeric + hyphens) since
+	// it becomes part of the K8s Job name. Lowercasing the incident ID
+	// keeps real ULID-shaped values valid; including a sanitised event-type
+	// suffix prevents collisions when the same incident produces both a
+	// created and a status_updated event in the same millisecond.
+	trID := fmt.Sprintf("tr-incident-%s-%s-%d",
+		strings.ToLower(evt.Incident.ID),
+		eventTypeSuffix(evt.EventType),
+		time.Now().UnixMilli(),
+	)
+	tr := taskrun.New(
+		trID,
+		idempotencyKey,
+		task.TicketID,
+		engineName,
+	)
+	tr.CurrentEngine = engineName
+	tr.EngineAttempts = []string{engineName}
+	r.applyContinuationConfig(tr)
+
+	task.TaskRunID = tr.ID
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run to store",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	engineCfg := r.baseEngineConfig(ctx, engineName)
+	if prompt := r.config.IncidentTriage.AppendSystemPrompt; prompt != "" {
+		engineCfg.AppendSystemPrompt = prompt
+	}
+
+	if err := r.prepareSession(ctx, tr.ID); err != nil {
+		return fmt.Errorf("preparing session storage: %w", err)
+	}
+
+	spec, err := eng.BuildExecutionSpec(task, engineCfg)
+	if err != nil {
+		return fmt.Errorf("building execution spec: %w", err)
+	}
+
+	if r.jobBuilder == nil {
+		return fmt.Errorf("no job builder configured")
+	}
+	job, err := r.jobBuilder.Build(tr.ID, engineName, spec)
+	if err != nil {
+		return fmt.Errorf("building k8s job: %w", err)
+	}
+
+	if r.k8sClient != nil {
+		if _, err := r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
+			return fmt.Errorf("creating k8s job: %w", err)
+		}
+	}
+
+	if err := tr.Transition(taskrun.StateRunning); err != nil {
+		return fmt.Errorf("transitioning task run: %w", err)
+	}
+	tr.JobName = job.Name
+
+	r.mu.Lock()
+	r.taskRuns[idempotencyKey] = tr
+	r.engineChains[idempotencyKey] = []string{engineName}
+	r.mu.Unlock()
+
+	if err := r.taskRunStore.Save(ctx, tr); err != nil {
+		r.logger.ErrorContext(ctx, "failed to save task run to store",
+			"task_run_id", tr.ID,
+			"error", err,
+		)
+	}
+
+	metrics.ActiveJobs.Inc()
+	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
+
+	if engineName == defaultIncidentEngine {
+		r.startStreamReader(ctx, tr)
+	}
+
+	r.logger.InfoContext(ctx, "incident triage job created",
+		"incident_id", evt.Incident.ID,
+		"event_type", evt.EventType,
+		"engine", engineName,
+		"job", job.Name,
+		"task_run_id", tr.ID,
+	)
+
+	return nil
+}
