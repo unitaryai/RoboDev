@@ -1,0 +1,172 @@
+package webhook
+
+// This file is the second of N webhook use cases (the first being
+// `handleGeneric` for SCM ticketing). It deliberately runs in parallel
+// to the ticketing flow rather than sharing code with it. Step 2 of the
+// use-case abstraction work will lift both flows behind a common
+// interface; until then, the parser, types, and (in subsequent commits)
+// handler/reconciler method are intentionally incident.io-specific.
+//
+// See thoughts/shared/designs/2026-05-06-osmia-non-ticketing-webhook-flow.md
+// in the unitaryai/internal/first-responder repo for the full rationale.
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+)
+
+// Supported incident.io webhook event types. incident.io wraps each event
+// payload in an object whose key matches `event_type` (an "event-namespaced
+// wrapper" in their docs). Adding a new event type means adding a constant
+// and a case in ParseIncidentEvent.
+const (
+	EventIncidentCreatedV2       = "public_incident.incident_created_v2"
+	EventIncidentStatusUpdatedV2 = "public_incident.incident_status_updated_v2"
+)
+
+// IncidentHandler processes parsed incident.io webhook events. It is the
+// dispatch target for /webhooks/incident-io and intentionally has no
+// awareness of HTTP — the server handler validates and parses the request
+// before invoking this interface, mirroring the ApprovalHandler pattern.
+type IncidentHandler interface {
+	HandleIncidentEvent(ctx context.Context, evt IncidentEvent) error
+}
+
+// IncidentEvent is a parsed incident.io webhook delivery, suitable for
+// passing into the controller's reconciliation pipeline. The fields that
+// are present depend on EventType:
+//
+//   - EventIncidentCreatedV2: only Incident is populated.
+//   - EventIncidentStatusUpdatedV2: Incident, Message, NewStatus, and
+//     PreviousStatus are populated.
+//
+// Raw retains the original request body so consumers (e.g. the agent
+// prompt builder) can surface payload fields not modelled in the typed
+// structs without re-fetching from incident.io.
+type IncidentEvent struct {
+	EventType      string
+	Incident       IncidentV2
+	Message        string
+	NewStatus      *IncidentStatusV2
+	PreviousStatus *IncidentStatusV2
+	Raw            json.RawMessage
+}
+
+// IncidentV2 captures the fields of incident.io's IncidentV2 schema that
+// the triage classifier reasons over. Long-form description strings on
+// nested objects, rich relations (creator, role assignments, custom field
+// entries, related incidents), and operational metrics are intentionally
+// omitted; consumers needing them can read from IncidentEvent.Raw.
+type IncidentV2 struct {
+	ID               string           `json:"id"`
+	Reference        string           `json:"reference"`
+	Name             string           `json:"name"`
+	Summary          string           `json:"summary,omitempty"`
+	Permalink        string           `json:"permalink,omitempty"`
+	Visibility       string           `json:"visibility"`
+	Mode             string           `json:"mode"`
+	IncidentStatus   IncidentStatusV2 `json:"incident_status"`
+	Severity         *SeverityV2      `json:"severity,omitempty"`
+	IncidentType     *IncidentTypeV2  `json:"incident_type,omitempty"`
+	SlackTeamID      string           `json:"slack_team_id"`
+	SlackChannelID   string           `json:"slack_channel_id"`
+	SlackChannelName string           `json:"slack_channel_name,omitempty"`
+	CreatedAt        time.Time        `json:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at"`
+}
+
+// IncidentStatusV2 captures the lifecycle status of an incident. The
+// Category field is one of incident.io's documented enum values:
+// "triage", "declined", "merged", "canceled", "live", "learning", "closed".
+type IncidentStatusV2 struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Category string `json:"category"`
+	Rank     int    `json:"rank"`
+}
+
+// SeverityV2 represents an incident severity tier (e.g. SEV1, SEV2).
+type SeverityV2 struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Rank int    `json:"rank"`
+}
+
+// IncidentTypeV2 represents an incident type (e.g. "Production outage").
+type IncidentTypeV2 struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// incidentStatusUpdatedBody mirrors the body of the
+// public_incident.incident_status_updated_v2 event, which wraps the
+// incident object alongside the previous and new status references.
+type incidentStatusUpdatedBody struct {
+	Incident       IncidentV2        `json:"incident"`
+	Message        string            `json:"message"`
+	NewStatus      *IncidentStatusV2 `json:"new_status"`
+	PreviousStatus *IncidentStatusV2 `json:"previous_status"`
+}
+
+// ParseIncidentEvent decodes an incident.io webhook delivery body. The
+// caller is responsible for verifying the request signature before
+// invoking this function — the parser trusts the bytes it is given.
+//
+// Unsupported event types are rejected explicitly rather than silently
+// ignored so that future incident.io webhook subscriptions surface as
+// 4xx responses (and thus visible failures in their delivery dashboard)
+// until handlers exist for them.
+func ParseIncidentEvent(body []byte) (IncidentEvent, error) {
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return IncidentEvent{}, fmt.Errorf("decoding webhook envelope: %w", err)
+	}
+
+	rawEventType, ok := envelope["event_type"]
+	if !ok {
+		return IncidentEvent{}, fmt.Errorf("webhook payload missing required \"event_type\" field")
+	}
+	var eventType string
+	if err := json.Unmarshal(rawEventType, &eventType); err != nil {
+		return IncidentEvent{}, fmt.Errorf("decoding event_type: %w", err)
+	}
+	if eventType == "" {
+		return IncidentEvent{}, fmt.Errorf("webhook payload has empty event_type")
+	}
+
+	wrapped, ok := envelope[eventType]
+	if !ok {
+		return IncidentEvent{}, fmt.Errorf("webhook payload missing wrapper key %q matching event_type", eventType)
+	}
+
+	evt := IncidentEvent{
+		EventType: eventType,
+		Raw:       append(json.RawMessage(nil), body...),
+	}
+
+	switch eventType {
+	case EventIncidentCreatedV2:
+		if err := json.Unmarshal(wrapped, &evt.Incident); err != nil {
+			return IncidentEvent{}, fmt.Errorf("decoding %s body: %w", eventType, err)
+		}
+	case EventIncidentStatusUpdatedV2:
+		var w incidentStatusUpdatedBody
+		if err := json.Unmarshal(wrapped, &w); err != nil {
+			return IncidentEvent{}, fmt.Errorf("decoding %s body: %w", eventType, err)
+		}
+		evt.Incident = w.Incident
+		evt.Message = w.Message
+		evt.NewStatus = w.NewStatus
+		evt.PreviousStatus = w.PreviousStatus
+	default:
+		return IncidentEvent{}, fmt.Errorf("unsupported event_type %q", eventType)
+	}
+
+	if evt.Incident.ID == "" {
+		return IncidentEvent{}, fmt.Errorf("webhook payload has empty incident.id")
+	}
+
+	return evt, nil
+}

@@ -1006,3 +1006,122 @@ ticketing:
 		})
 	}
 }
+
+func TestLoad_IncidentIOWebhookConfig(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "osmia-config.yaml")
+	err := os.WriteFile(tmp, []byte(`
+ticketing:
+  backend: github
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+webhook:
+  enabled: true
+  incident_io:
+    auth_mode: svix
+    secret: whsec_abc123
+incident_triage:
+  engine: claude-code
+  append_system_prompt: |
+    You are a triage agent. Invoke /first-responder-classifier.
+`), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := Load(tmp)
+	require.NoError(t, err)
+
+	require.NotNil(t, cfg.Webhook.IncidentIO)
+	assert.Equal(t, "svix", cfg.Webhook.IncidentIO.AuthMode)
+	assert.Equal(t, "whsec_abc123", cfg.Webhook.IncidentIO.Secret)
+
+	assert.Equal(t, "claude-code", cfg.IncidentTriage.Engine)
+	assert.Contains(t, cfg.IncidentTriage.AppendSystemPrompt, "first-responder-classifier")
+}
+
+func TestLoad_IncidentIOWebhookValidation(t *testing.T) {
+	baseRequired := `
+ticketing:
+  backend: github
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`
+
+	tests := []struct {
+		name       string
+		incidentIO string
+		wantErrMsg string
+	}{
+		{
+			name: "valid svix config",
+			incidentIO: `
+webhook:
+  enabled: true
+  incident_io:
+    auth_mode: svix
+    secret: whsec_abc123
+`,
+		},
+		{
+			name: "missing auth_mode",
+			incidentIO: `
+webhook:
+  enabled: true
+  incident_io:
+    secret: whsec_abc123
+`,
+			wantErrMsg: "webhook.incident_io.auth_mode is required",
+		},
+		{
+			name: "unsupported auth_mode",
+			incidentIO: `
+webhook:
+  enabled: true
+  incident_io:
+    auth_mode: hmac
+    secret: whsec_abc123
+`,
+			wantErrMsg: `webhook.incident_io.auth_mode "hmac" is not supported`,
+		},
+		{
+			name: "missing secret",
+			incidentIO: `
+webhook:
+  enabled: true
+  incident_io:
+    auth_mode: svix
+`,
+			wantErrMsg: "webhook.incident_io.secret is required",
+		},
+		{
+			name:       "no incident_io block — validation skipped",
+			incidentIO: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmp := filepath.Join(t.TempDir(), "osmia-config.yaml")
+			err := os.WriteFile(tmp, []byte(baseRequired+tt.incidentIO), 0o600)
+			require.NoError(t, err)
+
+			_, err = Load(tmp)
+			if tt.wantErrMsg == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErrMsg)
+		})
+	}
+}

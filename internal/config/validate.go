@@ -171,5 +171,19 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	if i := c.Webhook.IncidentIO; i != nil {
+		switch i.AuthMode {
+		case "svix":
+			// valid
+		case "":
+			return fmt.Errorf("webhook.incident_io.auth_mode is required (must be \"svix\")")
+		default:
+			return fmt.Errorf("webhook.incident_io.auth_mode %q is not supported (must be \"svix\")", i.AuthMode)
+		}
+		if i.Secret == "" {
+			return fmt.Errorf("webhook.incident_io.secret is required")
+		}
+	}
+
 	return nil
 }
