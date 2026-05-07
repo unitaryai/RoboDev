@@ -844,6 +844,14 @@ func main() {
 				FieldMapping:    cfg.Webhook.Generic.FieldMapping,
 			}))
 		}
+		if cfg.Webhook.IncidentIO != nil {
+			whOpts = append(whOpts, webhook.WithIncidentConfig(&webhook.IncidentIOConfig{
+				AuthMode: cfg.Webhook.IncidentIO.AuthMode,
+				Secret:   cfg.Webhook.IncidentIO.Secret,
+			}))
+			incidentHandler := &incidentAdapter{reconciler: reconciler, logger: logger}
+			whOpts = append(whOpts, webhook.WithIncidentHandler(incidentHandler))
+		}
 		if scBackend != nil && scBackend.WorkflowStateID() != 0 {
 			whOpts = append(whOpts, webhook.WithShortcutTargetStateID(scBackend.WorkflowStateID()))
 		}
@@ -1231,6 +1239,36 @@ type approvalAdapter struct {
 // HandleApprovalCallback delegates to the controller's ResolveApproval method.
 func (a *approvalAdapter) HandleApprovalCallback(ctx context.Context, taskRunID string, approved bool, responder string) error {
 	return a.reconciler.ResolveApproval(ctx, taskRunID, approved, responder)
+}
+
+// incidentAdapter wraps the controller's Reconciler to satisfy the
+// webhook.IncidentHandler interface, bridging incident.io webhook events
+// into the controller's parallel reconciliation path. The adapter logs
+// before delegating so that operators can correlate incoming webhook
+// requests with reconciler activity in a single log stream.
+type incidentAdapter struct {
+	reconciler *controller.Reconciler
+	logger     *slog.Logger
+}
+
+// HandleIncidentEvent feeds a parsed incident.io webhook event into the
+// controller. An error is returned so that the webhook server responds
+// with a non-2xx status, prompting the sender to retry.
+func (a *incidentAdapter) HandleIncidentEvent(ctx context.Context, evt webhook.IncidentEvent) error {
+	a.logger.Info("processing incident.io webhook event",
+		"event_type", evt.EventType,
+		"incident_id", evt.Incident.ID,
+		"incident_reference", evt.Incident.Reference,
+	)
+	if err := a.reconciler.ProcessIncidentEvent(ctx, evt); err != nil {
+		a.logger.Error("failed to process incident.io webhook event",
+			"event_type", evt.EventType,
+			"incident_id", evt.Incident.ID,
+			"error", err,
+		)
+		return err
+	}
+	return nil
 }
 
 // initLinearBackend creates and returns a Linear ticketing backend from the
