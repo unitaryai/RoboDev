@@ -4686,6 +4686,16 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Structured <code>source</code> log field on generic webhook svix failures</strong>: the
+  <code>handleGeneric</code> svix verification branch now routes through a shared
+  <code>verifySvixSignature</code> helper. Behaviour (status codes, response bodies)
+  is unchanged, but two log messages are reshaped: <code>"invalid generic
+  webhook svix signature"</code> becomes <code>"invalid svix signature"</code> with
+  <code>source=generic</code> as a structured field, and <code>"svix webhook not
+  prepared; call GenericConfig.Prepare() at startup"</code> becomes the more
+  general <code>"svix webhook not prepared; call Prepare() at startup"</code> with
+  the same <code>source</code> field. Anyone alerting on the literal old strings
+  will need to migrate to the structured field.</li>
 <li><strong>Quieter Slack notifications</strong>: the original "started working on" message is
   now updated in-place with status changes (retrying, completed, failed) instead
   of posting new messages. Completion details go in the thread only — the
@@ -4734,6 +4744,26 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>incident.io webhook flow (receiver)</strong>: new <code>POST /webhooks/incident-io</code>
+  endpoint with a typed handler for <code>public_incident.incident_created_v2</code>
+  and <code>public_incident.incident_status_updated_v2</code> events. The endpoint
+  bypasses the SCM ticketing pipeline entirely. Configuration lives in
+  two new YAML blocks: <code>webhook.incident_io</code> (sibling of
+  <code>webhook.generic</code>, currently <code>auth_mode: svix</code> only) and a top-level
+  <code>incident_triage</code> block carrying the engine name (default
+  <code>claude-code</code>) and an <code>append_system_prompt</code> override applied
+  per-call to the engine's <code>EngineConfig</code>. Without the YAML blocks the
+  endpoint returns 500 and existing deployments are unaffected. The
+  parallel <code>handleIncidentIO</code> / <code>ProcessIncidentEvent</code> shape is
+  intentional: a future refactor will lift this and the existing
+  ticketing flow behind a common use-case interface.</li>
+<li><strong>incident.io dispatch path is currently a no-op</strong>:
+  <code>Reconciler.ProcessIncidentEvent</code> accepts and acknowledges incident
+  events but does not yet spawn an agent Job. The dispatch logic is
+  deferred to a follow-up change paired with the operator-side wiring
+  (classifier skill, engine profile in helm values). Until that
+  change, every incident.io webhook delivery is verified, parsed,
+  logged, and answered with 200 OK — but no agent runs.</li>
 <li><strong>Environment variable substitution in config files</strong>: <code>${VAR}</code> and <code>$VAR</code>
   references in any string field of <code>osmia-config.yaml</code> are now expanded
   against the process environment at startup. Combined with the new

@@ -1819,6 +1819,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#incidentio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        incident.io
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="incident.io">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#endpoint_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supported-events_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dispatch-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-payload_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2428,6 +2511,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#incidentio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        incident.io
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="incident.io">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#endpoint_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supported-events_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dispatch-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-payload_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2710,7 +2876,7 @@ forwarded as tickets with <code>ticket_type: "slack_interaction"</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>POST /webhooks/generic
 </code></pre></div>
 <h3 id="authentication_4">Authentication<a class="headerlink" href="#authentication_4" title="Permanent link">&para;</a></h3>
-<p>The generic endpoint supports two authentication modes, configured via
+<p>The generic endpoint supports three authentication modes, configured via
 <code>webhook.generic.auth_mode</code>:</p>
 <table>
 <thead>
@@ -2727,6 +2893,10 @@ forwarded as tickets with <code>ticket_type: "slack_interaction"</code>.</p>
 <tr>
 <td><code>bearer</code></td>
 <td><code>Authorization: Bearer &lt;secret&gt;</code> header, validated by constant-time comparison against the configured secret.</td>
+</tr>
+<tr>
+<td><code>svix</code></td>
+<td>Verified by the official Svix Go library — five-minute replay window, <code>svix-*</code> and enterprise <code>webhook-*</code> header prefixes, <code>whsec_</code>-prefixed secrets. Use this for sources that sign with Svix conventions (e.g. Stripe, OpenAI, Linear).</td>
 </tr>
 </tbody>
 </table>
@@ -2794,6 +2964,131 @@ using <code>webhook.generic.field_mapping</code>. Keys are dot-notation JSON pat
 <p>Alternatively, without field mapping configured, a flat payload with top-level
 <code>title</code>, <code>description</code>, and <code>repo_url</code> fields will work when the mapping keys
 match those names directly.</p>
+<hr />
+<h2 id="incidentio">incident.io<a class="headerlink" href="#incidentio" title="Permanent link">&para;</a></h2>
+<p>The incident.io endpoint routes webhook events through a parallel
+reconciler entry point (<code>Reconciler.ProcessIncidentEvent</code>) rather than
+the SCM ticketing pipeline that backs the other endpoints, so the
+controller does not require a repository or merge-request lifecycle for
+these events. The endpoint is intended for triage and similar use cases
+where the agent reads context and posts to chat rather than shipping
+code.</p>
+<div class="admonition note">
+<p class="admonition-title">Dispatch is currently disabled</p>
+<p>The reconciler entry point currently accepts and acknowledges
+incident events but does not yet spawn an agent Job — the dispatch
+logic is deferred to a follow-up change paired with the operator-
+side wiring (classifier skill, engine profile in your values
+file). Until that change is shipped, every incident.io webhook
+delivery is verified, parsed, logged, and answered with 200 OK,
+but no agent runs.</p>
+</div>
+<h3 id="endpoint_5">Endpoint<a class="headerlink" href="#endpoint_5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="err">POST /webhooks/incident-io</span>
+</code></pre></div>
+<h3 id="authentication_5">Authentication<a class="headerlink" href="#authentication_5" title="Permanent link">&para;</a></h3>
+<p>Only Svix-style signing is currently supported (which is what
+incident.io emits). Configure via <code>webhook.incident_io</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>auth_mode</code></th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>svix</code></td>
+<td>Verified by the official Svix Go library — five-minute replay window, <code>svix-*</code> and enterprise <code>webhook-*</code> header prefixes, <code>whsec_</code>-prefixed secrets.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="supported-events_4">Supported events<a class="headerlink" href="#supported-events_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Event type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>public_incident.incident_created_v2</code></td>
+<td>Fires when a new incident is opened. The wrapped body is a flat <code>IncidentV2</code> object.</td>
+</tr>
+<tr>
+<td><code>public_incident.incident_status_updated_v2</code></td>
+<td>Fires on incident status transitions. The wrapped body is <code>{ incident, message, new_status, previous_status }</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Other event types are rejected with 400 — add a constant and a case in
+<code>internal/webhook/incident.go</code> to extend.</p>
+<h3 id="dispatch-configuration">Dispatch configuration<a class="headerlink" href="#dispatch-configuration" title="Permanent link">&para;</a></h3>
+<p>A separate top-level <code>incident_triage</code> block controls how parsed events
+are dispatched to an engine:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>engine</code></td>
+<td>Engine name to dispatch to (matched against <code>engine.Name()</code>). Defaults to <code>claude-code</code> when unset.</td>
+</tr>
+<tr>
+<td><code>append_system_prompt</code></td>
+<td>Injected into the per-call <code>engine.EngineConfig.AppendSystemPrompt</code>. Useful for directing the agent to invoke a classification skill or to avoid repository-shaped reasoning.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-configuration_1">Example configuration<a class="headerlink" href="#example-configuration_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">webhook</span><span class="p">:</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">incident_io</span><span class="p">:</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nt">auth_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">svix</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="nt">secret</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${INCIDENT_IO_WEBHOOK_SECRET}&quot;</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nt">incident_triage</span><span class="p">:</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="nt">engine</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">claude-code</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span><span class="nt">append_system_prompt</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">    </span><span class="no">You are an incident triage agent. Invoke /incident-classifier and</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="no">follow it. Do not clone repositories, modify code, push branches,</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="no">or open merge requests.</span>
+</code></pre></div>
+<h3 id="example-payload_4">Example payload<a class="headerlink" href="#example-payload_4" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">&quot;event_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;public_incident.incident_created_v2&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">&quot;public_incident.incident_created_v2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;01HZ0000000000000000000001&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="nt">&quot;reference&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;INC-123&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Database is degraded&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Customer reports the API is returning 500s&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="nt">&quot;permalink&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://app.incident.io/incidents/123&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">    </span><span class="nt">&quot;visibility&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;public&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;standard&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">    </span><span class="nt">&quot;incident_status&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;01HZ_status_live&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Investigating&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="w">      </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;live&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="w">      </span><span class="nt">&quot;rank&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="w">    </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;01HZ_sev_major&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Major&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="w">      </span><span class="nt">&quot;rank&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="w">    </span><span class="nt">&quot;slack_team_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;T0123&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="w">    </span><span class="nt">&quot;slack_channel_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;C0123&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-07T10:00:00Z&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a><span class="w">    </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-07T10:00:00Z&quot;</span>
+<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a><span class="p">}</span>
+</code></pre></div>
+<p>Without the YAML blocks, <code>POST /webhooks/incident-io</code> responds with 500
+"not configured" and existing deployments are unaffected.</p>
 <hr />
 <h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
