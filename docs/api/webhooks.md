@@ -252,13 +252,14 @@ POST /webhooks/generic
 
 ### Authentication
 
-The generic endpoint supports two authentication modes, configured via
+The generic endpoint supports three authentication modes, configured via
 `webhook.generic.auth_mode`:
 
 | `auth_mode` | Mechanism |
 |---|---|
 | `hmac` | HMAC-SHA256 of the request body, sent in the header specified by `webhook.generic.signature_header` (default: `X-Webhook-Signature`). The value may include a `sha256=` prefix. |
 | `bearer` | `Authorization: Bearer <secret>` header, validated by constant-time comparison against the configured secret. |
+| `svix` | Verified by the official Svix Go library — five-minute replay window, `svix-*` and enterprise `webhook-*` header prefixes, `whsec_`-prefixed secrets. Use this for sources that sign with Svix conventions (e.g. Stripe, OpenAI, Linear). |
 
 ### Field mapping
 
@@ -308,6 +309,103 @@ Given the mapping above, a minimal triggering payload would be:
 Alternatively, without field mapping configured, a flat payload with top-level
 `title`, `description`, and `repo_url` fields will work when the mapping keys
 match those names directly.
+
+---
+
+## incident.io
+
+The incident.io endpoint dispatches webhook events through a parallel
+reconciler path (`Reconciler.ProcessIncidentEvent`) rather than the SCM
+ticketing pipeline that backs the other endpoints. Agent runs are
+launched without a repository or merge-request lifecycle, suitable for
+triage and similar use cases where the agent reads context and posts to
+chat rather than shipping code.
+
+### Endpoint
+
+```
+POST /webhooks/incident-io
+```
+
+### Authentication
+
+Only Svix-style signing is currently supported (which is what
+incident.io emits). Configure via `webhook.incident_io`:
+
+| `auth_mode` | Mechanism |
+|---|---|
+| `svix` | Verified by the official Svix Go library — five-minute replay window, `svix-*` and enterprise `webhook-*` header prefixes, `whsec_`-prefixed secrets. |
+
+### Supported events
+
+| Event type | Notes |
+|---|---|
+| `public_incident.incident_created_v2` | Fires when a new incident is opened. The wrapped body is a flat `IncidentV2` object. |
+| `public_incident.incident_status_updated_v2` | Fires on incident status transitions. The wrapped body is `{ incident, message, new_status, previous_status }`. |
+
+Other event types are rejected with 400 — add a constant and a case in
+`internal/webhook/incident.go` to extend.
+
+### Dispatch configuration
+
+A separate top-level `incident_triage` block controls how parsed events
+are dispatched to an engine:
+
+| Field | Description |
+|---|---|
+| `engine` | Engine name to dispatch to (matched against `engine.Name()`). Defaults to `claude-code` when unset. |
+| `append_system_prompt` | Injected into the per-call `engine.EngineConfig.AppendSystemPrompt`. Useful for directing the agent to invoke a classification skill or to avoid repository-shaped reasoning. |
+
+### Example configuration
+
+```yaml
+webhook:
+  incident_io:
+    auth_mode: svix
+    secret: "${INCIDENT_IO_WEBHOOK_SECRET}"
+
+incident_triage:
+  engine: claude-code
+  append_system_prompt: |
+    You are an incident triage agent. Invoke /incident-classifier and
+    follow it. Do not clone repositories, modify code, push branches,
+    or open merge requests.
+```
+
+### Example payload
+
+```json
+{
+  "event_type": "public_incident.incident_created_v2",
+  "public_incident.incident_created_v2": {
+    "id": "01HZ0000000000000000000001",
+    "reference": "INC-123",
+    "name": "Database is degraded",
+    "summary": "Customer reports the API is returning 500s",
+    "permalink": "https://app.incident.io/incidents/123",
+    "visibility": "public",
+    "mode": "standard",
+    "incident_status": {
+      "id": "01HZ_status_live",
+      "name": "Investigating",
+      "category": "live",
+      "rank": 10
+    },
+    "severity": {
+      "id": "01HZ_sev_major",
+      "name": "Major",
+      "rank": 100
+    },
+    "slack_team_id": "T0123",
+    "slack_channel_id": "C0123",
+    "created_at": "2026-05-07T10:00:00Z",
+    "updated_at": "2026-05-07T10:00:00Z"
+  }
+}
+```
+
+Without the YAML blocks, `POST /webhooks/incident-io` responds with 500
+"not configured" and existing deployments are unaffected.
 
 ---
 
