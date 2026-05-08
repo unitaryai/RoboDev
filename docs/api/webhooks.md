@@ -314,12 +314,22 @@ match those names directly.
 
 ## incident.io
 
-The incident.io endpoint dispatches webhook events through a parallel
-reconciler path (`Reconciler.ProcessIncidentEvent`) rather than the SCM
-ticketing pipeline that backs the other endpoints. Agent runs are
-launched without a repository or merge-request lifecycle, suitable for
-triage and similar use cases where the agent reads context and posts to
-chat rather than shipping code.
+The incident.io endpoint routes webhook events through a parallel
+reconciler entry point (`Reconciler.ProcessIncidentEvent`) rather than
+the SCM ticketing pipeline that backs the other endpoints, so the
+controller does not require a repository or merge-request lifecycle for
+these events. The endpoint is intended for triage and similar use cases
+where the agent reads context and posts to chat rather than shipping
+code.
+
+!!! note "Dispatch is currently disabled"
+    The reconciler entry point currently accepts and acknowledges
+    incident events but does not yet spawn an agent Job — the dispatch
+    logic is deferred to a follow-up change paired with the operator-
+    side wiring (classifier skill, engine profile in your values
+    file). Until that change is shipped, every incident.io webhook
+    delivery is verified, parsed, logged, and answered with 200 OK,
+    but no agent runs.
 
 ### Endpoint
 

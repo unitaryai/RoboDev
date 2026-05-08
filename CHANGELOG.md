@@ -67,21 +67,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **incident.io webhook flow**: new `POST /webhooks/incident-io` endpoint
-  with a typed handler for `public_incident.incident_created_v2` and
-  `public_incident.incident_status_updated_v2` events. The endpoint
-  bypasses the SCM ticketing pipeline entirely — events are dispatched
-  to a new `Reconciler.ProcessIncidentEvent` reconciler path that
-  launches an agent run without requiring a `RepoURL`. Configuration
-  lives in two new YAML blocks: `webhook.incident_io` (sibling of
+- **incident.io webhook flow (receiver)**: new `POST /webhooks/incident-io`
+  endpoint with a typed handler for `public_incident.incident_created_v2`
+  and `public_incident.incident_status_updated_v2` events. The endpoint
+  bypasses the SCM ticketing pipeline entirely. Configuration lives in
+  two new YAML blocks: `webhook.incident_io` (sibling of
   `webhook.generic`, currently `auth_mode: svix` only) and a top-level
   `incident_triage` block carrying the engine name (default
-  `claude-code`) and an `append_system_prompt` override that is applied
+  `claude-code`) and an `append_system_prompt` override applied
   per-call to the engine's `EngineConfig`. Without the YAML blocks the
   endpoint returns 500 and existing deployments are unaffected. The
   parallel `handleIncidentIO` / `ProcessIncidentEvent` shape is
-  intentional: a future refactor will lift both this and the existing
+  intentional: a future refactor will lift this and the existing
   ticketing flow behind a common use-case interface.
+- **incident.io dispatch path is currently a no-op**:
+  `Reconciler.ProcessIncidentEvent` accepts and acknowledges incident
+  events but does not yet spawn an agent Job. The dispatch logic is
+  deferred to a follow-up change paired with the operator-side wiring
+  (classifier skill, engine profile in helm values). Until that
+  change, every incident.io webhook delivery is verified, parsed,
+  logged, and answered with 200 OK — but no agent runs.
 - **Environment variable substitution in config files**: `${VAR}` and `$VAR`
   references in any string field of `osmia-config.yaml` are now expanded
   against the process environment at startup. Combined with the new
