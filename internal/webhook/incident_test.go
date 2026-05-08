@@ -202,6 +202,16 @@ func TestParseIncidentEvent_Errors(t *testing.T) {
 			body:      `{"event_type": "public_incident.incident_status_updated_v2", "public_incident.incident_status_updated_v2": {"incident": {"id": "01HZ_X"}, "new_status": {"id": "s2", "name": "Closed", "category": "closed", "rank": 99}}}`,
 			wantInErr: "missing required previous_status field",
 		},
+		{
+			name:      "status_updated_v2 empty new_status object",
+			body:      `{"event_type": "public_incident.incident_status_updated_v2", "public_incident.incident_status_updated_v2": {"incident": {"id": "01HZ_X"}, "new_status": {}, "previous_status": {"id": "s1", "name": "Live", "category": "live", "rank": 1}}}`,
+			wantInErr: "empty new_status.id",
+		},
+		{
+			name:      "status_updated_v2 empty previous_status object",
+			body:      `{"event_type": "public_incident.incident_status_updated_v2", "public_incident.incident_status_updated_v2": {"incident": {"id": "01HZ_X"}, "new_status": {"id": "s2", "name": "Closed", "category": "closed", "rank": 99}, "previous_status": {}}}`,
+			wantInErr: "empty previous_status.id",
+		},
 	}
 
 	for _, tc := range tests {
@@ -484,4 +494,21 @@ func TestIncidentIOConfig_Prepare(t *testing.T) {
 				"expected error to contain %q, got %q", tc.wantInErr, err.Error())
 		})
 	}
+}
+
+// TestIncidentIOConfig_PrepareFailsClosed verifies that a successful
+// Prepare followed by a failed re-prepare leaves svixWebhook nil rather
+// than retaining the previously-valid verifier. Production currently
+// only calls Prepare once at startup, but a future hot-reload path must
+// fail closed on invalid config.
+func TestIncidentIOConfig_PrepareFailsClosed(t *testing.T) {
+	cfg := &IncidentIOConfig{AuthMode: "svix", Secret: newSvixSecret(t)}
+	require.NoError(t, cfg.Prepare())
+	require.NotNil(t, cfg.svixWebhook, "valid Prepare should populate the verifier")
+
+	// Mutate the config to make it invalid and re-prepare. The verifier
+	// must be cleared even though the previous Prepare succeeded.
+	cfg.AuthMode = "hmac"
+	require.Error(t, cfg.Prepare())
+	assert.Nil(t, cfg.svixWebhook, "failed Prepare must clear the existing verifier")
 }

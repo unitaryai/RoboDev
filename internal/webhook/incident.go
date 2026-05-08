@@ -60,8 +60,12 @@ type IncidentIOConfig struct {
 
 // Prepare validates the configuration and pre-constructs the Svix
 // verifier. It is idempotent; repeat calls re-run validation and rebuild
-// the verifier.
+// the verifier. Any error path clears the existing verifier so that a
+// previously-successful Prepare followed by a failed re-prepare leaves
+// the config in a fail-closed state rather than silently accepting the
+// old secret.
 func (i *IncidentIOConfig) Prepare() error {
+	i.svixWebhook = nil
 	if i.Secret == "" {
 		return fmt.Errorf("secret is required")
 	}
@@ -258,11 +262,21 @@ func ParseIncidentEvent(body []byte) (IncidentEvent, error) {
 		// new_status and previous_status are the whole point of this event
 		// type; reject signed-but-malformed deliveries that omit either
 		// rather than dispatching a triage run without transition context.
+		// An empty JSON object ({}) deserialises to a non-nil pointer with
+		// zero-value fields, so the nil-pointer check alone is not enough —
+		// also require a non-empty status ID, mirroring the Incident.ID
+		// guard for incident_created_v2.
 		if w.NewStatus == nil {
 			return IncidentEvent{}, fmt.Errorf("%s payload missing required new_status field", eventType)
 		}
+		if w.NewStatus.ID == "" {
+			return IncidentEvent{}, fmt.Errorf("%s payload has empty new_status.id", eventType)
+		}
 		if w.PreviousStatus == nil {
 			return IncidentEvent{}, fmt.Errorf("%s payload missing required previous_status field", eventType)
+		}
+		if w.PreviousStatus.ID == "" {
+			return IncidentEvent{}, fmt.Errorf("%s payload has empty previous_status.id", eventType)
 		}
 		evt.Incident = w.Incident
 		evt.Message = w.Message

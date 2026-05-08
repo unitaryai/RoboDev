@@ -333,7 +333,7 @@ code.
 
 ### Endpoint
 
-```
+```http
 POST /webhooks/incident-io
 ```
 
