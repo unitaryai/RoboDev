@@ -192,6 +192,16 @@ func TestParseIncidentEvent_Errors(t *testing.T) {
 			body:      `{"event_type": "public_incident.incident_created_v2", "public_incident.incident_created_v2": "not an object"}`,
 			wantInErr: "decoding public_incident.incident_created_v2 body",
 		},
+		{
+			name:      "status_updated_v2 missing new_status",
+			body:      `{"event_type": "public_incident.incident_status_updated_v2", "public_incident.incident_status_updated_v2": {"incident": {"id": "01HZ_X"}, "previous_status": {"id": "s1", "name": "Live", "category": "live", "rank": 1}}}`,
+			wantInErr: "missing required new_status field",
+		},
+		{
+			name:      "status_updated_v2 missing previous_status",
+			body:      `{"event_type": "public_incident.incident_status_updated_v2", "public_incident.incident_status_updated_v2": {"incident": {"id": "01HZ_X"}, "new_status": {"id": "s2", "name": "Closed", "category": "closed", "rank": 99}}}`,
+			wantInErr: "missing required previous_status field",
+		},
 	}
 
 	for _, tc := range tests {

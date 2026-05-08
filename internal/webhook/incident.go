@@ -255,6 +255,15 @@ func ParseIncidentEvent(body []byte) (IncidentEvent, error) {
 		if err := json.Unmarshal(wrapped, &w); err != nil {
 			return IncidentEvent{}, fmt.Errorf("decoding %s body: %w", eventType, err)
 		}
+		// new_status and previous_status are the whole point of this event
+		// type; reject signed-but-malformed deliveries that omit either
+		// rather than dispatching a triage run without transition context.
+		if w.NewStatus == nil {
+			return IncidentEvent{}, fmt.Errorf("%s payload missing required new_status field", eventType)
+		}
+		if w.PreviousStatus == nil {
+			return IncidentEvent{}, fmt.Errorf("%s payload missing required previous_status field", eventType)
+		}
 		evt.Incident = w.Incident
 		evt.Message = w.Message
 		evt.NewStatus = w.NewStatus
