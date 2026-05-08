@@ -38,6 +38,7 @@ type Config struct {
 	CompetitiveExecution CompetitiveExecutionConfig `yaml:"competitive_execution"`
 	Audit                AuditConfig                `yaml:"audit"`
 	ReviewResponse       ReviewResponseConfig       `yaml:"review_response"`
+	IncidentTriage       IncidentTriageConfig       `yaml:"incident_triage"`
 }
 
 // ReviewResponseConfig configures the PR/MR review comment response subsystem.
@@ -125,13 +126,14 @@ type StreamingConfig struct {
 
 // WebhookConfig configures the optional webhook receiver server.
 type WebhookConfig struct {
-	Enabled  bool                  `yaml:"enabled"`
-	Port     int                   `yaml:"port,omitempty"` // defaults to 8081
-	GitHub   *WebhookSourceConfig  `yaml:"github,omitempty"`
-	GitLab   *WebhookSourceConfig  `yaml:"gitlab,omitempty"`
-	Slack    *WebhookSourceConfig  `yaml:"slack,omitempty"`
-	Shortcut *WebhookSourceConfig  `yaml:"shortcut,omitempty"`
-	Generic  *GenericWebhookConfig `yaml:"generic,omitempty"`
+	Enabled    bool                     `yaml:"enabled"`
+	Port       int                      `yaml:"port,omitempty"` // defaults to 8081
+	GitHub     *WebhookSourceConfig     `yaml:"github,omitempty"`
+	GitLab     *WebhookSourceConfig     `yaml:"gitlab,omitempty"`
+	Slack      *WebhookSourceConfig     `yaml:"slack,omitempty"`
+	Shortcut   *WebhookSourceConfig     `yaml:"shortcut,omitempty"`
+	Generic    *GenericWebhookConfig    `yaml:"generic,omitempty"`
+	IncidentIO *IncidentIOWebhookConfig `yaml:"incident_io,omitempty"`
 }
 
 // WebhookSourceConfig holds the shared secret for a webhook source.
@@ -161,6 +163,38 @@ type GenericWebhookConfig struct {
 	// ticket fields. Supported target fields: id, title, description,
 	// ticket_type, repo_url, external_url.
 	FieldMapping map[string]string `yaml:"field_mapping,omitempty"`
+}
+
+// IncidentIOWebhookConfig holds settings for the incident.io webhook
+// handler. It is the typed sibling of GenericWebhookConfig — incident.io's
+// payload schema is fixed and modelled in internal/webhook/incident.go,
+// so no field_mapping is required. Currently only Svix-style signing is
+// supported because that is what incident.io actually emits; the
+// auth_mode field is preserved for future flexibility.
+type IncidentIOWebhookConfig struct {
+	// AuthMode is the authentication method for incoming requests.
+	// Only "svix" is currently supported.
+	AuthMode string `yaml:"auth_mode"`
+
+	// Secret is the Svix signing key (typically prefixed with "whsec_").
+	Secret string `yaml:"secret"`
+}
+
+// IncidentTriageConfig configures how incident.io webhook events are
+// dispatched to an execution engine. It is intentionally separate from
+// EnginesConfig because the engine itself is shared with the ticketing
+// flow — these fields override per-call EngineConfig values for incident
+// triage runs only.
+type IncidentTriageConfig struct {
+	// Engine selects which registered engine handles incident triage
+	// events (matched against engine.Name(), e.g. "claude-code"). When
+	// empty, ProcessIncidentEvent falls back to "claude-code".
+	Engine string `yaml:"engine"`
+
+	// AppendSystemPrompt is injected into the engine's per-call
+	// EngineConfig.AppendSystemPrompt. Used to direct the agent to invoke
+	// the classification skill and avoid repository-shaped reasoning.
+	AppendSystemPrompt string `yaml:"append_system_prompt,omitempty"`
 }
 
 // SecretResolverConfig configures the task-scoped secret resolver.

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -108,10 +107,8 @@ func (s *Server) handleGeneric(w http.ResponseWriter, r *http.Request) {
 
 	cfg := s.genericConfig
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		s.logger.Error("failed to read request body", slog.String("error", err.Error()))
-		http.Error(w, "failed to read request body", http.StatusBadRequest)
+	body, ok := s.readRequestBody(w, r)
+	if !ok {
 		return
 	}
 
@@ -137,14 +134,7 @@ func (s *Server) handleGeneric(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case GenericAuthSvix:
-		if cfg.svixWebhook == nil {
-			s.logger.Error("svix webhook not prepared; call GenericConfig.Prepare() at startup")
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		if err := cfg.svixWebhook.Verify(body, r.Header); err != nil {
-			s.logger.Warn("invalid generic webhook svix signature", slog.String("error", err.Error()))
-			http.Error(w, "invalid signature", http.StatusUnauthorized)
+		if !s.verifySvixSignature(w, r, body, cfg.svixWebhook, "generic") {
 			return
 		}
 	default:
