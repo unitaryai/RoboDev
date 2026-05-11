@@ -483,10 +483,18 @@ that produces consistent classifications covers:
 #### Iterating on the skill
 
 Because the skill is mounted from a ConfigMap, content updates do not
-require redeploying the controller. Update the ConfigMap (e.g.
-`kubectl create configmap … -o yaml --dry-run=client | kubectl apply
--f -`) and the next agent Job picks up the new content automatically;
-in-flight Jobs continue with the version they started with.
+require redeploying the controller. Re-apply the ConfigMap — for
+example, with an idempotent dry-run + apply:
+
+```bash
+kubectl create configmap incident-classifier-skill \
+  --namespace osmia \
+  --from-file=incident-classifier.md=./skills/incident-classifier.md \
+  -o yaml --dry-run=client | kubectl apply -f -
+```
+
+The next agent Job picks up the new content automatically; in-flight
+Jobs continue with the version they started with.
 
 If you prefer the skill to live in-tree with your deployment
 manifests, the same content can be inlined under
