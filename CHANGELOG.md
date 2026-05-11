@@ -80,13 +80,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parallel `handleIncidentIO` / `ProcessIncidentEvent` shape is
   intentional: a future refactor will lift this and the existing
   ticketing flow behind a common use-case interface.
-- **incident.io dispatch path is currently a no-op**:
-  `Reconciler.ProcessIncidentEvent` accepts and acknowledges incident
-  events but does not yet spawn an agent Job. The dispatch logic is
-  deferred to a follow-up change paired with the operator-side wiring
-  (classifier skill, engine profile in helm values). Until that
-  change, every incident.io webhook delivery is verified, parsed,
-  logged, and answered with 200 OK — but no agent runs.
+- **incident.io dispatch path**: `Reconciler.ProcessIncidentEvent`
+  now launches an agent run for each incident.io webhook event,
+  bypassing the SCM ticketing pipeline. Idempotency is keyed on
+  `incident_id:event_type` so that `incident_created_v2` and
+  `incident_status_updated_v2` for the same incident produce distinct
+  task runs. The engine selected by `config.incident_triage.engine`
+  (default `claude-code`) is dispatched with the per-call
+  `append_system_prompt` override layered onto its `EngineConfig`.
+  Known limitation pending the use-case abstraction: when one of these
+  TaskRuns completes, `handleJobComplete` calls
+  `ticketing.MarkComplete` with the incident UUID as the `TicketID`,
+  which the configured ticketing backend will not recognise. The
+  resulting "not found" error is logged but non-fatal.
 - **Environment variable substitution in config files**: `${VAR}` and `$VAR`
   references in any string field of `osmia-config.yaml` are now expanded
   against the process environment at startup. Combined with the new
