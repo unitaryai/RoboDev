@@ -80,6 +80,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parallel `handleIncidentIO` / `ProcessIncidentEvent` shape is
   intentional: a future refactor will lift this and the existing
   ticketing flow behind a common use-case interface.
+- **Authoring guide for incident classifier skills**: new "Authoring
+  the classifier skill" section in `docs/api/webhooks.md` walks
+  operators through providing their own classifier — a worked example
+  pairing the `incident_triage` block with a matching
+  `engines.<engine>.skills[]` ConfigMap reference, the `kubectl create
+  configmap` invocation, suggested skill structure (input contract,
+  classifications, output contract, bail-out, operational
+  constraints), and notes on iterating without redeploying.
 - **incident.io dispatch path**: `Reconciler.ProcessIncidentEvent`
   now launches an agent run for each incident.io webhook event,
   bypassing the SCM ticketing pipeline. Idempotency is keyed on
