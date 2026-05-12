@@ -356,8 +356,8 @@ are dispatched to an engine:
 |---|---|
 | `engine` | Engine name to dispatch to (matched against `engine.Name()`). Defaults to `claude-code` when unset. |
 | `append_system_prompt` | Injected into the per-call `engine.EngineConfig.AppendSystemPrompt`. Useful for directing the agent to invoke a classification skill or to avoid repository-shaped reasoning. |
-| `slack_channel_id` | Optional. Overrides `SLACK_CHANNEL_ID` on incident-triage agent Jobs. When empty, the agent inherits the channel from the first configured Slack channel under `notifications.channels`, matching ticketing-run behaviour. Set this when incident triage should post to a dedicated review channel (e.g. a shadow-mode classifier channel) without affecting where ticketing notifications go. |
-| `slack_token_secret` | Optional. Overrides the Kubernetes Secret backing `SLACK_BOT_TOKEN` on incident-triage agent Jobs. Pair with `slack_channel_id` when the override channel belongs to a different Slack app/bot than the default notifications channel. The Secret is probed for the well-known keys `SLACK_BOT_TOKEN` and `SLACK_TOKEN`, falling back to the literal `token` key. |
+| `slack_channel_id` | Slack channel for the incident-triage agent Job's MCP-based notifications. The ticketing flow's channel is configured under `notifications.channels`; this field is the equivalent for incident triage. Both flows are first-class — a single Osmia deployment can run them side-by-side with separate channels and bot tokens. When empty, the incident flow falls back to the first configured channel under `notifications.channels` — useful only if the operator wants both flows in the same channel. |
+| `slack_token_secret` | Kubernetes Secret backing `SLACK_BOT_TOKEN` for the incident-triage agent Job. Pair with `slack_channel_id` when the channel belongs to a different Slack app/bot than the one used by ticketing runs. The Secret is probed for the well-known keys `SLACK_BOT_TOKEN` and `SLACK_TOKEN`, falling back to the literal `token` key. When empty, the bot token from the first configured Slack channel under `notifications.channels` is used. |
 
 ### Example configuration
 
@@ -373,11 +373,11 @@ incident_triage:
     You are an incident triage agent. Invoke /incident-classifier and
     follow it. Do not clone repositories, modify code, push branches,
     or open merge requests.
-  # Optional: route the classifier's Slack output to a dedicated
-  # channel using a different bot, leaving the operator's default
-  # notifications channel (top-level `notifications.channels[0]`)
-  # untouched for ticketing runs.
-  slack_channel_id: "C0XXXSHADOW"
+  # Slack channel + bot for the incident flow. The ticketing flow's
+  # channel lives under `notifications.channels` above; the two run
+  # side-by-side with separate destinations. When omitted, the incident
+  # flow shares the ticketing channel.
+  slack_channel_id: "C0XXXINCIDENT"
   slack_token_secret: "incident-triage-slack-bot"
 ```
 

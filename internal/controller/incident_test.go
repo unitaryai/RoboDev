@@ -315,20 +315,21 @@ func TestProcessIncidentEvent_RelaunchAfterTerminal(t *testing.T) {
 	assert.Equal(t, 2, eng.buildCalled)
 }
 
-// incidentTestConfigWithDefaultSlack returns a config with one default
-// Slack notifications channel — the channel that slackEnv() and
-// slackSecretKeyRefs() pick by default for every agent run. Used by the
-// IncidentTriage Slack-override tests to set up a meaningful "before"
-// state that the override is then expected to replace.
-func incidentTestConfigWithDefaultSlack() *config.Config {
+// incidentTestConfigWithTicketingSlack returns a config with one
+// configured Slack notifications channel — the channel that slackEnv()
+// and slackSecretKeyRefs() pick for the ticketing flow. Used by the
+// IncidentTriage Slack-config tests to verify that the incident flow's
+// own channel + token settings take effect when set, and that the
+// ticketing channel is the fallback when they're not.
+func incidentTestConfigWithTicketingSlack() *config.Config {
 	cfg := incidentTestConfig()
 	cfg.Notifications = config.NotificationsConfig{
 		Channels: []config.ChannelConfig{
 			{
 				Backend: "slack",
 				Config: map[string]any{
-					"channel_id":   "C_DEFAULT",
-					"token_secret": "default-bot",
+					"channel_id":   "C_TICKETING",
+					"token_secret": "ticketing-bot",
 				},
 			},
 		},
@@ -336,13 +337,13 @@ func incidentTestConfigWithDefaultSlack() *config.Config {
 	return cfg
 }
 
-// TestProcessIncidentEvent_SlackChannelOverride covers
-// IncidentTriage.SlackChannelID replacing the SLACK_CHANNEL_ID that
-// slackEnv() picks from the first configured notifications channel. The
-// override is what lets incident triage post to a dedicated review
-// channel without affecting where ticketing notifications go.
-func TestProcessIncidentEvent_SlackChannelOverride(t *testing.T) {
-	cfg := incidentTestConfigWithDefaultSlack()
+// TestProcessIncidentEvent_PostsToConfiguredSlackChannel covers the
+// happy path for per-flow Slack channel config: when
+// IncidentTriage.SlackChannelID is set, the incident-triage agent Job's
+// SLACK_CHANNEL_ID env var carries that channel rather than the
+// ticketing channel from Notifications.Channels.
+func TestProcessIncidentEvent_PostsToConfiguredSlackChannel(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
 	cfg.IncidentTriage.SlackChannelID = "C_INCIDENT"
 
 	logger := testLogger()
@@ -359,15 +360,15 @@ func TestProcessIncidentEvent_SlackChannelOverride(t *testing.T) {
 	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKCH")))
 
 	assert.Equal(t, "C_INCIDENT", eng.lastConfig.Env["SLACK_CHANNEL_ID"],
-		"IncidentTriage.SlackChannelID must override SLACK_CHANNEL_ID for this call")
+		"incident-triage agent Job must carry the incident flow's SLACK_CHANNEL_ID")
 }
 
-// TestProcessIncidentEvent_SlackChannelDefaultsToNotificationsChannel
-// guards the no-override path: with IncidentTriage.SlackChannelID
-// unset, the agent inherits the channel from the first configured
-// notifications channel, matching ticketing-run behaviour.
-func TestProcessIncidentEvent_SlackChannelDefaultsToNotificationsChannel(t *testing.T) {
-	cfg := incidentTestConfigWithDefaultSlack()
+// TestProcessIncidentEvent_FallsBackToTicketingSlackChannel guards the
+// backward-compatibility path: when IncidentTriage.SlackChannelID is
+// unset, the incident flow shares the ticketing channel rather than
+// failing outright. Keeps existing single-channel deployments working.
+func TestProcessIncidentEvent_FallsBackToTicketingSlackChannel(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
 	// IncidentTriage.SlackChannelID intentionally left empty.
 
 	logger := testLogger()
@@ -383,16 +384,17 @@ func TestProcessIncidentEvent_SlackChannelDefaultsToNotificationsChannel(t *test
 
 	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKDEF")))
 
-	assert.Equal(t, "C_DEFAULT", eng.lastConfig.Env["SLACK_CHANNEL_ID"],
-		"with no override, SLACK_CHANNEL_ID must fall back to the first notifications channel")
+	assert.Equal(t, "C_TICKETING", eng.lastConfig.Env["SLACK_CHANNEL_ID"],
+		"with no per-flow channel set, the incident flow inherits the ticketing channel")
 }
 
-// TestProcessIncidentEvent_SlackTokenOverride covers
-// IncidentTriage.SlackTokenSecret replacing the SLACK_BOT_TOKEN
-// SecretKeyRef. The well-known-key probe is exercised by seeding the
+// TestProcessIncidentEvent_UsesConfiguredSlackTokenSecret covers the
+// per-flow Slack bot path: when IncidentTriage.SlackTokenSecret is set,
+// the incident-triage agent Job's SLACK_BOT_TOKEN SecretKeyRef points
+// at that Secret. The well-known-key probe is exercised by seeding the
 // fake clientset with a Secret that has a SLACK_BOT_TOKEN data key.
-func TestProcessIncidentEvent_SlackTokenOverride(t *testing.T) {
-	cfg := incidentTestConfigWithDefaultSlack()
+func TestProcessIncidentEvent_UsesConfiguredSlackTokenSecret(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
 	cfg.IncidentTriage.SlackTokenSecret = "incident-bot"
 
 	logger := testLogger()
@@ -419,19 +421,19 @@ func TestProcessIncidentEvent_SlackTokenOverride(t *testing.T) {
 	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKTOK")))
 
 	ref, ok := eng.lastConfig.SecretKeyRefs["SLACK_BOT_TOKEN"]
-	require.True(t, ok, "SLACK_BOT_TOKEN SecretKeyRef must be set")
+	require.True(t, ok, "SLACK_BOT_TOKEN SecretKeyRef must be set on the agent Job")
 	assert.Equal(t, "incident-bot", ref.SecretName,
 		"SecretName must point at IncidentTriage.SlackTokenSecret")
 	assert.Equal(t, "SLACK_BOT_TOKEN", ref.Key,
-		"resolveSlackTokenKey must probe the override Secret and pick the well-known key")
+		"resolveSlackTokenKey must probe the configured Secret and pick the well-known key")
 }
 
-// TestProcessIncidentEvent_SlackTokenOverrideFallsBackToTokenKey covers
-// the case where the override Secret has no well-known key — the key
-// falls back to the literal "token", matching slackSecretKeyRefs's
-// default.
-func TestProcessIncidentEvent_SlackTokenOverrideFallsBackToTokenKey(t *testing.T) {
-	cfg := incidentTestConfigWithDefaultSlack()
+// TestProcessIncidentEvent_FallsBackToTokenKeyForUnnamedSlackSecret
+// covers the case where the configured Secret holds the token under the
+// literal "token" key rather than a well-known name. resolveSlackTokenKey
+// must fall through to "token", matching slackSecretKeyRefs's default.
+func TestProcessIncidentEvent_FallsBackToTokenKeyForUnnamedSlackSecret(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
 	cfg.IncidentTriage.SlackTokenSecret = "incident-bot"
 
 	logger := testLogger()
@@ -461,5 +463,5 @@ func TestProcessIncidentEvent_SlackTokenOverrideFallsBackToTokenKey(t *testing.T
 	require.True(t, ok)
 	assert.Equal(t, "incident-bot", ref.SecretName)
 	assert.Equal(t, "token", ref.Key,
-		"with no well-known key in the override Secret, the key falls back to the literal \"token\"")
+		"with no well-known key in the Secret, the key falls back to the literal \"token\"")
 }

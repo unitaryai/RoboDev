@@ -196,20 +196,23 @@ type IncidentTriageConfig struct {
 	// the classification skill and avoid repository-shaped reasoning.
 	AppendSystemPrompt string `yaml:"append_system_prompt,omitempty"`
 
-	// SlackChannelID overrides the SLACK_CHANNEL_ID env var on agent
-	// Jobs spawned by ProcessIncidentEvent. When empty, the agent
-	// inherits the channel from the first configured Slack channel in
-	// Notifications.Channels — the same default that applies to ticketing
-	// runs. Set this when incident triage should post to a different
-	// channel than the operator's default notifications channel.
+	// SlackChannelID is the Slack channel that the incident-triage agent
+	// Job's MCP server posts to. The ticketing flow's Slack channel lives
+	// under Notifications.Channels; this is the equivalent for incident
+	// triage. Both flows are first-class — a single Osmia deployment
+	// can run them side-by-side with separate channels and bot tokens.
+	// When empty, the incident flow falls back to the first configured
+	// channel in Notifications.Channels (only useful if the operator
+	// wants both flows in the same channel, which is unusual).
 	SlackChannelID string `yaml:"slack_channel_id,omitempty"`
 
-	// SlackTokenSecret overrides the Slack bot token secret reference
-	// on agent Jobs spawned by ProcessIncidentEvent. When empty, the
-	// token from the first configured Slack channel in
-	// Notifications.Channels is used. Pair with SlackChannelID when the
-	// override channel belongs to a different Slack app/bot than the
-	// default notifications channel.
+	// SlackTokenSecret is the Kubernetes Secret backing SLACK_BOT_TOKEN
+	// for the incident-triage agent Job. Pair with SlackChannelID when
+	// the channel belongs to a different Slack app/bot than the one
+	// used by ticketing runs (typical when incident triage posts to a
+	// dedicated channel scoped to its own bot). When empty, the token
+	// from the first configured Slack channel in Notifications.Channels
+	// is used.
 	SlackTokenSecret string `yaml:"slack_token_secret,omitempty"`
 }
 
