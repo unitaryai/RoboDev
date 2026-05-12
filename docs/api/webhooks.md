@@ -322,15 +322,6 @@ these events. The endpoint is intended for triage and similar use cases
 where the agent reads context and posts to chat rather than shipping
 code.
 
-!!! note "Dispatch is currently disabled"
-    The reconciler entry point currently accepts and acknowledges
-    incident events but does not yet spawn an agent Job — the dispatch
-    logic is deferred to a follow-up change paired with the operator-
-    side wiring (classifier skill, engine profile in your values
-    file). Until that change is shipped, every incident.io webhook
-    delivery is verified, parsed, logged, and answered with 200 OK,
-    but no agent runs.
-
 ### Endpoint
 
 ```http
@@ -413,6 +404,102 @@ incident_triage:
   }
 }
 ```
+
+### Authoring the classifier skill
+
+Osmia does not ship an incident classifier skill — operators provide
+one to suit their own incident taxonomy and chosen response surface
+(Slack, an internal portal, an ITSM tool, etc.). The skill is an
+ordinary Markdown file delivered to the agent via the engine's
+[skills mechanism](../plugins/engines.md#skills);
+`incident_triage.append_system_prompt` then directs the agent to
+invoke it.
+
+The pieces fit together as follows. The `incident_triage` block points
+the agent at a slash-command name, and a matching entry under
+`engines.<engine>.skills` makes that command resolvable inside the
+agent container:
+
+```yaml
+incident_triage:
+  engine: claude-code
+  append_system_prompt: |
+    You are an incident triage agent. Invoke /incident-classifier
+    for every incoming event and post your classification to the
+    configured destination. Do not modify code, run kubectl, or close
+    incidents directly.
+
+engines:
+  claude-code:
+    skills:
+      - name: incident-classifier
+        configmap: incident-classifier-skill
+        key: incident-classifier.md
+```
+
+Create the ConfigMap separately — by hand for a one-off, or via your
+configuration tool of choice:
+
+```bash
+kubectl create configmap incident-classifier-skill \
+  --namespace osmia \
+  --from-file=incident-classifier.md=./skills/incident-classifier.md
+```
+
+The agent then invokes the skill via `/incident-classifier`; pick a
+different identifier if it suits your deployment, and update the name
+in `engines.<engine>.skills[].name`, the file mounted into the
+ConfigMap, and the `append_system_prompt` text to match.
+
+#### What the skill should contain
+
+The classifier skill is the agent's procedure for handling one
+incident.io event. There is no fixed format, but in practice a skill
+that produces consistent classifications covers:
+
+1. **Input contract.** What the agent can rely on being in its prompt.
+   The user prompt carries the incident's title, description (the
+   incident summary), permalink, and labels containing
+   `osmia:source:incident-io` and `osmia:event:<event_type>`. See the
+   [incident.io API documentation](https://api-docs.incident.io/) for
+   the full shape of `IncidentV2` and the status-updated event if you
+   need to derive additional fields from the description.
+2. **Classifications or output values.** An enumerated set the agent
+   must choose from, with the signals that distinguish them. The
+   taxonomy is deployment-specific and intentionally not opinionated
+   by Osmia.
+3. **Output contract.** A precise structure for what the agent emits —
+   typically a short human-readable summary plus a JSON object that
+   downstream tooling can validate against a schema.
+4. **Bail-out conditions.** If incident.io is configured to deliver
+   all events (no severity, type, or label filter), the skill must
+   reject events outside its remit early — for example by returning a
+   sentinel classification that downstream consumers route to a no-op.
+5. **Operational constraints.** Whether the agent may take action
+   (close incidents, restart workloads, page humans) or only observe.
+   New deployments typically start observation-only to validate
+   classification accuracy before any action paths are enabled.
+
+#### Iterating on the skill
+
+Because the skill is mounted from a ConfigMap, content updates do not
+require redeploying the controller. Re-apply the ConfigMap — for
+example, with an idempotent dry-run + apply:
+
+```bash
+kubectl create configmap incident-classifier-skill \
+  --namespace osmia \
+  --from-file=incident-classifier.md=./skills/incident-classifier.md \
+  -o yaml --dry-run=client | kubectl apply -f -
+```
+
+The next agent Job picks up the new content automatically; in-flight
+Jobs continue with the version they started with.
+
+If you prefer the skill to live in-tree with your deployment
+manifests, the same content can be inlined under
+`engines.<engine>.skills[].inline` instead — the trade-offs are
+covered in the [Skills section](../plugins/engines.md#skills).
 
 Without the YAML blocks, `POST /webhooks/incident-io` responds with 500
 "not configured" and existing deployments are unaffected.
