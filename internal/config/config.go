@@ -195,6 +195,22 @@ type IncidentTriageConfig struct {
 	// EngineConfig.AppendSystemPrompt. Used to direct the agent to invoke
 	// the classification skill and avoid repository-shaped reasoning.
 	AppendSystemPrompt string `yaml:"append_system_prompt,omitempty"`
+
+	// SlackChannelID overrides the SLACK_CHANNEL_ID env var on agent
+	// Jobs spawned by ProcessIncidentEvent. When empty, the agent
+	// inherits the channel from the first configured Slack channel in
+	// Notifications.Channels — the same default that applies to ticketing
+	// runs. Set this when incident triage should post to a different
+	// channel than the operator's default notifications channel.
+	SlackChannelID string `yaml:"slack_channel_id,omitempty"`
+
+	// SlackTokenSecret overrides the Slack bot token secret reference
+	// on agent Jobs spawned by ProcessIncidentEvent. When empty, the
+	// token from the first configured Slack channel in
+	// Notifications.Channels is used. Pair with SlackChannelID when the
+	// override channel belongs to a different Slack app/bot than the
+	// default notifications channel.
+	SlackTokenSecret string `yaml:"slack_token_secret,omitempty"`
 }
 
 // SecretResolverConfig configures the task-scoped secret resolver.

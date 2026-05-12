@@ -2642,6 +2642,28 @@ func injectThreadRef(cfg *engine.EngineConfig, threadRef string) {
 	cfg.Env["SLACK_THREAD_TS"] = threadRef
 }
 
+// resolveSlackTokenKey probes the given Kubernetes Secret for well-known
+// Slack-token key names (SLACK_BOT_TOKEN, SLACK_TOKEN) and returns the first
+// match. Falls back to "token" when no k8s client is configured or no
+// well-known key is present, matching slackSecretKeyRefs's default. Used by
+// callers that want to point SLACK_BOT_TOKEN at a different Secret than the
+// one selected by slackSecretKeyRefs (e.g. the IncidentTriage override).
+func (r *Reconciler) resolveSlackTokenKey(ctx context.Context, tokenSecret string) string {
+	if r.k8sClient == nil {
+		return "token"
+	}
+	secret, err := r.k8sClient.CoreV1().Secrets(r.namespace).Get(ctx, tokenSecret, metav1.GetOptions{})
+	if err != nil {
+		return "token"
+	}
+	for _, candidate := range []string{"SLACK_BOT_TOKEN", "SLACK_TOKEN"} {
+		if _, ok := secret.Data[candidate]; ok {
+			return candidate
+		}
+	}
+	return "token"
+}
+
 // slackEnv returns env var entries for the Slack MCP server. It reads the
 // channel ID from the first configured Slack notification channel. Returns nil
 // when no Slack channel is configured.

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -312,4 +313,153 @@ func TestProcessIncidentEvent_RelaunchAfterTerminal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, jobs.Items, 2, "terminal prior run must allow re-launch")
 	assert.Equal(t, 2, eng.buildCalled)
+}
+
+// incidentTestConfigWithDefaultSlack returns a config with one default
+// Slack notifications channel — the channel that slackEnv() and
+// slackSecretKeyRefs() pick by default for every agent run. Used by the
+// IncidentTriage Slack-override tests to set up a meaningful "before"
+// state that the override is then expected to replace.
+func incidentTestConfigWithDefaultSlack() *config.Config {
+	cfg := incidentTestConfig()
+	cfg.Notifications = config.NotificationsConfig{
+		Channels: []config.ChannelConfig{
+			{
+				Backend: "slack",
+				Config: map[string]any{
+					"channel_id":   "C_DEFAULT",
+					"token_secret": "default-bot",
+				},
+			},
+		},
+	}
+	return cfg
+}
+
+// TestProcessIncidentEvent_SlackChannelOverride covers
+// IncidentTriage.SlackChannelID replacing the SLACK_CHANNEL_ID that
+// slackEnv() picks from the first configured notifications channel. The
+// override is what lets incident triage post to a dedicated review
+// channel without affecting where ticketing notifications go.
+func TestProcessIncidentEvent_SlackChannelOverride(t *testing.T) {
+	cfg := incidentTestConfigWithDefaultSlack()
+	cfg.IncidentTriage.SlackChannelID = "C_INCIDENT"
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKCH")))
+
+	assert.Equal(t, "C_INCIDENT", eng.lastConfig.Env["SLACK_CHANNEL_ID"],
+		"IncidentTriage.SlackChannelID must override SLACK_CHANNEL_ID for this call")
+}
+
+// TestProcessIncidentEvent_SlackChannelDefaultsToNotificationsChannel
+// guards the no-override path: with IncidentTriage.SlackChannelID
+// unset, the agent inherits the channel from the first configured
+// notifications channel, matching ticketing-run behaviour.
+func TestProcessIncidentEvent_SlackChannelDefaultsToNotificationsChannel(t *testing.T) {
+	cfg := incidentTestConfigWithDefaultSlack()
+	// IncidentTriage.SlackChannelID intentionally left empty.
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKDEF")))
+
+	assert.Equal(t, "C_DEFAULT", eng.lastConfig.Env["SLACK_CHANNEL_ID"],
+		"with no override, SLACK_CHANNEL_ID must fall back to the first notifications channel")
+}
+
+// TestProcessIncidentEvent_SlackTokenOverride covers
+// IncidentTriage.SlackTokenSecret replacing the SLACK_BOT_TOKEN
+// SecretKeyRef. The well-known-key probe is exercised by seeding the
+// fake clientset with a Secret that has a SLACK_BOT_TOKEN data key.
+func TestProcessIncidentEvent_SlackTokenOverride(t *testing.T) {
+	cfg := incidentTestConfigWithDefaultSlack()
+	cfg.IncidentTriage.SlackTokenSecret = "incident-bot"
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "incident-bot",
+				Namespace: "test-ns",
+			},
+			Data: map[string][]byte{
+				"SLACK_BOT_TOKEN": []byte("xoxb-incident-test"),
+			},
+		},
+	)
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKTOK")))
+
+	ref, ok := eng.lastConfig.SecretKeyRefs["SLACK_BOT_TOKEN"]
+	require.True(t, ok, "SLACK_BOT_TOKEN SecretKeyRef must be set")
+	assert.Equal(t, "incident-bot", ref.SecretName,
+		"SecretName must point at IncidentTriage.SlackTokenSecret")
+	assert.Equal(t, "SLACK_BOT_TOKEN", ref.Key,
+		"resolveSlackTokenKey must probe the override Secret and pick the well-known key")
+}
+
+// TestProcessIncidentEvent_SlackTokenOverrideFallsBackToTokenKey covers
+// the case where the override Secret has no well-known key — the key
+// falls back to the literal "token", matching slackSecretKeyRefs's
+// default.
+func TestProcessIncidentEvent_SlackTokenOverrideFallsBackToTokenKey(t *testing.T) {
+	cfg := incidentTestConfigWithDefaultSlack()
+	cfg.IncidentTriage.SlackTokenSecret = "incident-bot"
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "incident-bot",
+				Namespace: "test-ns",
+			},
+			Data: map[string][]byte{
+				"token": []byte("xoxb-incident-test"),
+			},
+		},
+	)
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKFB")))
+
+	ref, ok := eng.lastConfig.SecretKeyRefs["SLACK_BOT_TOKEN"]
+	require.True(t, ok)
+	assert.Equal(t, "incident-bot", ref.SecretName)
+	assert.Equal(t, "token", ref.Key,
+		"with no well-known key in the override Secret, the key falls back to the literal \"token\"")
 }

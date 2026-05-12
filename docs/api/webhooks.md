@@ -356,6 +356,8 @@ are dispatched to an engine:
 |---|---|
 | `engine` | Engine name to dispatch to (matched against `engine.Name()`). Defaults to `claude-code` when unset. |
 | `append_system_prompt` | Injected into the per-call `engine.EngineConfig.AppendSystemPrompt`. Useful for directing the agent to invoke a classification skill or to avoid repository-shaped reasoning. |
+| `slack_channel_id` | Optional. Overrides `SLACK_CHANNEL_ID` on incident-triage agent Jobs. When empty, the agent inherits the channel from the first configured Slack channel under `notifications.channels`, matching ticketing-run behaviour. Set this when incident triage should post to a dedicated review channel (e.g. a shadow-mode classifier channel) without affecting where ticketing notifications go. |
+| `slack_token_secret` | Optional. Overrides the Kubernetes Secret backing `SLACK_BOT_TOKEN` on incident-triage agent Jobs. Pair with `slack_channel_id` when the override channel belongs to a different Slack app/bot than the default notifications channel. The Secret is probed for the well-known keys `SLACK_BOT_TOKEN` and `SLACK_TOKEN`, falling back to the literal `token` key. |
 
 ### Example configuration
 
@@ -371,6 +373,12 @@ incident_triage:
     You are an incident triage agent. Invoke /incident-classifier and
     follow it. Do not clone repositories, modify code, push branches,
     or open merge requests.
+  # Optional: route the classifier's Slack output to a dedicated
+  # channel using a different bot, leaving the operator's default
+  # notifications channel (top-level `notifications.channels[0]`)
+  # untouched for ticketing runs.
+  slack_channel_id: "C0XXXSHADOW"
+  slack_token_secret: "incident-triage-slack-bot"
 ```
 
 ### Example payload

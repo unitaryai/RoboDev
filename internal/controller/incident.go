@@ -147,6 +147,28 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 	if prompt := r.config.IncidentTriage.AppendSystemPrompt; prompt != "" {
 		engineCfg.AppendSystemPrompt = prompt
 	}
+	// Incident triage often needs to post to a different Slack channel (and
+	// sometimes with a different bot token) than the first notifications
+	// channel that slackEnv / slackSecretKeyRefs picks by default — e.g. a
+	// dedicated review channel for a shadow-mode classifier. The
+	// IncidentTriage block carries optional overrides for both; when set,
+	// they replace the per-call SLACK_CHANNEL_ID and SLACK_BOT_TOKEN
+	// SecretKeyRef. The use-case abstraction will eventually subsume this.
+	if ch := r.config.IncidentTriage.SlackChannelID; ch != "" {
+		if engineCfg.Env == nil {
+			engineCfg.Env = make(map[string]string)
+		}
+		engineCfg.Env["SLACK_CHANNEL_ID"] = ch
+	}
+	if tokenSecret := r.config.IncidentTriage.SlackTokenSecret; tokenSecret != "" {
+		if engineCfg.SecretKeyRefs == nil {
+			engineCfg.SecretKeyRefs = make(map[string]engine.SecretKeyRef)
+		}
+		engineCfg.SecretKeyRefs["SLACK_BOT_TOKEN"] = engine.SecretKeyRef{
+			SecretName: tokenSecret,
+			Key:        r.resolveSlackTokenKey(ctx, tokenSecret),
+		}
+	}
 
 	if err := r.prepareSession(ctx, tr.ID); err != nil {
 		return fmt.Errorf("preparing session storage: %w", err)
