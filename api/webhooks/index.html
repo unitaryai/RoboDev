@@ -1896,6 +1896,45 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#authoring-the-classifier-skill" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring the classifier skill
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authoring the classifier skill">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-the-skill-should-contain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the skill should contain
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iterating-on-the-skill" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Iterating on the skill
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2588,6 +2627,45 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#authoring-the-classifier-skill" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring the classifier skill
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authoring the classifier skill">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-the-skill-should-contain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the skill should contain
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iterating-on-the-skill" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Iterating on the skill
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2973,16 +3051,6 @@ controller does not require a repository or merge-request lifecycle for
 these events. The endpoint is intended for triage and similar use cases
 where the agent reads context and posts to chat rather than shipping
 code.</p>
-<div class="admonition note">
-<p class="admonition-title">Dispatch is currently disabled</p>
-<p>The reconciler entry point currently accepts and acknowledges
-incident events but does not yet spawn an agent Job — the dispatch
-logic is deferred to a follow-up change paired with the operator-
-side wiring (classifier skill, engine profile in your values
-file). Until that change is shipped, every incident.io webhook
-delivery is verified, parsed, logged, and answered with 200 OK,
-but no agent runs.</p>
-</div>
 <h3 id="endpoint_5">Endpoint<a class="headerlink" href="#endpoint_5" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="err">POST /webhooks/incident-io</span>
 </code></pre></div>
@@ -3087,6 +3155,86 @@ are dispatched to an engine:</p>
 <a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a><span class="p">}</span>
 </code></pre></div>
+<h3 id="authoring-the-classifier-skill">Authoring the classifier skill<a class="headerlink" href="#authoring-the-classifier-skill" title="Permanent link">&para;</a></h3>
+<p>Osmia does not ship an incident classifier skill — operators provide
+one to suit their own incident taxonomy and chosen response surface
+(Slack, an internal portal, an ITSM tool, etc.). The skill is an
+ordinary Markdown file delivered to the agent via the engine's
+<a href="../../plugins/engines/#skills">skills mechanism</a>;
+<code>incident_triage.append_system_prompt</code> then directs the agent to
+invoke it.</p>
+<p>The pieces fit together as follows. The <code>incident_triage</code> block points
+the agent at a slash-command name, and a matching entry under
+<code>engines.&lt;engine&gt;.skills</code> makes that command resolvable inside the
+agent container:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nt">incident_triage</span><span class="p">:</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">engine</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">claude-code</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">append_system_prompt</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="no">You are an incident triage agent. Invoke /incident-classifier</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="no">for every incoming event and post your classification to the</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="no">configured destination. Do not modify code, run kubectl, or close</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="no">incidents directly.</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="nt">engines</span><span class="p">:</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">  </span><span class="nt">claude-code</span><span class="p">:</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">    </span><span class="nt">skills</span><span class="p">:</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">incident-classifier</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">        </span><span class="nt">configmap</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">incident-classifier-skill</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">incident-classifier.md</span>
+</code></pre></div>
+<p>Create the ConfigMap separately — by hand for a one-off, or via your
+configuration tool of choice:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>kubectl<span class="w"> </span>create<span class="w"> </span>configmap<span class="w"> </span>incident-classifier-skill<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>--namespace<span class="w"> </span>osmia<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>--from-file<span class="o">=</span>incident-classifier.md<span class="o">=</span>./skills/incident-classifier.md
+</code></pre></div>
+<p>The agent then invokes the skill via <code>/incident-classifier</code>; pick a
+different identifier if it suits your deployment, and update the name
+in <code>engines.&lt;engine&gt;.skills[].name</code>, the file mounted into the
+ConfigMap, and the <code>append_system_prompt</code> text to match.</p>
+<h4 id="what-the-skill-should-contain">What the skill should contain<a class="headerlink" href="#what-the-skill-should-contain" title="Permanent link">&para;</a></h4>
+<p>The classifier skill is the agent's procedure for handling one
+incident.io event. There is no fixed format, but in practice a skill
+that produces consistent classifications covers:</p>
+<ol>
+<li><strong>Input contract.</strong> What the agent can rely on being in its prompt.
+   The user prompt carries the incident's title, description (the
+   incident summary), permalink, and labels containing
+   <code>osmia:source:incident-io</code> and <code>osmia:event:&lt;event_type&gt;</code>. See the
+   <a href="https://api-docs.incident.io/">incident.io API documentation</a> for
+   the full shape of <code>IncidentV2</code> and the status-updated event if you
+   need to derive additional fields from the description.</li>
+<li><strong>Classifications or output values.</strong> An enumerated set the agent
+   must choose from, with the signals that distinguish them. The
+   taxonomy is deployment-specific and intentionally not opinionated
+   by Osmia.</li>
+<li><strong>Output contract.</strong> A precise structure for what the agent emits —
+   typically a short human-readable summary plus a JSON object that
+   downstream tooling can validate against a schema.</li>
+<li><strong>Bail-out conditions.</strong> If incident.io is configured to deliver
+   all events (no severity, type, or label filter), the skill must
+   reject events outside its remit early — for example by returning a
+   sentinel classification that downstream consumers route to a no-op.</li>
+<li><strong>Operational constraints.</strong> Whether the agent may take action
+   (close incidents, restart workloads, page humans) or only observe.
+   New deployments typically start observation-only to validate
+   classification accuracy before any action paths are enabled.</li>
+</ol>
+<h4 id="iterating-on-the-skill">Iterating on the skill<a class="headerlink" href="#iterating-on-the-skill" title="Permanent link">&para;</a></h4>
+<p>Because the skill is mounted from a ConfigMap, content updates do not
+require redeploying the controller. Re-apply the ConfigMap — for
+example, with an idempotent dry-run + apply:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>kubectl<span class="w"> </span>create<span class="w"> </span>configmap<span class="w"> </span>incident-classifier-skill<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>--namespace<span class="w"> </span>osmia<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>--from-file<span class="o">=</span>incident-classifier.md<span class="o">=</span>./skills/incident-classifier.md<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span>-o<span class="w"> </span>yaml<span class="w"> </span>--dry-run<span class="o">=</span>client<span class="w"> </span><span class="p">|</span><span class="w"> </span>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-
+</code></pre></div>
+<p>The next agent Job picks up the new content automatically; in-flight
+Jobs continue with the version they started with.</p>
+<p>If you prefer the skill to live in-tree with your deployment
+manifests, the same content can be inlined under
+<code>engines.&lt;engine&gt;.skills[].inline</code> instead — the trade-offs are
+covered in the <a href="../../plugins/engines/#skills">Skills section</a>.</p>
 <p>Without the YAML blocks, <code>POST /webhooks/incident-io</code> responds with 500
 "not configured" and existing deployments are unaffected.</p>
 <hr />
