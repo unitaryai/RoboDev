@@ -356,6 +356,8 @@ are dispatched to an engine:
 |---|---|
 | `engine` | Engine name to dispatch to (matched against `engine.Name()`). Defaults to `claude-code` when unset. |
 | `append_system_prompt` | Injected into the per-call `engine.EngineConfig.AppendSystemPrompt`. Useful for directing the agent to invoke a classification skill or to avoid repository-shaped reasoning. |
+| `slack_channel_id` | Slack channel for the incident-triage agent Job's MCP-based notifications. The ticketing flow's channel is configured under `notifications.channels`; this field is the equivalent for incident triage. Both flows are first-class — a single Osmia deployment can run them side-by-side with separate channels and bot tokens. When empty, the incident flow falls back to the first configured channel under `notifications.channels` — useful only if the operator wants both flows in the same channel. |
+| `slack_token_secret` | Kubernetes Secret backing `SLACK_BOT_TOKEN` for the incident-triage agent Job. Pair with `slack_channel_id` when the channel belongs to a different Slack app/bot than the one used by ticketing runs. The Secret is probed for the well-known keys `SLACK_BOT_TOKEN` and `SLACK_TOKEN`, falling back to the literal `token` key. When empty, the bot token from the first configured Slack channel under `notifications.channels` is used. |
 
 ### Example configuration
 
@@ -371,6 +373,12 @@ incident_triage:
     You are an incident triage agent. Invoke /incident-classifier and
     follow it. Do not clone repositories, modify code, push branches,
     or open merge requests.
+  # Slack channel + bot for the incident flow. The ticketing flow's
+  # channel lives under `notifications.channels` above; the two run
+  # side-by-side with separate destinations. When omitted, the incident
+  # flow shares the ticketing channel.
+  slack_channel_id: "C0XXXINCIDENT"
+  slack_token_secret: "incident-triage-slack-bot"
 ```
 
 ### Example payload

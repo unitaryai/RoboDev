@@ -147,6 +147,31 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 	if prompt := r.config.IncidentTriage.AppendSystemPrompt; prompt != "" {
 		engineCfg.AppendSystemPrompt = prompt
 	}
+	// Per-flow Slack config. The ticketing flow reads its Slack channel
+	// from the first entry in Notifications.Channels via slackEnv /
+	// slackSecretKeyRefs; the incident-triage flow reads its channel
+	// from the IncidentTriage block. Both flows are first-class — a
+	// single Osmia deployment can run them side-by-side with separate
+	// channels and bot tokens. When IncidentTriage.SlackChannelID /
+	// SlackTokenSecret are empty, the incident flow falls back to the
+	// ticketing channel for backward compatibility with single-channel
+	// deployments. The use-case abstraction will eventually move all
+	// per-flow Slack config behind a common interface.
+	if ch := r.config.IncidentTriage.SlackChannelID; ch != "" {
+		if engineCfg.Env == nil {
+			engineCfg.Env = make(map[string]string)
+		}
+		engineCfg.Env["SLACK_CHANNEL_ID"] = ch
+	}
+	if tokenSecret := r.config.IncidentTriage.SlackTokenSecret; tokenSecret != "" {
+		if engineCfg.SecretKeyRefs == nil {
+			engineCfg.SecretKeyRefs = make(map[string]engine.SecretKeyRef)
+		}
+		engineCfg.SecretKeyRefs["SLACK_BOT_TOKEN"] = engine.SecretKeyRef{
+			SecretName: tokenSecret,
+			Key:        r.resolveSlackTokenKey(ctx, tokenSecret),
+		}
+	}
 
 	if err := r.prepareSession(ctx, tr.ID); err != nil {
 		return fmt.Errorf("preparing session storage: %w", err)

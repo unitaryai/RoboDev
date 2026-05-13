@@ -88,6 +88,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configmap` invocation, suggested skill structure (input contract,
   classifications, output contract, bail-out, operational
   constraints), and notes on iterating without redeploying.
+- **Per-flow Slack config for incident triage**: the ticketing flow
+  reads its Slack channel and bot token from the first entry under
+  `notifications.channels`; the incident-triage flow now reads the
+  equivalent from two new fields on the `incident_triage` block,
+  `slack_channel_id` and `slack_token_secret`. Both flows are
+  first-class — a single Osmia deployment can run them side-by-side
+  with separate channels and bot tokens. Token-key probing matches
+  `slackSecretKeyRefs`: well-known names `SLACK_BOT_TOKEN` and
+  `SLACK_TOKEN` are tried in order, falling back to the literal
+  `token` key. When the new fields are empty, the incident flow falls
+  back to the first configured channel under `notifications.channels`
+  for backward compatibility with single-channel deployments.
 - **incident.io dispatch path**: `Reconciler.ProcessIncidentEvent`
   now launches an agent run for each incident.io webhook event,
   bypassing the SCM ticketing pipeline. Idempotency is keyed on

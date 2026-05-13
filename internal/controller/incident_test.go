@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -312,4 +313,155 @@ func TestProcessIncidentEvent_RelaunchAfterTerminal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, jobs.Items, 2, "terminal prior run must allow re-launch")
 	assert.Equal(t, 2, eng.buildCalled)
+}
+
+// incidentTestConfigWithTicketingSlack returns a config with one
+// configured Slack notifications channel — the channel that slackEnv()
+// and slackSecretKeyRefs() pick for the ticketing flow. Used by the
+// IncidentTriage Slack-config tests to verify that the incident flow's
+// own channel + token settings take effect when set, and that the
+// ticketing channel is the fallback when they're not.
+func incidentTestConfigWithTicketingSlack() *config.Config {
+	cfg := incidentTestConfig()
+	cfg.Notifications = config.NotificationsConfig{
+		Channels: []config.ChannelConfig{
+			{
+				Backend: "slack",
+				Config: map[string]any{
+					"channel_id":   "C_TICKETING",
+					"token_secret": "ticketing-bot",
+				},
+			},
+		},
+	}
+	return cfg
+}
+
+// TestProcessIncidentEvent_PostsToConfiguredSlackChannel covers the
+// happy path for per-flow Slack channel config: when
+// IncidentTriage.SlackChannelID is set, the incident-triage agent Job's
+// SLACK_CHANNEL_ID env var carries that channel rather than the
+// ticketing channel from Notifications.Channels.
+func TestProcessIncidentEvent_PostsToConfiguredSlackChannel(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
+	cfg.IncidentTriage.SlackChannelID = "C_INCIDENT"
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKCH")))
+
+	assert.Equal(t, "C_INCIDENT", eng.lastConfig.Env["SLACK_CHANNEL_ID"],
+		"incident-triage agent Job must carry the incident flow's SLACK_CHANNEL_ID")
+}
+
+// TestProcessIncidentEvent_FallsBackToTicketingSlackChannel guards the
+// backward-compatibility path: when IncidentTriage.SlackChannelID is
+// unset, the incident flow shares the ticketing channel rather than
+// failing outright. Keeps existing single-channel deployments working.
+func TestProcessIncidentEvent_FallsBackToTicketingSlackChannel(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
+	// IncidentTriage.SlackChannelID intentionally left empty.
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKDEF")))
+
+	assert.Equal(t, "C_TICKETING", eng.lastConfig.Env["SLACK_CHANNEL_ID"],
+		"with no per-flow channel set, the incident flow inherits the ticketing channel")
+}
+
+// TestProcessIncidentEvent_UsesConfiguredSlackTokenSecret covers the
+// per-flow Slack bot path: when IncidentTriage.SlackTokenSecret is set,
+// the incident-triage agent Job's SLACK_BOT_TOKEN SecretKeyRef points
+// at that Secret. The well-known-key probe is exercised by seeding the
+// fake clientset with a Secret that has a SLACK_BOT_TOKEN data key.
+func TestProcessIncidentEvent_UsesConfiguredSlackTokenSecret(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
+	cfg.IncidentTriage.SlackTokenSecret = "incident-bot"
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "incident-bot",
+				Namespace: "test-ns",
+			},
+			Data: map[string][]byte{
+				"SLACK_BOT_TOKEN": []byte("xoxb-incident-test"),
+			},
+		},
+	)
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKTOK")))
+
+	ref, ok := eng.lastConfig.SecretKeyRefs["SLACK_BOT_TOKEN"]
+	require.True(t, ok, "SLACK_BOT_TOKEN SecretKeyRef must be set on the agent Job")
+	assert.Equal(t, "incident-bot", ref.SecretName,
+		"SecretName must point at IncidentTriage.SlackTokenSecret")
+	assert.Equal(t, "SLACK_BOT_TOKEN", ref.Key,
+		"resolveSlackTokenKey must probe the configured Secret and pick the well-known key")
+}
+
+// TestProcessIncidentEvent_FallsBackToTokenKeyForUnnamedSlackSecret
+// covers the case where the configured Secret holds the token under the
+// literal "token" key rather than a well-known name. resolveSlackTokenKey
+// must fall through to "token", matching slackSecretKeyRefs's default.
+func TestProcessIncidentEvent_FallsBackToTokenKeyForUnnamedSlackSecret(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
+	cfg.IncidentTriage.SlackTokenSecret = "incident-bot"
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "incident-bot",
+				Namespace: "test-ns",
+			},
+			Data: map[string][]byte{
+				"token": []byte("xoxb-incident-test"),
+			},
+		},
+	)
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSLACKFB")))
+
+	ref, ok := eng.lastConfig.SecretKeyRefs["SLACK_BOT_TOKEN"]
+	require.True(t, ok)
+	assert.Equal(t, "incident-bot", ref.SecretName)
+	assert.Equal(t, "token", ref.Key,
+		"with no well-known key in the Secret, the key falls back to the literal \"token\"")
 }
