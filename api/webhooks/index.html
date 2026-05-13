@@ -3111,6 +3111,14 @@ are dispatched to an engine:</p>
 <td><code>append_system_prompt</code></td>
 <td>Injected into the per-call <code>engine.EngineConfig.AppendSystemPrompt</code>. Useful for directing the agent to invoke a classification skill or to avoid repository-shaped reasoning.</td>
 </tr>
+<tr>
+<td><code>slack_channel_id</code></td>
+<td>Slack channel for the incident-triage agent Job's MCP-based notifications. The ticketing flow's channel is configured under <code>notifications.channels</code>; this field is the equivalent for incident triage. Both flows are first-class — a single Osmia deployment can run them side-by-side with separate channels and bot tokens. When empty, the incident flow falls back to the first configured channel under <code>notifications.channels</code> — useful only if the operator wants both flows in the same channel.</td>
+</tr>
+<tr>
+<td><code>slack_token_secret</code></td>
+<td>Kubernetes Secret backing <code>SLACK_BOT_TOKEN</code> for the incident-triage agent Job. Pair with <code>slack_channel_id</code> when the channel belongs to a different Slack app/bot than the one used by ticketing runs. The Secret is probed for the well-known keys <code>SLACK_BOT_TOKEN</code> and <code>SLACK_TOKEN</code>, falling back to the literal <code>token</code> key. When empty, the bot token from the first configured Slack channel under <code>notifications.channels</code> is used.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="example-configuration_1">Example configuration<a class="headerlink" href="#example-configuration_1" title="Permanent link">&para;</a></h3>
@@ -3125,6 +3133,12 @@ are dispatched to an engine:</p>
 <a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">    </span><span class="no">You are an incident triage agent. Invoke /incident-classifier and</span>
 <a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="no">follow it. Do not clone repositories, modify code, push branches,</span>
 <a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="no">or open merge requests.</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">  </span><span class="c1"># Slack channel + bot for the incident flow. The ticketing flow&#39;s</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="w">  </span><span class="c1"># channel lives under `notifications.channels` above; the two run</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">  </span><span class="c1"># side-by-side with separate destinations. When omitted, the incident</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">  </span><span class="c1"># flow shares the ticketing channel.</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">  </span><span class="nt">slack_channel_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;C0XXXINCIDENT&quot;</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">  </span><span class="nt">slack_token_secret</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;incident-triage-slack-bot&quot;</span>
 </code></pre></div>
 <h3 id="example-payload_4">Example payload<a class="headerlink" href="#example-payload_4" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
