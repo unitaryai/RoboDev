@@ -4705,6 +4705,20 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Skill and sub-agent discovery under session persistence</strong>:
+  <code>setup-claude.sh</code> previously wrote <code>CLAUDE_SKILL_*</code> and
+  <code>CLAUDE_SUBAGENT_PATH_*</code> files to <code>${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/skills/</code>
+  and <code>${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/agents/</code>. When session
+  persistence was enabled (<code>CLAUDE_CONFIG_DIR</code> set to a PVC-backed
+  path), the files landed there but were invisible to Claude Code,
+  whose slash-command discovery reads from the HOME-relative paths
+  <code>${HOME}/.claude/skills/</code> and <code>${HOME}/.claude/agents/</code> regardless
+  of <code>CLAUDE_CONFIG_DIR</code>. The agent then surfaced the file as
+  "Unknown skill: <name>" on <code>/skill-name</code> invocations. The script
+  now writes both directories under <code>${HOME}/.claude/</code> always —
+  these files are deterministically regenerated from the env vars at
+  every pod start, so they don't need PVC persistence the way
+  session JSONL files do.</li>
 <li><strong>Review poller acting on bot summary comments</strong>: the classifier now only
   ignores bot comments that lack a file position (summaries, coverage reports).
   Inline diff comments from bots (e.g. CodeRabbit review suggestions) are still
