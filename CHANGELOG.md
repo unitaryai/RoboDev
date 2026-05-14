@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Skill and sub-agent discovery under session persistence**:
+  `setup-claude.sh` previously wrote `CLAUDE_SKILL_*` and
+  `CLAUDE_SUBAGENT_PATH_*` files to `${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/skills/`
+  and `${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/agents/`. When session
+  persistence was enabled (`CLAUDE_CONFIG_DIR` set to a PVC-backed
+  path), the files landed there but were invisible to Claude Code,
+  whose slash-command discovery reads from the HOME-relative paths
+  `${HOME}/.claude/skills/` and `${HOME}/.claude/agents/` regardless
+  of `CLAUDE_CONFIG_DIR`. The agent then surfaced the file as
+  "Unknown skill: <name>" on `/skill-name` invocations. The script
+  now writes both directories under `${HOME}/.claude/` always —
+  these files are deterministically regenerated from the env vars at
+  every pod start, so they don't need PVC persistence the way
+  session JSONL files do.
 - **Review poller acting on bot summary comments**: the classifier now only
   ignores bot comments that lack a file position (summaries, coverage reports).
   Inline diff comments from bots (e.g. CodeRabbit review suggestions) are still

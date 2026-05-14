@@ -50,34 +50,50 @@ cp /etc/claude-code/mcp.json /workspace/.mcp.json
 # path is in use.  A no-op when CLAUDE_CONFIG_DIR was already set in the env.
 export CLAUDE_CONFIG_DIR="${CLAUDE_DIR}"
 
-# Write custom skill files if any skill env vars are present.
+# Write custom skill files if any skill env vars are present. Skills go
+# to ${HOME}/.claude/skills/ — not ${CLAUDE_DIR}/skills/ — because
+# Claude Code's slash-command discovery reads from the HOME-relative
+# path regardless of CLAUDE_CONFIG_DIR. Writing to ${CLAUDE_DIR}/skills/
+# under session persistence (CLAUDE_CONFIG_DIR set) leaves the file on
+# the PVC but invisible to the agent: invocations fail with "Unknown
+# skill: <name>". Skills are deterministically regenerated from the
+# CLAUDE_SKILL_* env vars at every pod start, so they don't need PVC
+# persistence the way session JSONL files do.
+#
 # Inline skills: CLAUDE_SKILL_INLINE_<NAME>=<base64-encoded Markdown>
 # Path skills:   CLAUDE_SKILL_PATH_<NAME>=<path on image>
 if env | grep -q '^CLAUDE_SKILL_'; then
-    mkdir -p "${CLAUDE_DIR}/skills"
+    SKILLS_DIR="${HOME}/.claude/skills"
+    mkdir -p "${SKILLS_DIR}"
 
     # Write inline skills (base64-decoded content).
     for var in $(env | grep '^CLAUDE_SKILL_INLINE_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SKILL_INLINE_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
-        printenv "$var" | base64 -d > "${CLAUDE_DIR}/skills/${name}.md"
+        printenv "$var" | base64 -d > "${SKILLS_DIR}/${name}.md"
     done
 
     # Copy path-based skills from the image.
     for var in $(env | grep '^CLAUDE_SKILL_PATH_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SKILL_PATH_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
         path=$(printenv "$var")
-        [ -f "$path" ] && cp "$path" "${CLAUDE_DIR}/skills/${name}.md"
+        [ -f "$path" ] && cp "$path" "${SKILLS_DIR}/${name}.md"
     done
 fi
 
-# Write ConfigMap-backed sub-agent files to ~/.claude/agents/.
+# Write ConfigMap-backed sub-agent files to ${HOME}/.claude/agents/.
+# Same HOME-relative reasoning as skills above: Claude Code's sub-agent
+# discovery uses the HOME-relative path regardless of CLAUDE_CONFIG_DIR,
+# so writing under ${CLAUDE_DIR} when session persistence is on would
+# make the sub-agent invisible to the agent.
+#
 # Sub-agent env vars: CLAUDE_SUBAGENT_PATH_<NAME>=<path on volume>
 if env | grep -q '^CLAUDE_SUBAGENT_PATH_'; then
-    mkdir -p "${CLAUDE_DIR}/agents"
+    AGENTS_DIR="${HOME}/.claude/agents"
+    mkdir -p "${AGENTS_DIR}"
     for var in $(env | grep '^CLAUDE_SUBAGENT_PATH_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SUBAGENT_PATH_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
         path=$(printenv "$var")
-        [ -f "$path" ] && cp "$path" "${CLAUDE_DIR}/agents/${name}.md"
+        [ -f "$path" ] && cp "$path" "${AGENTS_DIR}/${name}.md"
     done
 fi
 
