@@ -28,6 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Skill file layout matches Claude Code's documented discovery
+  format**: `setup-claude.sh` previously wrote inline and path-based
+  skills as a single flat file at `${HOME}/.claude/skills/<name>.md`.
+  Claude Code's documented discovery layout is a directory per skill
+  with the file named exactly `SKILL.md` —
+  `${HOME}/.claude/skills/<name>/SKILL.md` — matching the shape used
+  for plugin-provided skills under
+  `~/.claude/plugins/.../skills/<name>/SKILL.md`. The flat layout
+  resulted in "Unknown skill: <name>" errors on slash-command
+  invocations even when the file was present on disk. The script
+  now creates `${SKILLS_DIR}/<name>/` and writes the content to
+  `SKILL.md` inside it. Sub-agent layout is unchanged
+  (`<scope>/agents/<name>.md` is the correct flat-file convention
+  for sub-agents — verified against the on-disk layout of working
+  plugin-provided sub-agents). See
+  https://code.claude.com/docs/en/skills.md for the documented
+  discovery paths.
 - **Skill and sub-agent discovery under session persistence**:
   `setup-claude.sh` previously wrote `CLAUDE_SKILL_*` and
   `CLAUDE_SUBAGENT_PATH_*` files to `${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/skills/`
