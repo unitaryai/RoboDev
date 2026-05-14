@@ -347,6 +347,43 @@ incident.io emits). Configure via `webhook.incident_io`:
 Other event types are rejected with 400 — add a constant and a case in
 `internal/webhook/incident.go` to extend.
 
+### Fields surfaced to the agent
+
+On dispatch, `ProcessIncidentEvent` builds the agent's `engine.Task` from
+the parsed `IncidentV2`. Beyond the incident's name (→ `Task.Title`),
+summary (→ `Task.Description`) and permalink (→ `Task.TicketURL`), the
+following fields are surfaced to the agent:
+
+**Labels** (`Task.Labels` — short, enum-like categoricals):
+
+| Label | Source | When emitted |
+|---|---|---|
+| `osmia:source:incident-io` | constant | always |
+| `osmia:event:<event_type>` | `event_type` | always |
+| `osmia:incident-status:<category>` | `incident_status.category` (`triage` / `live` / `learning` / `closed` / …) | when non-empty |
+| `osmia:mode:<mode>` | `mode` (`standard` / `test`) | when non-empty |
+| `osmia:incident-reference:<reference>` | `reference` (e.g. `INC-1368`) | when non-empty |
+
+**Description block** appended after the incident summary, when the
+incident was alert-driven (`creator.alert` populated):
+
+```
+## Underlying alert
+
+<alert.title> (alert id: <alert.id>)
+```
+
+Other fields parsed but **not surfaced** through labels or the
+description today — `severity.name`, `incident_type.name`,
+`custom_field_entries`, `slack_channel_id`, `slack_channel_name`,
+`most_recent_update_message`, etc. — are either operator-defined
+(names, custom field structure varies per deployment) or sentinel-
+guarded (`slack_channel_id: "not_created_yet"` on the `created` event).
+The full parsed `IncidentV2` is available to downstream consumers via
+`IncidentEvent.Raw`. Skills needing these can either parse them from
+`Raw` or fetch the incident from the incident.io API on demand once an
+incident.io MCP / REST integration is wired into the agent.
+
 ### Dispatch configuration
 
 A separate top-level `incident_triage` block controls how parsed events

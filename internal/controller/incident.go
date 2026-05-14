@@ -106,12 +106,9 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 		ID:          evt.Incident.ID,
 		TicketID:    evt.Incident.ID,
 		Title:       evt.Incident.Name,
-		Description: evt.Incident.Summary,
+		Description: enrichedDescription(evt.Incident),
 		TicketURL:   evt.Incident.Permalink,
-		Labels: []string{
-			"osmia:source:incident-io",
-			"osmia:event:" + evt.EventType,
-		},
+		Labels:      incidentLabels(evt),
 	}
 
 	// TaskRun ID must be DNS-1123 (lowercase alphanumeric + hyphens) since
@@ -229,4 +226,62 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 	)
 
 	return nil
+}
+
+// incidentLabels assembles the `osmia:*:*` labels the agent's user prompt
+// will carry for this dispatch. The values are restricted to fields whose
+// shape is documented and bounded — enum-like categoricals and the
+// short, alphanumeric+hyphen reference — so they pass through unchanged
+// without sanitisation. Operator-defined names (severity.Name,
+// incident_type.Name) and operator-curated structures (custom fields)
+// are intentionally left for the agent to fetch via the incident.io
+// API/MCP once that integration is wired.
+func incidentLabels(evt webhook.IncidentEvent) []string {
+	labels := []string{
+		"osmia:source:incident-io",
+		"osmia:event:" + evt.EventType,
+	}
+	if cat := evt.Incident.IncidentStatus.Category; cat != "" {
+		labels = append(labels, "osmia:incident-status:"+cat)
+	}
+	if mode := evt.Incident.Mode; mode != "" {
+		labels = append(labels, "osmia:mode:"+mode)
+	}
+	if ref := evt.Incident.Reference; ref != "" {
+		labels = append(labels, "osmia:incident-reference:"+ref)
+	}
+	return labels
+}
+
+// enrichedDescription returns the incident summary, optionally followed
+// by an "Underlying alert" prose block when the incident was alert-
+// driven. Other creator types (user, webhook, manual) leave the summary
+// untouched. Kept narrow on purpose: the goal is just to give the agent
+// the underlying alert's title/ID directly rather than making it infer
+// them from the summary text; broader incident context is fetched via
+// the incident.io API/MCP when needed.
+func enrichedDescription(inc webhook.IncidentV2) string {
+	if inc.Creator == nil || inc.Creator.Alert == nil {
+		return inc.Summary
+	}
+	alert := inc.Creator.Alert
+	if alert.Title == "" && alert.ID == "" {
+		return inc.Summary
+	}
+	var block strings.Builder
+	block.WriteString(inc.Summary)
+	if inc.Summary != "" {
+		block.WriteString("\n\n")
+	}
+	block.WriteString("## Underlying alert\n\n")
+	if alert.Title != "" {
+		block.WriteString(alert.Title)
+	}
+	if alert.ID != "" {
+		if alert.Title != "" {
+			block.WriteString(" ")
+		}
+		block.WriteString("(alert id: " + alert.ID + ")")
+	}
+	return block.String()
 }

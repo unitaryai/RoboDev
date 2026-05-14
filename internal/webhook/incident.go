@@ -106,9 +106,11 @@ type IncidentEvent struct {
 
 // IncidentV2 captures the fields of incident.io's IncidentV2 schema that
 // the triage classifier reasons over. Long-form description strings on
-// nested objects, rich relations (creator, role assignments, custom field
+// nested objects, rich relations (role assignments, custom field
 // entries, related incidents), and operational metrics are intentionally
-// omitted; consumers needing them can read from IncidentEvent.Raw.
+// omitted; consumers needing them can read from IncidentEvent.Raw, or
+// fetch the full incident on demand from the incident.io API once an
+// MCP / REST integration is wired into the agent.
 type IncidentV2 struct {
 	ID               string           `json:"id"`
 	Reference        string           `json:"reference"`
@@ -120,11 +122,30 @@ type IncidentV2 struct {
 	IncidentStatus   IncidentStatusV2 `json:"incident_status"`
 	Severity         *SeverityV2      `json:"severity,omitempty"`
 	IncidentType     *IncidentTypeV2  `json:"incident_type,omitempty"`
+	Creator          *CreatorV2       `json:"creator,omitempty"`
 	SlackTeamID      string           `json:"slack_team_id"`
 	SlackChannelID   string           `json:"slack_channel_id"`
 	SlackChannelName string           `json:"slack_channel_name,omitempty"`
 	CreatedAt        time.Time        `json:"created_at"`
 	UpdatedAt        time.Time        `json:"updated_at"`
+}
+
+// CreatorV2 captures the entity that opened the incident. incident.io
+// supports several creator types (alert-driven, user-driven, webhook-
+// driven, etc.); only the alert branch is surfaced here because that is
+// the one carrying the underlying monitoring signal the triage agent
+// reasons over. Other creator branches unmarshal with Alert nil and are
+// otherwise dropped — consumers needing them can read IncidentEvent.Raw.
+type CreatorV2 struct {
+	Alert *CreatorAlertV2 `json:"alert,omitempty"`
+}
+
+// CreatorAlertV2 is the subset of the alert-driven creator payload the
+// triage agent surfaces in its prompt: the alert's stable ID and the
+// human-readable title.
+type CreatorAlertV2 struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
 }
 
 // IncidentStatusV2 captures the lifecycle status of an incident. The

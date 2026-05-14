@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Richer incident.io context surfaced to the agent**:
+  `ProcessIncidentEvent` now passes more of the parsed `IncidentV2`
+  through to the agent's `engine.Task`, restricted to fields whose
+  shape is documented and bounded so no operator-specific
+  configuration or sanitisation is required. Three new labels are
+  emitted alongside the existing source/event pair:
+  `osmia:incident-status:<category>` (enum:
+  `triage`/`live`/`learning`/`closed`/…), `osmia:mode:<mode>` (enum:
+  `standard`/`test`), and `osmia:incident-reference:<reference>`. When
+  the incident is alert-driven (`creator.alert` populated), the
+  task description is appended with an `## Underlying alert` block
+  carrying the alert's title and ID — letting the classifier surface
+  the originating monitoring signal directly rather than inferring it
+  from the summary text. Fields whose values are operator-defined
+  (severity name, incident type name, custom field entries) or
+  sentinel-guarded (`slack_channel_id` may be `not_created_yet` on the
+  `created` event) are intentionally not surfaced from the webhook
+  payload; skills needing them can either parse from
+  `IncidentEvent.Raw` or fetch the incident on demand from the
+  incident.io API once an MCP / REST integration is wired in. The
+  webhook parser gains optional `Creator { Alert { ID, Title } }`
+  fields on `IncidentV2` to support the alert block.
 - **Structured `source` log field on generic webhook svix failures**: the
   `handleGeneric` svix verification branch now routes through a shared
   `verifySvixSignature` helper. Behaviour (status codes, response bodies)
