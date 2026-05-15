@@ -48,7 +48,10 @@ func (m *recordingEngine) Name() string                              { return m.
 func (m *recordingEngine) InterfaceVersion() int                     { return 1 }
 
 // incidentTestEvent returns a minimal valid IncidentEvent for the
-// public_incident.incident_created_v2 path.
+// public_incident.incident_created_v2 path. IncidentStatus.Category and
+// Mode are populated with realistic enum values so the predictable-
+// fields-through-to-labels behaviour exercises in tests that don't
+// otherwise customise the incident.
 func incidentTestEvent(id string) webhook.IncidentEvent {
 	return webhook.IncidentEvent{
 		EventType: webhook.EventIncidentCreatedV2,
@@ -58,6 +61,10 @@ func incidentTestEvent(id string) webhook.IncidentEvent {
 			Name:      "Database is down",
 			Summary:   "Customers reporting 500s",
 			Permalink: "https://app.incident.io/incidents/" + id,
+			Mode:      "standard",
+			IncidentStatus: webhook.IncidentStatusV2{
+				Category: "triage",
+			},
 		},
 	}
 }
@@ -113,6 +120,12 @@ func TestProcessIncidentEvent(t *testing.T) {
 	assert.Empty(t, eng.lastTask.RepoURL, "incident triage tasks must not carry a repo URL")
 	assert.Contains(t, eng.lastTask.Labels, "osmia:source:incident-io")
 	assert.Contains(t, eng.lastTask.Labels, "osmia:event:"+webhook.EventIncidentCreatedV2)
+	// Predictable, enum-like incident.io fields are surfaced verbatim
+	// as labels so the classifier can reason over them without
+	// having to parse the user-prompt prose.
+	assert.Contains(t, eng.lastTask.Labels, "osmia:incident-status:triage")
+	assert.Contains(t, eng.lastTask.Labels, "osmia:mode:standard")
+	assert.Contains(t, eng.lastTask.Labels, "osmia:incident-reference:INC-01HZINCIDENTABC")
 
 	// AppendSystemPrompt override propagates into the per-call EngineConfig.
 	assert.Equal(t, "Invoke /incident-classifier.", eng.lastConfig.AppendSystemPrompt)
@@ -464,4 +477,112 @@ func TestProcessIncidentEvent_FallsBackToTokenKeyForUnnamedSlackSecret(t *testin
 	assert.Equal(t, "incident-bot", ref.SecretName)
 	assert.Equal(t, "token", ref.Key,
 		"with no well-known key in the Secret, the key falls back to the literal \"token\"")
+}
+
+// TestProcessIncidentEvent_AppendsUnderlyingAlertToDescription covers the
+// happy path for surfacing alert-driven incidents: when Creator.Alert is
+// populated, the agent's Task.Description gets the incident summary
+// followed by an "Underlying alert" prose block carrying the alert's
+// title and ID. Lets the skill answer context.underlying_alert directly
+// rather than inferring it from the summary text.
+func TestProcessIncidentEvent_AppendsUnderlyingAlertToDescription(t *testing.T) {
+	cfg := incidentTestConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	evt := incidentTestEvent("01HZALERT")
+	evt.Incident.Creator = &webhook.CreatorV2{
+		Alert: &webhook.CreatorAlertV2{
+			ID:    "01HZ_alert_db",
+			Title: "Postgres replica lag exceeded 60s",
+		},
+	}
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), evt))
+
+	assert.Contains(t, eng.lastTask.Description, "Customers reporting 500s",
+		"original summary must be preserved at the top of the description")
+	assert.Contains(t, eng.lastTask.Description, "## Underlying alert",
+		"alert-driven incidents must surface the underlying alert in a labelled block")
+	assert.Contains(t, eng.lastTask.Description, "Postgres replica lag exceeded 60s")
+	assert.Contains(t, eng.lastTask.Description, "alert id: 01HZ_alert_db")
+}
+
+// TestProcessIncidentEvent_OmitsUnderlyingAlertWhenCreatorNotAlertDriven
+// guards the negative case: when the incident isn't alert-driven (no
+// Creator at all, or Creator with an empty Alert pointer), the
+// description stays as the bare summary — no spurious "Underlying alert"
+// block appears.
+func TestProcessIncidentEvent_OmitsUnderlyingAlertWhenCreatorNotAlertDriven(t *testing.T) {
+	cfg := incidentTestConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	evt := incidentTestEvent("01HZNOALERT")
+	// Creator left as nil (user-driven, webhook-driven, manual — none
+	// of which surface an alert object).
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), evt))
+
+	assert.Equal(t, "Customers reporting 500s", eng.lastTask.Description,
+		"description must remain the bare summary when no creator alert is present")
+	assert.NotContains(t, eng.lastTask.Description, "Underlying alert")
+}
+
+// TestProcessIncidentEvent_OmitsEmptyIncidentLabels guards label-emission
+// against zero-valued fields: an incident with empty Mode, Reference, and
+// IncidentStatus.Category should not produce empty `osmia:mode:`,
+// `osmia:incident-reference:`, or `osmia:incident-status:` labels.
+func TestProcessIncidentEvent_OmitsEmptyIncidentLabels(t *testing.T) {
+	cfg := incidentTestConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	// Strip the predictable fields the helper otherwise populates.
+	evt := incidentTestEvent("01HZMINIMAL")
+	evt.Incident.Mode = ""
+	evt.Incident.Reference = ""
+	evt.Incident.IncidentStatus = webhook.IncidentStatusV2{}
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), evt))
+
+	// Source + event labels always present.
+	assert.Contains(t, eng.lastTask.Labels, "osmia:source:incident-io")
+	assert.Contains(t, eng.lastTask.Labels, "osmia:event:"+webhook.EventIncidentCreatedV2)
+
+	for _, label := range eng.lastTask.Labels {
+		assert.NotEqual(t, "osmia:mode:", label,
+			"empty Mode must not produce a dangling osmia:mode: label")
+		assert.NotEqual(t, "osmia:incident-reference:", label,
+			"empty Reference must not produce a dangling osmia:incident-reference: label")
+		assert.NotEqual(t, "osmia:incident-status:", label,
+			"empty IncidentStatus.Category must not produce a dangling osmia:incident-status: label")
+	}
 }

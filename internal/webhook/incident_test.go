@@ -43,6 +43,12 @@ const incidentCreatedV2Payload = `{
       "id": "01HZ_type_outage",
       "name": "Production outage"
     },
+    "creator": {
+      "alert": {
+        "id": "01HZ_alert_db",
+        "title": "Postgres replica lag exceeded 60s"
+      }
+    },
     "slack_team_id": "T0123",
     "slack_channel_id": "C0123",
     "slack_channel_name": "inc-database-down",
@@ -112,6 +118,11 @@ func TestParseIncidentEvent_CreatedV2(t *testing.T) {
 	require.NotNil(t, evt.Incident.IncidentType)
 	assert.Equal(t, "Production outage", evt.Incident.IncidentType.Name)
 
+	require.NotNil(t, evt.Incident.Creator)
+	require.NotNil(t, evt.Incident.Creator.Alert)
+	assert.Equal(t, "01HZ_alert_db", evt.Incident.Creator.Alert.ID)
+	assert.Equal(t, "Postgres replica lag exceeded 60s", evt.Incident.Creator.Alert.Title)
+
 	assert.Equal(t, "T0123", evt.Incident.SlackTeamID)
 	assert.Equal(t, "C0123", evt.Incident.SlackChannelID)
 	assert.Equal(t, "inc-database-down", evt.Incident.SlackChannelName)
@@ -136,9 +147,10 @@ func TestParseIncidentEvent_StatusUpdatedV2(t *testing.T) {
 	assert.Equal(t, "Auth service degraded", evt.Incident.Name)
 	assert.Equal(t, "closed", evt.Incident.IncidentStatus.Category)
 
-	// Severity and IncidentType are optional and absent in this payload.
+	// Severity, IncidentType, and Creator are optional and absent in this payload.
 	assert.Nil(t, evt.Incident.Severity)
 	assert.Nil(t, evt.Incident.IncidentType)
+	assert.Nil(t, evt.Incident.Creator)
 
 	assert.Equal(t, "Resolved after deploy rollback", evt.Message)
 
