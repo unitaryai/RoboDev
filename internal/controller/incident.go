@@ -169,6 +169,20 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 			Key:        r.resolveSlackTokenKey(ctx, tokenSecret),
 		}
 	}
+	// Per-flow incident.io MCP credentials. The agent's MCP client reads
+	// INCIDENT_IO_API_KEY from the pod env to authenticate to
+	// mcp.incident.io. Only the incident-triage flow needs this — ticketing
+	// pods skip it. setup-claude.sh registers the incident.io MCP server in
+	// the workspace mcp.json when this env var is present at job startup.
+	if apiKeySecret := r.config.IncidentTriage.IncidentIOAPIKeySecret; apiKeySecret != "" {
+		if engineCfg.SecretKeyRefs == nil {
+			engineCfg.SecretKeyRefs = make(map[string]engine.SecretKeyRef)
+		}
+		engineCfg.SecretKeyRefs["INCIDENT_IO_API_KEY"] = engine.SecretKeyRef{
+			SecretName: apiKeySecret,
+			Key:        "INCIDENT_IO_API_KEY",
+		}
+	}
 
 	if err := r.prepareSession(ctx, tr.ID); err != nil {
 		return fmt.Errorf("preparing session storage: %w", err)
