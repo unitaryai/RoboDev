@@ -51,14 +51,20 @@ cp /etc/claude-code/mcp.json /workspace/.mcp.json
 export CLAUDE_CONFIG_DIR="${CLAUDE_DIR}"
 
 # Write custom skill files if any skill env vars are present. Skills go
-# to ${HOME}/.claude/skills/ — not ${CLAUDE_DIR}/skills/ — because
-# Claude Code's slash-command discovery reads from the HOME-relative
-# path regardless of CLAUDE_CONFIG_DIR. Writing to ${CLAUDE_DIR}/skills/
-# under session persistence (CLAUDE_CONFIG_DIR set) leaves the file on
-# the PVC but invisible to the agent: invocations fail with "Unknown
-# skill: <name>". Skills are deterministically regenerated from the
-# CLAUDE_SKILL_* env vars at every pod start, so they don't need PVC
-# persistence the way session JSONL files do.
+# to ${HOME}/.claude/skills/<name>/SKILL.md — directory per skill, file
+# named exactly SKILL.md — because that is Claude Code's documented
+# discovery layout (the same shape used for plugin-provided skills under
+# ~/.claude/plugins/.../skills/<name>/SKILL.md). A flat
+# ${SKILLS_DIR}/<name>.md file is not discovered by the slash-command
+# loader; invocations fail with "Unknown skill: <name>" even when the
+# file exists.
+#
+# Skills are deterministically regenerated from the CLAUDE_SKILL_* env
+# vars at every pod start, so they live on the pod's ephemeral
+# ${HOME}/.claude/ rather than under CLAUDE_CONFIG_DIR. The relevant
+# discovery paths are documented at
+# https://code.claude.com/docs/en/skills.md and are not relocatable
+# via env var today (see anthropics/claude-code#22902).
 #
 # Inline skills: CLAUDE_SKILL_INLINE_<NAME>=<base64-encoded Markdown>
 # Path skills:   CLAUDE_SKILL_PATH_<NAME>=<path on image>
@@ -69,14 +75,18 @@ if env | grep -q '^CLAUDE_SKILL_'; then
     # Write inline skills (base64-decoded content).
     for var in $(env | grep '^CLAUDE_SKILL_INLINE_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SKILL_INLINE_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
-        printenv "$var" | base64 -d > "${SKILLS_DIR}/${name}.md"
+        mkdir -p "${SKILLS_DIR}/${name}"
+        printenv "$var" | base64 -d > "${SKILLS_DIR}/${name}/SKILL.md"
     done
 
     # Copy path-based skills from the image.
     for var in $(env | grep '^CLAUDE_SKILL_PATH_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SKILL_PATH_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
         path=$(printenv "$var")
-        [ -f "$path" ] && cp "$path" "${SKILLS_DIR}/${name}.md"
+        if [ -f "$path" ]; then
+            mkdir -p "${SKILLS_DIR}/${name}"
+            cp "$path" "${SKILLS_DIR}/${name}/SKILL.md"
+        fi
     done
 fi
 
