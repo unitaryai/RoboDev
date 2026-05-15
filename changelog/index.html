@@ -4705,6 +4705,23 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Skill file layout matches Claude Code's documented discovery
+  format</strong>: <code>setup-claude.sh</code> previously wrote inline and path-based
+  skills as a single flat file at <code>${HOME}/.claude/skills/&lt;name&gt;.md</code>.
+  Claude Code's documented discovery layout is a directory per skill
+  with the file named exactly <code>SKILL.md</code> —
+  <code>${HOME}/.claude/skills/&lt;name&gt;/SKILL.md</code> — matching the shape used
+  for plugin-provided skills under
+  <code>~/.claude/plugins/.../skills/&lt;name&gt;/SKILL.md</code>. The flat layout
+  resulted in "Unknown skill: <name>" errors on slash-command
+  invocations even when the file was present on disk. The script
+  now creates <code>${SKILLS_DIR}/&lt;name&gt;/</code> and writes the content to
+  <code>SKILL.md</code> inside it. Sub-agent layout is unchanged
+  (<code>&lt;scope&gt;/agents/&lt;name&gt;.md</code> is the correct flat-file convention
+  for sub-agents — verified against the on-disk layout of working
+  plugin-provided sub-agents). See
+  https://code.claude.com/docs/en/skills.md for the documented
+  discovery paths.</li>
 <li><strong>Skill and sub-agent discovery under session persistence</strong>:
   <code>setup-claude.sh</code> previously wrote <code>CLAUDE_SKILL_*</code> and
   <code>CLAUDE_SUBAGENT_PATH_*</code> files to <code>${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/skills/</code>
