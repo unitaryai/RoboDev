@@ -4686,6 +4686,28 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Richer incident.io context surfaced to the agent</strong>:
+  <code>ProcessIncidentEvent</code> now passes more of the parsed <code>IncidentV2</code>
+  through to the agent's <code>engine.Task</code>, restricted to fields whose
+  shape is documented and bounded so no operator-specific
+  configuration or sanitisation is required. Three new labels are
+  emitted alongside the existing source/event pair:
+  <code>osmia:incident-status:&lt;category&gt;</code> (enum:
+  <code>triage</code>/<code>live</code>/<code>learning</code>/<code>closed</code>/…), <code>osmia:mode:&lt;mode&gt;</code> (enum:
+  <code>standard</code>/<code>test</code>), and <code>osmia:incident-reference:&lt;reference&gt;</code>. When
+  the incident is alert-driven (<code>creator.alert</code> populated), the
+  task description is appended with an <code>## Underlying alert</code> block
+  carrying the alert's title and ID — letting the classifier surface
+  the originating monitoring signal directly rather than inferring it
+  from the summary text. Fields whose values are operator-defined
+  (severity name, incident type name, custom field entries) or
+  sentinel-guarded (<code>slack_channel_id</code> may be <code>not_created_yet</code> on the
+  <code>created</code> event) are intentionally not surfaced from the webhook
+  payload; skills needing them can either parse from
+  <code>IncidentEvent.Raw</code> or fetch the incident on demand from the
+  incident.io API once an MCP / REST integration is wired in. The
+  webhook parser gains optional <code>Creator { Alert { ID, Title } }</code>
+  fields on <code>IncidentV2</code> to support the alert block.</li>
 <li><strong>Structured <code>source</code> log field on generic webhook svix failures</strong>: the
   <code>handleGeneric</code> svix verification branch now routes through a shared
   <code>verifySvixSignature</code> helper. Behaviour (status codes, response bodies)
