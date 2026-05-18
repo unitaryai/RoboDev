@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Per-flow incident.io MCP credentials**: new
+  `incident_triage.incident_io_api_key_secret` config field selects a
+  Kubernetes Secret whose `INCIDENT_IO_API_KEY` key is injected into the
+  incident-triage agent Job via SecretKeyRef. When set, `setup-claude.sh`
+  registers the incident.io remote MCP server (`https://mcp.incident.io/mcp`,
+  HTTP transport, Bearer-token auth) in the workspace `mcp.json` at job
+  startup. When empty, no incident.io MCP server is registered — the
+  ticketing flow is unaffected. The Bearer header is templated into
+  `mcp.json` via `jq --arg` rather than Claude Code's runtime `${VAR}`
+  substitution, which has known bugs for HTTP MCP headers
+  (anthropics/claude-code#51581, #6204).
+
 ### Changed
 
 - **Richer incident.io context surfaced to the agent**:

@@ -214,6 +214,14 @@ type IncidentTriageConfig struct {
 	// from the first configured Slack channel in Notifications.Channels
 	// is used.
 	SlackTokenSecret string `yaml:"slack_token_secret,omitempty"`
+
+	// IncidentIOAPIKeySecret is the Kubernetes Secret backing
+	// INCIDENT_IO_API_KEY on the incident-triage agent Job. When set,
+	// setup-claude.sh registers the incident.io remote MCP server in
+	// the agent's workspace mcp.json, authenticated as a Bearer token.
+	// The Secret must contain a key named INCIDENT_IO_API_KEY. When
+	// empty, no incident.io MCP server is registered.
+	IncidentIOAPIKeySecret string `yaml:"incident_io_api_key_secret,omitempty"`
 }
 
 // SecretResolverConfig configures the task-scoped secret resolver.

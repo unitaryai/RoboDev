@@ -586,3 +586,69 @@ func TestProcessIncidentEvent_OmitsEmptyIncidentLabels(t *testing.T) {
 			"empty IncidentStatus.Category must not produce a dangling osmia:incident-status: label")
 	}
 }
+
+// TestProcessIncidentEvent_SetsIncidentIOAPIKeySecretKeyRef verifies that
+// the incident-triage agent Job's INCIDENT_IO_API_KEY SecretKeyRef points
+// at the Secret named by IncidentTriage.IncidentIOAPIKeySecret. The Key
+// is the literal "INCIDENT_IO_API_KEY" — unlike the Slack token there is
+// no well-known-key probing because the operator-managed Secret is
+// expected to follow the documented naming convention.
+func TestProcessIncidentEvent_SetsIncidentIOAPIKeySecretKeyRef(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
+	cfg.IncidentTriage.IncidentIOAPIKeySecret = "incident-io-api"
+
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "incident-io-api",
+				Namespace: "test-ns",
+			},
+			Data: map[string][]byte{
+				"INCIDENT_IO_API_KEY": []byte("inc_test_key"),
+			},
+		},
+	)
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZINCIOAPI")))
+
+	ref, ok := eng.lastConfig.SecretKeyRefs["INCIDENT_IO_API_KEY"]
+	require.True(t, ok, "INCIDENT_IO_API_KEY SecretKeyRef must be set on the agent Job")
+	assert.Equal(t, "incident-io-api", ref.SecretName,
+		"SecretName must point at IncidentTriage.IncidentIOAPIKeySecret")
+	assert.Equal(t, "INCIDENT_IO_API_KEY", ref.Key,
+		"Key is the literal env var name — no well-known-key probing for this field")
+}
+
+// TestProcessIncidentEvent_OmitsIncidentIOAPIKeyWhenSecretNotConfigured
+// verifies that when IncidentTriage.IncidentIOAPIKeySecret is empty the
+// agent Job receives no INCIDENT_IO_API_KEY SecretKeyRef. This is the
+// path setup-claude.sh relies on to skip MCP server registration for
+// flows that don't need incident.io access.
+func TestProcessIncidentEvent_OmitsIncidentIOAPIKeyWhenSecretNotConfigured(t *testing.T) {
+	cfg := incidentTestConfigWithTicketingSlack()
+	// IncidentIOAPIKeySecret deliberately left empty.
+
+	logger := testLogger()
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithNamespace("test-ns"),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZINCIOOFF")))
+
+	_, ok := eng.lastConfig.SecretKeyRefs["INCIDENT_IO_API_KEY"]
+	assert.False(t, ok,
+		"INCIDENT_IO_API_KEY SecretKeyRef must be absent when IncidentIOAPIKeySecret is empty")
+}

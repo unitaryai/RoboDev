@@ -46,6 +46,21 @@ cp /etc/claude-code/settings.json "${CLAUDE_DIR}/settings.json"
 # available via the explicit --mcp-config flag in the claude invocation.
 cp /etc/claude-code/mcp.json /workspace/.mcp.json
 
+# Conditionally register the incident.io remote MCP server when an API key
+# is present on the pod (set via SecretKeyRef from IncidentTriageConfig).
+# We assemble the workspace mcp.json ourselves rather than relying on Claude
+# Code's ${VAR} substitution in HTTP headers, which has known bugs
+# (anthropics/claude-code#51581, #6204).
+if [ -n "${INCIDENT_IO_API_KEY:-}" ]; then
+    jq --arg key "$INCIDENT_IO_API_KEY" \
+        '.mcpServers."incident-io" = {
+            type: "http",
+            url: "https://mcp.incident.io/mcp",
+            headers: {"Authorization": ("Bearer " + $key)}
+        }' /workspace/.mcp.json > /workspace/.mcp.json.tmp \
+        && mv /workspace/.mcp.json.tmp /workspace/.mcp.json
+fi
+
 # Export CLAUDE_CONFIG_DIR so claude itself picks it up when the non-default
 # path is in use.  A no-op when CLAUDE_CONFIG_DIR was already set in the env.
 export CLAUDE_CONFIG_DIR="${CLAUDE_DIR}"
