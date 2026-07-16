@@ -54,7 +54,12 @@ func TestAllEnginesProduceValidSpecs(t *testing.T) {
 			assert.NotEmpty(t, spec.Image, "Image must not be empty")
 			assert.NotEmpty(t, spec.Command, "Command must not be empty")
 			assert.Greater(t, spec.ActiveDeadlineSeconds, 0, "ActiveDeadlineSeconds must be positive")
-			assert.NotEmpty(t, spec.SecretEnv, "SecretEnv must not be empty")
+			// Engines may inject secrets via SecretEnv (whole-secret envFrom) or
+			// SecretKeyRefs (per-key secretKeyRef); claude-code uses the latter
+			// exclusively so that it can select a single key (e.g. api_key) from
+			// the osmia-anthropic-key secret. At least one mechanism must be used.
+			assert.True(t, len(spec.SecretEnv) > 0 || len(spec.SecretKeyRefs) > 0,
+				"SecretEnv or SecretKeyRefs must not be empty")
 
 			// Verify at least one volume is mounted at the workspace path.
 			hasWorkspace := false
