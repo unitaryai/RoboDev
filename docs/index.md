@@ -66,7 +66,7 @@ Osmia watches your issue tracker for labelled tickets, validates them against co
 | **Plugin architecture** | Extend ticketing, notifications, secrets, SCM, approvals, and reviews via gRPC |
 | **Kubernetes-native** | Operator pattern with Karpenter integration and KEDA scaling; leader election is on the roadmap |
 | **Observable** | Prometheus metrics, structured JSON logging, Grafana dashboards |
-| **Multi-tenant** | Multi-tenancy config schema is defined; namespace-per-tenant runtime isolation is planned for a future release |
+| **Multi-tenant** | Multi-tenancy config schema is parsed but not enforced at runtime; namespace-per-tenant isolation is planned |
 | **Security-capable** | Distroless images, read-only filesystems, drop-all capabilities; NetworkPolicies and gVisor sandboxing are available but disabled by default |
 
 ## Intelligent Agent Management

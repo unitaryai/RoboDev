@@ -555,6 +555,7 @@ type SecurityChecksConfig struct {
 }
 
 // TenancyConfig configures multi-tenancy support.
+// Experimental: parsed but not enforced at runtime.
 type TenancyConfig struct {
 	Mode    string         `yaml:"mode"` // "shared" or "namespace-per-tenant"
 	Tenants []TenantConfig `yaml:"tenants,omitempty"`

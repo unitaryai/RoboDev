@@ -2,7 +2,7 @@
 
 This document describes the architecture of Osmia, a Kubernetes-native controller that orchestrates autonomous AI coding agents to perform development tasks at scale.
 
-For the full technical plan, see `oss-plan.md`. For product requirements, see `oss-prd.md`.
+For the full technical plan and product requirements, see `oss-plan.md`.
 
 ## Overview
 
