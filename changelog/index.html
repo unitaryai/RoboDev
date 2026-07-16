@@ -4799,6 +4799,23 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Repo-URL fixtures in <code>tests/integration</code></strong>: nine tests predated the
+  hard gate in <code>ProcessTicket</code>/<code>resolveRepoURL</code> (<code>internal/controller</code>)
+  that requires a resolvable repository URL — either on <code>ticket.RepoURL</code>
+  or extractable from the description — before a ticket is processed, and
+  now fail with "no repository URL found in ticket description and no
+  interactive channel configured to ask" unless a URL is present. Added
+  <code>RepoURL: "https://github.com/org/repo"</code> to the affected ticket
+  fixtures in <code>guardrails_test.go</code>, <code>engine_fallback_test.go</code>,
+  <code>prm_controller_test.go</code>, and <code>memory_controller_test.go</code>, matching the
+  convention already used by the passing tests in the same files.
+  <code>TestTaskRunInvalidTransitions</code> (<code>taskrun_lifecycle_test.go</code>) failed for
+  an unrelated reason surfaced by running the full suite: it asserted
+  <code>NeedsHuman→Failed</code> was an invalid transition, but that transition has
+  been legitimately allowed since <code>internal/taskrun</code>'s state machine was
+  extended (so the repo-URL poller can fail a TaskRun directly from
+  <code>NeedsHuman</code>); the stale case was removed from the test's invalid-
+  transition table.</li>
 <li><strong>Integration test drift in <code>tests/integration</code></strong>: repaired a compile
   break in <code>webhook_reconciler_test.go</code> left by <code>internal/webhook.NewServer</code>
   returning <code>(*Server, error)</code>, then aligned three tests with the current,
