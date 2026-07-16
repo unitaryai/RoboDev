@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   aspirational. Fulfils the design-doc requirement in
   [roadmap item 24](docs/roadmap.md#24-non-standard-task-types-analysis-reporting-review).
   No behaviour changes; this is a design document only.
+- **SQLite `TaskRunStore` backend**: `internal/taskrun/sqlite.go` adds a
+  `SQLiteStore` implementing the existing `TaskRunStore` interface,
+  following the same pattern as the other in-house SQLite-backed stores
+  (`modernc.org/sqlite`, WAL mode, JSON-blob content column with promoted
+  query columns). Nothing in the controller constructs this store yet;
+  `MemoryStore` remains the only store actually wired up, so this change
+  has no effect on runtime behaviour. See
+  `docs/adr/0001-taskrun-store-sqlite-not-crd.md` for the decision to use
+  SQLite rather than a `TaskRun` CRD.
 
 ### Changed
 
