@@ -3,6 +3,9 @@ package claudecode
 import (
 	"context"
 	"encoding/json"
+	"flag"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +13,11 @@ import (
 
 	"github.com/unitaryai/osmia/pkg/engine"
 )
+
+// updateGolden regenerates the golden files used by golden-style prompt
+// tests. Run with `go test ./pkg/engine/claudecode/... -run TestBuildPrompt_IncidentTriageGolden -update`
+// after a deliberate change to BuildPrompt's output.
+var updateGolden = flag.Bool("update", false, "update golden test files")
 
 // compile-time check that ClaudeCodeEngine implements ExecutionEngine.
 var _ engine.ExecutionEngine = (*ClaudeCodeEngine)(nil)
@@ -1248,4 +1256,62 @@ func TestGenerateHooksConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestBuildPrompt_IncidentTriageGolden pins the full prompt string built for
+// an incident-triage-shaped task (as constructed by
+// controller.ProcessIncidentEvent: empty RepoURL, incident.io-derived
+// title/description/ticket URL/labels). This is the contract the incident
+// triage flow depends on ahead of the use-case abstraction refactor: the
+// prompt must contain no clone/branch/push/MR instructions and must contain
+// the workspace + result.json else-branch text. A golden file is used
+// (rather than only Contains/NotContains assertions) so that any future
+// change to BuildPrompt's output for this shape surfaces as an explicit,
+// reviewable diff instead of silently drifting.
+func TestBuildPrompt_IncidentTriageGolden(t *testing.T) {
+	task := engine.Task{
+		ID:          "01HZINCIDENTABC",
+		TicketID:    "01HZINCIDENTABC",
+		Title:       "Database is down",
+		Description: "Customers reporting 500s",
+		TicketURL:   "https://app.incident.io/incidents/01HZINCIDENTABC",
+		Labels: []string{
+			"osmia:source:incident-io",
+			"osmia:event:public_incident.incident_created_v2",
+			"osmia:incident-status:triage",
+			"osmia:mode:standard",
+			"osmia:incident-reference:INC-01HZINCIDENTABC",
+		},
+	}
+
+	e := New()
+	prompt, err := e.BuildPrompt(task)
+	require.NoError(t, err)
+
+	goldenPath := filepath.Join("testdata", "incident_triage_prompt.golden")
+	if *updateGolden {
+		require.NoError(t, os.WriteFile(goldenPath, []byte(prompt), 0o600))
+	}
+
+	want, err := os.ReadFile(goldenPath)
+	require.NoError(t, err, "golden file missing — run with -update to generate it")
+	assert.Equal(t, string(want), prompt,
+		"incident-triage prompt drifted from the pinned golden; if this is a deliberate "+
+			"change, regenerate with -update and review the diff carefully")
+
+	// Explicit assertions alongside the golden compare so the *meaning* of a
+	// regression is clear even without inspecting the golden file's contents.
+	for _, absent := range []string{
+		"git clone",
+		"git checkout -b",
+		"git push origin",
+		"MUST open a merge request",
+		"MANDATORY",
+		"## Repository",
+	} {
+		assert.NotContains(t, prompt, absent,
+			"incident-triage prompt (no RepoURL) must not contain repo-shaped instruction %q", absent)
+	}
+	assert.Contains(t, prompt, "Complete the task described above. Work in the /workspace directory.")
+	assert.Contains(t, prompt, "Write a result.json file to /workspace/result.json when finished.")
 }

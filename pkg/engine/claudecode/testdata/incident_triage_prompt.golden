@@ -1,0 +1,18 @@
+# Task: Database is down
+
+## Description
+
+Customers reporting 500s
+
+## Ticket
+
+https://app.incident.io/incidents/01HZINCIDENTABC
+
+## Labels
+
+osmia:source:incident-io, osmia:event:public_incident.incident_created_v2, osmia:incident-status:triage, osmia:mode:standard, osmia:incident-reference:INC-01HZINCIDENTABC
+
+## Instructions
+
+Complete the task described above. Work in the /workspace directory.
+Write a result.json file to /workspace/result.json when finished.
