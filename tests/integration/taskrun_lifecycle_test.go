@@ -108,7 +108,10 @@ func TestTaskRunInvalidTransitions(t *testing.T) {
 		{"Succeeded→Running", taskrun.StateSucceeded, taskrun.StateRunning},
 		{"TimedOut→Running", taskrun.StateTimedOut, taskrun.StateRunning},
 		{"NeedsHuman→Succeeded", taskrun.StateNeedsHuman, taskrun.StateSucceeded},
-		{"NeedsHuman→Failed", taskrun.StateNeedsHuman, taskrun.StateFailed},
+		// Note: NeedsHuman→Failed is valid — it lets the repo-URL poller (and
+		// other approval gates) mark a TaskRun failed directly from
+		// NeedsHuman when the human never responds, without an intermediate
+		// state. So it is not listed here as an invalid transition.
 	}
 
 	for _, tt := range tests {
