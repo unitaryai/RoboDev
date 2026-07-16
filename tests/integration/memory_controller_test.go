@@ -72,8 +72,9 @@ func TestMemoryControllerExtraction(t *testing.T) {
 
 	// Process a ticket to create a running TaskRun.
 	ticket := ticketing.Ticket{
-		ID:    "MEM-TICKET-1",
-		Title: "Fix the thing",
+		ID:      "MEM-TICKET-1",
+		Title:   "Fix the thing",
+		RepoURL: "https://github.com/org/repo",
 	}
 	err = r.ProcessTicket(ctx, ticket)
 	require.NoError(t, err)
@@ -156,6 +157,7 @@ func TestMemoryContextInjection(t *testing.T) {
 		ID:          "MEM-INJECT-1",
 		Title:       "Fix login timeout",
 		Description: "Users report login timeouts",
+		RepoURL:     "https://github.com/org/repo",
 	}
 
 	err = r.ProcessTicket(ctx, ticket)
@@ -200,6 +202,7 @@ func TestMemoryDisabledDoesNotInterfere(t *testing.T) {
 		ID:          "NO-MEM-1",
 		Title:       "Normal ticket",
 		Description: "Normal description",
+		RepoURL:     "https://github.com/org/repo",
 	}
 
 	ctx := context.Background()

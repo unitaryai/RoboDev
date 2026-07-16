@@ -91,8 +91,9 @@ func TestEngineFallbackChain(t *testing.T) {
 	logger := fallbackTestLogger()
 
 	ticket := ticketing.Ticket{
-		ID:    "FALLBACK-1",
-		Title: "Test fallback chain",
+		ID:      "FALLBACK-1",
+		Title:   "Test fallback chain",
+		RepoURL: "https://github.com/org/repo",
 	}
 	tb := &fallbackTestTicketing{tickets: []ticketing.Ticket{ticket}}
 
@@ -183,8 +184,9 @@ func TestEngineFallbackExhausted(t *testing.T) {
 	logger := fallbackTestLogger()
 
 	ticket := ticketing.Ticket{
-		ID:    "EXHAUST-1",
-		Title: "Test exhausted fallback",
+		ID:      "EXHAUST-1",
+		Title:   "Test exhausted fallback",
+		RepoURL: "https://github.com/org/repo",
 	}
 	tb := &fallbackTestTicketing{tickets: []ticketing.Ticket{ticket}}
 
@@ -255,8 +257,9 @@ func TestEngineFallbackRespectsOrder(t *testing.T) {
 	logger := fallbackTestLogger()
 
 	ticket := ticketing.Ticket{
-		ID:    "ORDER-1",
-		Title: "Test fallback order",
+		ID:      "ORDER-1",
+		Title:   "Test fallback order",
+		RepoURL: "https://github.com/org/repo",
 	}
 	tb := &fallbackTestTicketing{tickets: []ticketing.Ticket{ticket}}
 
