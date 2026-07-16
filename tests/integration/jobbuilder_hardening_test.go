@@ -60,9 +60,10 @@ func TestJobBuilderSecurityHardening(t *testing.T) {
 			require.NotNil(t, sc.RunAsNonRoot, "RunAsNonRoot must be set")
 			assert.True(t, *sc.RunAsNonRoot, "RunAsNonRoot must be true")
 
-			// runAsUser must be 1000.
+			// runAsUser must be 10000, matching the fsGroup used to chown
+			// PVC-backed volumes (see internal/jobbuilder defaultRunAsUser).
 			require.NotNil(t, sc.RunAsUser, "RunAsUser must be set")
-			assert.Equal(t, int64(1000), *sc.RunAsUser, "RunAsUser must be 1000")
+			assert.Equal(t, int64(10000), *sc.RunAsUser, "RunAsUser must be 10000")
 
 			// readOnlyRootFilesystem must be true.
 			require.NotNil(t, sc.ReadOnlyRootFilesystem, "ReadOnlyRootFilesystem must be set")

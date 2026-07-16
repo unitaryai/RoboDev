@@ -328,8 +328,14 @@ func TestReconcilerJobCompletionTransition(t *testing.T) {
 	tb.mu.Unlock()
 }
 
-// TestReconcilerJobFailureAndRetry verifies that a failed Job triggers
-// a retry transition on the TaskRun.
+// TestReconcilerJobFailureAndRetry verifies that a failed Job triggers a
+// retry: the TaskRun moves Failed -> Retrying -> Running and a new Job is
+// launched. handleJobFailed drives all three transitions synchronously
+// within a single reconcile tick (there is no retry backoff delay), so by
+// the time Run returns, Retrying has already been superseded by Running.
+// The terminal, externally observable outcome of a successful retry launch
+// is therefore Running with RetryCount incremented and a second Job
+// present, which is what this test polls for.
 func TestReconcilerJobFailureAndRetry(t *testing.T) {
 	t.Parallel()
 
@@ -368,16 +374,22 @@ func TestReconcilerJobFailureAndRetry(t *testing.T) {
 	_, err = k8s.BatchV1().Jobs("test-ns").UpdateStatus(ctx, job, metav1.UpdateOptions{})
 	require.NoError(t, err)
 
-	// Run reconcile cycle to detect the failure.
+	// Run reconcile cycle to detect the failure and launch the retry.
 	ctx2, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	_ = r.Run(ctx2, 100*time.Millisecond)
 
-	// TaskRun should be in Retrying state (first failure, MaxRetries=1).
+	// TaskRun should have retried once and be running the retry Job.
 	tr, ok := r.GetTaskRun("60-1")
 	require.True(t, ok)
-	assert.Equal(t, taskrun.StateRetrying, tr.State, "TaskRun should be retrying after first failure")
+	assert.Equal(t, taskrun.StateRunning, tr.State, "TaskRun should be running the retry Job after first failure")
 	assert.Equal(t, 1, tr.RetryCount)
+
+	// A second Job (the retry) should now exist alongside the original,
+	// failed one.
+	jobs, err = k8s.BatchV1().Jobs("test-ns").List(ctx, metav1.ListOptions{})
+	require.NoError(t, err)
+	assert.Len(t, jobs.Items, 2, "retry should have created a second Job")
 }
 
 // TestReconcilerJobFailureExhaustsRetries verifies that after all retries
