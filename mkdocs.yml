@@ -66,6 +66,7 @@ nav:
       - Security Model: security.md
       - Guard Rails (Detailed): guardrails.md
       - Scaling: scaling.md
+      - Use-Case Abstraction (Design): designs/use-case-abstraction.md
   - Engines:
       - Engine Comparison: plugins/engines.md
   - Plugins:
