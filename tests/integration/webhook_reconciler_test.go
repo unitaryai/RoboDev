@@ -145,9 +145,10 @@ func newWebhookTestStack(t *testing.T) (*httptest.Server, *fake.Clientset, *webh
 	)
 
 	adapter := &webhookAdapter{reconciler: reconciler, logger: logger}
-	whServer := webhook.NewServer(logger, adapter,
+	whServer, err := webhook.NewServer(logger, adapter,
 		webhook.WithSecret("github", testWebhookSecret),
 	)
+	require.NoError(t, err)
 
 	ts := httptest.NewServer(whServer)
 	t.Cleanup(ts.Close)
