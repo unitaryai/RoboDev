@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refactor, so downstream deployments relying on this flow are not broken
   silently. No production code changed.
 
+### Changed
+
+- **Documentation accuracy pass**: clarified implemented-vs-planned status for
+  multi-tenancy, guardrails.md prompt injection, and leader-election RBAC
+  across docs/scaling.md, docs/index.md, README.md, docs/security.md,
+  docs/architecture.md, CLAUDE.md, and the `TenancyConfig` doc comment in
+  internal/config/config.go. Replaced dangling references to the removed
+  `oss-prd.md` file with pointers to `oss-plan.md`.
+
 ### Fixed
 
 - **Repo-URL fixtures in `tests/integration`**: nine tests predated the

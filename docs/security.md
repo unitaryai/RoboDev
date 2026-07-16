@@ -23,7 +23,7 @@ agents against live codebases.
 
 | Threat | Description | Mitigations |
 |---|---|---|
-| **Prompt injection** | Malicious content in ticket descriptions or repository files tricks the agent into unintended behaviour. | Input sanitisation, command blocking hooks, guardrails.md/CLAUDE.md. |
+| **Prompt injection** | Malicious content in ticket descriptions or repository files tricks the agent into unintended behaviour. | Input sanitisation, command blocking hooks, guardrails.md/CLAUDE.md (advisory only, not yet injected by the controller, see roadmap). |
 | **Agent escape** | The agent breaks out of its intended scope — accessing files, networks, or APIs it should not. | Container isolation, NetworkPolicy, `readOnlyRootFilesystem`, hook-based command blocking. |
 | **Secret exfiltration** | The agent leaks API keys or credentials via logs, network calls, or committed code. | No secrets in prompts, no secrets in logs, restricted egress, sensitive-file write blocking. |
 | **Supply chain attacks** | Compromised dependencies or container images inject malicious code. | Distroless base images, image signing, SBOM generation, vulnerability scanning. |
@@ -36,7 +36,7 @@ agents against live codebases.
 
 Osmia enforces safety through six independent layers. Layers 1, 2, 5, and 6
 are enforced by the controller at runtime. Layers 3 and 4 are advisory or
-partially implemented — see the notes under each layer.
+partially implemented — see the notes under each layer and the [roadmap](roadmap.md).
 
 ```mermaid
 graph LR
@@ -84,7 +84,7 @@ deployment manifests or limiting modifications to specific directories.
 
 These files take effect when a Claude Code agent reads its `CLAUDE.md`
 naturally during execution. The controller does not currently inject them into
-the agent prompt — prompt-builder injection is on the roadmap. This layer is
+the agent prompt — prompt-builder injection is on the [roadmap](roadmap.md#guardrailsmd-prompt-injection). This layer is
 advisory: the agent may read and follow the file, but the controller does not
 enforce compliance.
 
@@ -410,7 +410,7 @@ the **principle of least privilege**:
 | `""` (core) | `pods`, `pods/log` | get, list, watch | Monitor agent pod status and retrieve logs |
 | `""` (core) | `configmaps` | get, list, watch, create, update, patch | Store controller state and configuration |
 | `""` (core) | `secrets` | get, list, watch | Read secrets for injection into agent pods |
-| `coordination.k8s.io` | `leases` | get, list, watch, create, update, patch, delete | Leader election |
+| `coordination.k8s.io` | `leases` | get, list, watch, create, update, patch, delete | Leader election (RBAC granted ahead of implementation; leader election itself is not yet implemented, see [roadmap](roadmap.md#leader-election-controller-ha)) |
 
 Key constraints:
 
