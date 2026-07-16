@@ -2400,7 +2400,7 @@ agents against live codebases.</p>
 <tr>
 <td><strong>Prompt injection</strong></td>
 <td>Malicious content in ticket descriptions or repository files tricks the agent into unintended behaviour.</td>
-<td>Input sanitisation, command blocking hooks, guardrails.md/CLAUDE.md.</td>
+<td>Input sanitisation, command blocking hooks, guardrails.md/CLAUDE.md (advisory only, not yet injected by the controller, see roadmap).</td>
 </tr>
 <tr>
 <td><strong>Agent escape</strong></td>
@@ -2433,7 +2433,7 @@ agents against live codebases.</p>
 <h2 id="defence-in-depth-the-six-guard-rail-layers">Defence in Depth — The Six Guard Rail Layers<a class="headerlink" href="#defence-in-depth-the-six-guard-rail-layers" title="Permanent link">&para;</a></h2>
 <p>Osmia enforces safety through six independent layers. Layers 1, 2, 5, and 6
 are enforced by the controller at runtime. Layers 3 and 4 are advisory or
-partially implemented — see the notes under each layer.</p>
+partially implemented — see the notes under each layer and the <a href="../roadmap/">roadmap</a>.</p>
 <pre class="mermaid"><code>graph LR
     A["Incoming&lt;br/&gt;Ticket"] --&gt; L1["1. Controller&lt;br/&gt;Validation"]
     L1 --&gt; L2["2. Engine&lt;br/&gt;Hooks"]
@@ -2473,7 +2473,7 @@ to follow repo-specific conventions — for example, forbidding changes to
 deployment manifests or limiting modifications to specific directories.</p>
 <p>These files take effect when a Claude Code agent reads its <code>CLAUDE.md</code>
 naturally during execution. The controller does not currently inject them into
-the agent prompt — prompt-builder injection is on the roadmap. This layer is
+the agent prompt — prompt-builder injection is on the <a href="../roadmap/#guardrailsmd-prompt-injection">roadmap</a>. This layer is
 advisory: the agent may read and follow the file, but the controller does not
 enforce compliance.</p>
 <h3 id="layer-4-task-profiles">Layer 4: Task Profiles<a class="headerlink" href="#layer-4-task-profiles" title="Permanent link">&para;</a></h3>
@@ -2857,7 +2857,7 @@ the <strong>principle of least privilege</strong>:</p>
 <td><code>coordination.k8s.io</code></td>
 <td><code>leases</code></td>
 <td>get, list, watch, create, update, patch, delete</td>
-<td>Leader election</td>
+<td>Leader election (RBAC granted ahead of implementation; leader election itself is not yet implemented, see <a href="../roadmap/#leader-election-controller-ha">roadmap</a>)</td>
 </tr>
 </tbody>
 </table>

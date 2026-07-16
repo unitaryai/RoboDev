@@ -2919,7 +2919,7 @@
 
 <h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
 <p>This document describes the architecture of Osmia, a Kubernetes-native controller that orchestrates autonomous AI coding agents to perform development tasks at scale.</p>
-<p>For the full technical plan, see <code>oss-plan.md</code>. For product requirements, see <code>oss-prd.md</code>.</p>
+<p>For the full technical plan and product requirements, see <code>oss-plan.md</code>.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>Osmia follows the Kubernetes <strong>operator pattern</strong>. A single controller binary runs inside the cluster and drives a reconciliation loop: it polls a ticketing backend for work, translates each ticket into a Kubernetes Job that runs an AI coding agent, monitors the job through to completion, and feeds the result back to the source control and ticketing systems.</p>
 <p>The controller does not itself perform any code generation. It is purely an orchestration layer. The actual coding work happens inside short-lived Kubernetes Jobs, each running one of the supported AI engines (Claude Code, OpenAI Codex, or Aider). This separation means the controller can manage many concurrent agents across multiple repositories and organisations without coupling to any single AI provider.</p>

@@ -1742,6 +1742,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1781,7 +1792,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1842,7 +1853,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2144,7 +2155,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2477,7 +2488,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_3" class="md-nav__link">
+  <a href="#changed_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -3281,6 +3292,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3320,7 +3342,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -3381,7 +3403,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -3683,7 +3705,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -4016,7 +4038,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_3" class="md-nav__link">
+  <a href="#changed_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -4797,6 +4819,15 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   refactor, so downstream deployments relying on this flow are not broken
   silently. No production code changed.</li>
 </ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Documentation accuracy pass</strong>: clarified implemented-vs-planned status for
+  multi-tenancy, guardrails.md prompt injection, and leader-election RBAC
+  across docs/scaling.md, docs/index.md, README.md, docs/security.md,
+  docs/architecture.md, CLAUDE.md, and the <code>TenancyConfig</code> doc comment in
+  internal/config/config.go. Replaced dangling references to the removed
+  <code>oss-prd.md</code> file with pointers to <code>oss-plan.md</code>.</li>
+</ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Repo-URL fixtures in <code>tests/integration</code></strong>: nine tests predated the
@@ -4844,7 +4875,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   substitution, which has known bugs for HTTP MCP headers
   (anthropics/claude-code#51581, #6204).</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Richer incident.io context surfaced to the agent</strong>:
   <code>ProcessIncidentEvent</code> now passes more of the parsed <code>IncidentV2</code>
@@ -5106,7 +5137,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><code>workflow_dispatch</code> trigger on <code>images.yaml</code> so edge images and the dev chart
   can be built manually from the GitHub Actions UI without a push to <code>main</code>.</li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Mandatory MR/PR enforcement</strong>: agent prompt now includes a bold preamble and
   strengthened step wording making it clear that opening a merge request is
@@ -5290,7 +5321,7 @@ so passing it causes the agent to error.</p>
 <p><strong>Migration:</strong> Remove <code>no_session_persistence: true</code> from any <code>osmia-config.yaml</code>
 files. Session persistence is now disabled by default and must be explicitly
 opted in via <code>session_persistence.enabled: true</code>.</p>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <h4 id="project-renamed-from-robodev-to-osmia">Project Renamed from RoboDev to Osmia<a class="headerlink" href="#project-renamed-from-robodev-to-osmia" title="Permanent link">&para;</a></h4>
 <p>The project has been renamed from <strong>RoboDev</strong> to <strong>Osmia</strong> (the mason bee genus — solitary but incredibly efficient builders). All identifiers, paths, and references have been updated throughout the codebase:</p>
 <ul>
@@ -5452,7 +5483,7 @@ opted in via <code>session_persistence.enabled: true</code>.</p>
 <li>Added <code>pods/exec</code> with <code>create</code> verb to the controller <code>ClusterRole</code>. Previously the
   PRM hint file injection and cleanup would fail with a 403 — this is now resolved.</li>
 </ul>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <h4 id="ci-workflow">CI Workflow<a class="headerlink" href="#ci-workflow" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Added <code>workflow_dispatch</code> trigger to the CI workflow so it can be manually run
