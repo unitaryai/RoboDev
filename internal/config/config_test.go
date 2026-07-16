@@ -1029,6 +1029,9 @@ incident_triage:
   engine: claude-code
   append_system_prompt: |
     You are a triage agent. Invoke /incident-classifier.
+  slack_channel_id: C_INCIDENT
+  slack_token_secret: incident-bot-token
+  incident_io_api_key_secret: incident-io-api-key
 `), 0o600)
 	require.NoError(t, err)
 
@@ -1041,6 +1044,9 @@ incident_triage:
 
 	assert.Equal(t, "claude-code", cfg.IncidentTriage.Engine)
 	assert.Contains(t, cfg.IncidentTriage.AppendSystemPrompt, "incident-classifier")
+	assert.Equal(t, "C_INCIDENT", cfg.IncidentTriage.SlackChannelID)
+	assert.Equal(t, "incident-bot-token", cfg.IncidentTriage.SlackTokenSecret)
+	assert.Equal(t, "incident-io-api-key", cfg.IncidentTriage.IncidentIOAPIKeySecret)
 }
 
 func TestLoad_IncidentIOWebhookValidation(t *testing.T) {

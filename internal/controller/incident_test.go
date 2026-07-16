@@ -3,20 +3,29 @@ package controller
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/unitaryai/osmia/internal/config"
+	"github.com/unitaryai/osmia/internal/estimator"
+	"github.com/unitaryai/osmia/internal/memory"
+	"github.com/unitaryai/osmia/internal/reviewpoller"
 	"github.com/unitaryai/osmia/internal/taskrun"
+	"github.com/unitaryai/osmia/internal/tournament"
 	"github.com/unitaryai/osmia/internal/webhook"
 	"github.com/unitaryai/osmia/pkg/engine"
+	"github.com/unitaryai/osmia/pkg/plugin/notifications"
+	"github.com/unitaryai/osmia/pkg/plugin/ticketing"
 )
 
 // recordingEngine captures BuildExecutionSpec arguments so tests can
@@ -651,4 +660,412 @@ func TestProcessIncidentEvent_OmitsIncidentIOAPIKeyWhenSecretNotConfigured(t *te
 	_, ok := eng.lastConfig.SecretKeyRefs["INCIDENT_IO_API_KEY"]
 	assert.False(t, ok,
 		"INCIDENT_IO_API_KEY SecretKeyRef must be absent when IncidentIOAPIKeySecret is empty")
+}
+
+// TestProcessIncidentEvent_TaskRunIDIsDNS1123AndLabelSafe pins the
+// tr-incident-<lower(id)>-<created|updated|evt>-<ms> TaskRun ID shape
+// documented on eventTypeSuffix's doc comment, and verifies it stays within
+// the Kubernetes label-value limit for a realistic incident.io ID:
+// incident.io issues 26-character ULIDs, which is the size this format was
+// designed around.
+func TestProcessIncidentEvent_TaskRunIDIsDNS1123AndLabelSafe(t *testing.T) {
+	cfg := incidentTestConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+	)
+
+	// A realistic, mixed-case 26-character ULID, matching incident.io's
+	// documented ID format. Mixed case exercises the lowercasing step.
+	incidentID := "01HZqJ8k3M5n7P9r2T4v6X8y0Z"
+	require.Len(t, incidentID, 26)
+
+	ctx := context.Background()
+	require.NoError(t, r.ProcessIncidentEvent(ctx, incidentTestEvent(incidentID)))
+
+	tr, ok := r.GetTaskRun(incidentID + ":" + webhook.EventIncidentCreatedV2)
+	require.True(t, ok)
+
+	trIDPattern := regexp.MustCompile(`^tr-incident-[0-9a-z]+-(created|updated|evt)-\d+$`)
+	assert.Regexp(t, trIDPattern, tr.ID,
+		"TaskRun ID must follow the documented tr-incident-<lower(id)>-<suffix>-<ms> shape")
+	assert.Equal(t, strings.ToLower(tr.ID), tr.ID, "TaskRun ID must be all-lowercase")
+
+	// tr.ID is used verbatim as the osmia.io/task-run-id label value on both
+	// the Job and its Pod template (jobbuilder.LabelTaskRunID). Unlike the
+	// Job *name*, which jobbuilder truncates to 63 characters, the label
+	// value is not truncated — a label value over 63 characters, or one
+	// that fails Kubernetes' label-value syntax, would be silently rejected
+	// by a real API server (the fake clientset used in these tests does not
+	// validate this).
+	assert.LessOrEqual(t, len(tr.ID), 63,
+		"TaskRun ID doubles as a K8s label value, which is capped at 63 characters")
+	assert.Empty(t, validation.IsValidLabelValue(tr.ID),
+		"TaskRun ID must be a syntactically valid Kubernetes label value")
+}
+
+// spyEngineSelector implements EngineSelector and records every call, so
+// tests can assert that a code path never consults the ticketing flow's
+// fallback-chain engine selection logic.
+type spyEngineSelector struct {
+	calls int
+}
+
+func (s *spyEngineSelector) SelectEngines(_ ticketing.Ticket) []string {
+	s.calls++
+	return []string{"claude-code"}
+}
+
+// spyNotifier implements notifications.Channel and records NotifyStart
+// calls, so tests can assert that a code path never sends a ticketing-style
+// start notification (the incident-triage flow relies on the agent's own
+// MCP Slack posting instead).
+type spyNotifier struct {
+	notifyStartCalls int
+}
+
+func (s *spyNotifier) Notify(_ context.Context, _ string, _ ticketing.Ticket, _ string) error {
+	return nil
+}
+
+func (s *spyNotifier) NotifyStart(_ context.Context, _ ticketing.Ticket) (string, error) {
+	s.notifyStartCalls++
+	return "thread-ref", nil
+}
+
+func (s *spyNotifier) NotifyComplete(_ context.Context, _ ticketing.Ticket, _ engine.TaskResult, _ string) error {
+	return nil
+}
+
+func (s *spyNotifier) UpdateMessage(_ context.Context, _ string, _ string) error { return nil }
+func (s *spyNotifier) Name() string                                              { return "spy-notifier" }
+func (s *spyNotifier) InterfaceVersion() int                                     { return notifications.InterfaceVersion }
+
+// TestProcessIncidentEvent_SkipsEngineSelector pins that incident triage
+// picks its engine directly from IncidentTriage.Engine and never consults
+// the ticketing flow's fallback-chain EngineSelector.
+func TestProcessIncidentEvent_SkipsEngineSelector(t *testing.T) {
+	cfg := incidentTestConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	selector := &spyEngineSelector{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+		WithEngineSelector(selector),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZSELECTOR")))
+
+	assert.Equal(t, 0, selector.calls,
+		"incident triage must never consult the fallback-chain EngineSelector")
+}
+
+// TestProcessIncidentEvent_SkipsCostEstimation pins that incident triage
+// never runs the predictive cost/duration estimation gate. A near-zero
+// budget guarantees ShouldAutoReject would trigger on the cold-start
+// default cost range (USD 1-5) if the estimator were ever consulted for
+// this flow.
+func TestProcessIncidentEvent_SkipsCostEstimation(t *testing.T) {
+	cfg := incidentTestConfig()
+	cfg.Estimator.MaxPredictedCostPerJob = 0.01
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	predictor := estimator.NewPredictor(estimator.NewMemoryEstimatorStore(), &cfg.Estimator, logger)
+	scorer := estimator.NewComplexityScorer()
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+		WithEstimator(predictor, scorer),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZCOST")))
+
+	tr, ok := r.GetTaskRun("01HZCOST:" + webhook.EventIncidentCreatedV2)
+	require.True(t, ok)
+	assert.Equal(t, taskrun.StateRunning, tr.State,
+		"a budget that would auto-reject any ticket must not affect incident triage: cost estimation is ticketing-only")
+
+	jobs, err := k8s.BatchV1().Jobs("test-ns").List(context.Background(), metav1.ListOptions{})
+	require.NoError(t, err)
+	assert.Len(t, jobs.Items, 1)
+}
+
+// TestProcessIncidentEvent_SkipsTournament pins that incident triage never
+// fans out into a competitive-execution tournament, even when
+// CompetitiveExecution is enabled with >=2 candidates and >=2 engines are
+// registered — the conditions that would trigger launchTournament in
+// ProcessTicket.
+func TestProcessIncidentEvent_SkipsTournament(t *testing.T) {
+	cfg := incidentTestConfig()
+	cfg.CompetitiveExecution = config.CompetitiveExecutionConfig{
+		Enabled:           true,
+		DefaultCandidates: 2,
+	}
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	eng := &recordingEngine{name: "claude-code"}
+	eng2 := &recordingEngine{name: "codex"}
+	jb := &mockJobBuilder{}
+	coord := tournament.NewCoordinator(logger)
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithEngine(eng2),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+		WithTournamentCoordinator(coord),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZTOURNEY")))
+
+	jobs, err := k8s.BatchV1().Jobs("test-ns").List(context.Background(), metav1.ListOptions{})
+	require.NoError(t, err)
+	assert.Len(t, jobs.Items, 1,
+		"incident triage must produce a single job, never a tournament fan-out")
+	assert.Equal(t, 1, eng.buildCalled)
+	assert.Equal(t, 0, eng2.buildCalled, "the second registered engine must never be consulted by incident triage")
+}
+
+// TestProcessIncidentEvent_SkipsApprovalGate pins that a configured
+// pre_start approval gate — which holds ProcessTicket's TaskRun in
+// NeedsHuman — has no effect on incident triage.
+func TestProcessIncidentEvent_SkipsApprovalGate(t *testing.T) {
+	cfg := incidentTestConfig()
+	cfg.GuardRails.ApprovalGates = []string{"pre_start"}
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	approvalBackend := &stubApprovalBackend{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+		WithApprovalBackend(approvalBackend),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZAPPROVAL")))
+
+	tr, ok := r.GetTaskRun("01HZAPPROVAL:" + webhook.EventIncidentCreatedV2)
+	require.True(t, ok)
+	assert.Equal(t, taskrun.StateRunning, tr.State,
+		"a configured pre_start approval gate must not hold incident-triage runs")
+	assert.Empty(t, approvalBackend.requests, "no approval request should be sent for an incident-triage run")
+}
+
+// TestProcessIncidentEvent_SkipsMemoryQuery pins that incident-triage tasks
+// never carry MemoryContext, even when episodic memory holds a relevant
+// prior fact — the memory query gate is ticketing-only.
+func TestProcessIncidentEvent_SkipsMemoryQuery(t *testing.T) {
+	cfg := incidentTestConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	graph := memory.NewGraph(nil, logger)
+	ctx := context.Background()
+	require.NoError(t, graph.AddNode(ctx, &memory.Fact{
+		ID:         "incident-fact",
+		Content:    "known issue with the database connection pool",
+		FactKind:   memory.FactTypeFailurePattern,
+		Confidence: 0.9,
+		DecayRate:  0.01,
+		ValidFrom:  time.Now(),
+	}))
+	extractor := memory.NewExtractor(logger)
+	qe := memory.NewQueryEngine(graph, logger)
+
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+		WithMemory(graph, extractor, qe),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(ctx, incidentTestEvent("01HZMEMORY")))
+
+	assert.Empty(t, eng.lastTask.MemoryContext,
+		"incident-triage tasks must never carry MemoryContext, even when episodic memory holds relevant facts")
+}
+
+// TestProcessIncidentEvent_SkipsNotifyStartAndMarkInProgress pins two
+// ticketing-only side effects that ProcessTicket performs before launching
+// a job: runNotifyStart (agent-authored MCP Slack posting replaces it for
+// incident triage) and ticketing.MarkInProgress (no ticketing backend knows
+// about incident.io IDs).
+func TestProcessIncidentEvent_SkipsNotifyStartAndMarkInProgress(t *testing.T) {
+	cfg := incidentTestConfig()
+	logger := testLogger()
+	k8s := fake.NewSimpleClientset()
+
+	eng := &recordingEngine{name: "claude-code"}
+	jb := &mockJobBuilder{}
+	tb := newMockTicketing(nil)
+	notifier := &spyNotifier{}
+
+	r := NewReconciler(cfg, logger,
+		WithEngine(eng),
+		WithJobBuilder(jb),
+		WithK8sClient(k8s),
+		WithNamespace("test-ns"),
+		WithTicketing(tb),
+		WithNotifier(notifier),
+	)
+
+	require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent("01HZNONOTIFY")))
+
+	assert.Equal(t, 0, notifier.notifyStartCalls,
+		"the incident agent posts to Slack itself via MCP; the reconciler must not also call NotifyStart")
+	assert.Empty(t, tb.markedProgress,
+		"no ticketing backend knows about incident IDs; MarkInProgress must not be called for incident triage runs")
+
+	tr, ok := r.GetTaskRun("01HZNONOTIFY:" + webhook.EventIncidentCreatedV2)
+	require.True(t, ok)
+	assert.Empty(t, tr.NotificationThreadRef,
+		"incident-triage TaskRuns must not carry a notification thread ref sourced from runNotifyStart")
+}
+
+// TestHandleJobComplete_IncidentTaskRun_ToleratesTicketingMarkCompleteError
+// pins a currently-tolerated wart: handleJobComplete is shared between the
+// ticketing (ProcessTicket) and incident-triage (ProcessIncidentEvent)
+// flows. For an incident TaskRun, tr.TicketID is the incident.io incident
+// ID, which the configured ticketing backend does not recognise —
+// MarkComplete is expected to return a "not found"-shaped error in
+// production. The error is logged but non-fatal: the TaskRun still
+// transitions to Succeeded. See the "Known limitation" comment on
+// ProcessIncidentEvent — the clean fix needs the use-case-aware
+// completion-handler dispatch that the upcoming abstraction will provide.
+func TestHandleJobComplete_IncidentTaskRun_ToleratesTicketingMarkCompleteError(t *testing.T) {
+	logger := testLogger()
+	tb := newMockTicketing(nil)
+	tb.markCompleteErr = fmt.Errorf("ticket 01HZCOMPLETE not found")
+
+	tr := taskrun.New("tr-incident-01hzcomplete-created-1", "01HZCOMPLETE:"+webhook.EventIncidentCreatedV2, "01HZCOMPLETE", "claude-code")
+	_ = tr.Transition(taskrun.StateRunning)
+
+	r := &Reconciler{
+		config:       incidentTestConfig(),
+		logger:       logger,
+		ticketing:    tb,
+		taskRuns:     map[string]*taskrun.TaskRun{tr.IdempotencyKey: tr},
+		taskRunStore: taskrun.NewMemoryStore(),
+	}
+
+	r.handleJobComplete(context.Background(), tr)
+
+	assert.Equal(t, taskrun.StateSucceeded, tr.State,
+		"MarkComplete failing for an unrecognised incident ID must not prevent the TaskRun reaching Succeeded")
+	assert.Contains(t, tb.markedComplete, "01HZCOMPLETE")
+}
+
+// TestHandleJobComplete_IncidentTaskRun_SkipsReviewPollerRegistration pins
+// the guard in handleJobComplete that only calls reviewPoller.Register when
+// result.MergeRequestURL is non-empty — incident-triage runs never produce
+// a merge request. reviewpoller.Poller exposes no accessor for its internal
+// tracked-PR state, so this test asserts the observable half of the
+// contract (handleJobComplete completes cleanly, reaching Succeeded, with a
+// reviewPoller configured and an empty MergeRequestURL); it cannot directly
+// assert that Register was never invoked without either a production
+// change (an exported query method on Poller) or reflection into an
+// unexported field, both out of scope for this test-only PR.
+func TestHandleJobComplete_IncidentTaskRun_SkipsReviewPollerRegistration(t *testing.T) {
+	logger := testLogger()
+	tb := newMockTicketing(nil)
+	poller := reviewpoller.New(config.ReviewResponseConfig{}, nil, logger)
+
+	tr := taskrun.New("tr-incident-01hzreview-created-1", "01HZREVIEW:"+webhook.EventIncidentCreatedV2, "01HZREVIEW", "claude-code")
+	_ = tr.Transition(taskrun.StateRunning)
+
+	r := &Reconciler{
+		config:       incidentTestConfig(),
+		logger:       logger,
+		ticketing:    tb,
+		taskRuns:     map[string]*taskrun.TaskRun{tr.IdempotencyKey: tr},
+		taskRunStore: taskrun.NewMemoryStore(),
+		reviewPoller: poller,
+	}
+
+	r.handleJobComplete(context.Background(), tr)
+
+	assert.Equal(t, taskrun.StateSucceeded, tr.State)
+	require.NotNil(t, tr.Result)
+	assert.Empty(t, tr.Result.MergeRequestURL,
+		"the generic-success fallback result must not carry a merge request URL for an incident run")
+}
+
+// TestProcessIncidentEvent_StartsStreamReaderOnlyForClaudeCode pins that
+// the real-time NDJSON stream reader is only started when the dispatched
+// engine is claude-code, making explicit what was previously an implicit
+// side effect of the `engineName == defaultIncidentEngine` check in
+// ProcessIncidentEvent.
+func TestProcessIncidentEvent_StartsStreamReaderOnlyForClaudeCode(t *testing.T) {
+	tests := []struct {
+		name       string
+		engineName string
+		wantReader bool
+	}{
+		{name: "claude-code starts the stream reader", engineName: "claude-code", wantReader: true},
+		{name: "non-claude-code engine does not start the stream reader", engineName: "codex", wantReader: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := incidentTestConfig()
+			cfg.IncidentTriage.Engine = tt.engineName
+			logger := testLogger()
+			k8s := fake.NewSimpleClientset()
+
+			eng := &recordingEngine{name: tt.engineName}
+			jb := &mockJobBuilder{}
+
+			r := NewReconciler(cfg, logger,
+				WithEngine(eng),
+				WithJobBuilder(jb),
+				WithK8sClient(k8s),
+				WithNamespace("test-ns"),
+			)
+
+			incidentID := "01HZSTREAM" + strings.ToUpper(tt.engineName)
+			require.NoError(t, r.ProcessIncidentEvent(context.Background(), incidentTestEvent(incidentID)))
+
+			tr, ok := r.GetTaskRun(incidentID + ":" + webhook.EventIncidentCreatedV2)
+			require.True(t, ok)
+
+			r.mu.RLock()
+			_, hasReader := r.streamReaders[tr.ID]
+			r.mu.RUnlock()
+
+			assert.Equal(t, tt.wantReader, hasReader,
+				"stream reader presence must match whether the dispatched engine is claude-code")
+		})
+	}
 }

@@ -50,12 +50,13 @@ func (m *mockEngine) InterfaceVersion() int { return 1 }
 
 // mockTicketing implements ticketing.Backend for testing.
 type mockTicketing struct {
-	tickets        []ticketing.Ticket
-	pollErr        error
-	markedProgress []string
-	markedComplete []string
-	markedFailed   []string
-	comments       map[string][]string
+	tickets         []ticketing.Ticket
+	pollErr         error
+	markCompleteErr error
+	markedProgress  []string
+	markedComplete  []string
+	markedFailed    []string
+	comments        map[string][]string
 }
 
 func newMockTicketing(tickets []ticketing.Ticket) *mockTicketing {
@@ -79,7 +80,7 @@ func (m *mockTicketing) MarkInProgress(_ context.Context, ticketID string) error
 
 func (m *mockTicketing) MarkComplete(_ context.Context, ticketID string, _ engine.TaskResult) error {
 	m.markedComplete = append(m.markedComplete, ticketID)
-	return nil
+	return m.markCompleteErr
 }
 
 func (m *mockTicketing) MarkFailed(_ context.Context, ticketID string, _ string) error {
