@@ -48,6 +48,16 @@ func (m *mockEngine) BuildPrompt(task engine.Task) (string, error) {
 func (m *mockEngine) Name() string          { return m.name }
 func (m *mockEngine) InterfaceVersion() int { return 1 }
 
+// StreamFormat makes mockEngine implement engine.StreamEmitter whenever it is
+// standing in for the real claude-code engine, mirroring the fact that only
+// claude-code writes an Osmia-native NDJSON stream to stdout.
+func (m *mockEngine) StreamFormat() engine.StreamFormat {
+	if m.name == "claude-code" {
+		return engine.StreamFormatOsmia
+	}
+	return ""
+}
+
 // mockTicketing implements ticketing.Backend for testing.
 type mockTicketing struct {
 	tickets         []ticketing.Ticket

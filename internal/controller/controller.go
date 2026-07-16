@@ -769,8 +769,9 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 		)
 	}
 
-	// Start stream reader for claude-code to parse NDJSON events from pod logs.
-	if engineName == "claude-code" {
+	// Start stream reader to parse NDJSON events from pod logs, for engines
+	// that emit them.
+	if r.engineEmitsStream(engineName) {
 		r.startStreamReader(ctx, tr)
 	}
 
@@ -1340,7 +1341,7 @@ func (r *Reconciler) processFollowUpTask(ctx context.Context, req reviewpoller.F
 	metrics.ActiveJobs.Inc()
 	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
 
-	if engineName == "claude-code" {
+	if r.engineEmitsStream(engineName) {
 		r.startStreamReader(ctx, tr)
 	}
 
@@ -1865,7 +1866,7 @@ func (r *Reconciler) resolvePreStartApproval(ctx context.Context, tr *taskrun.Ta
 		)
 	}
 
-	if engineName == "claude-code" {
+	if r.engineEmitsStream(engineName) {
 		r.startStreamReader(ctx, tr)
 	}
 
@@ -2226,7 +2227,7 @@ func (r *Reconciler) launchContinuationJob(ctx context.Context, tr *taskrun.Task
 
 	metrics.ActiveJobs.Inc()
 
-	if tr.CurrentEngine == "claude-code" {
+	if r.engineEmitsStream(tr.CurrentEngine) {
 		r.startStreamReader(ctx, tr)
 	}
 
@@ -2236,6 +2237,22 @@ func (r *Reconciler) launchContinuationJob(ctx context.Context, tr *taskrun.Task
 		"task_run_id", tr.ID,
 		"continuation_count", tr.ContinuationCount,
 	)
+}
+
+// engineEmitsStream reports whether the named engine's agent pods write a
+// StreamFormatOsmia event stream to stdout, i.e. whether startStreamReader
+// should be launched for a job dispatched to it. Engines that don't
+// implement engine.StreamEmitter (or aren't registered) return false.
+func (r *Reconciler) engineEmitsStream(engineName string) bool {
+	eng, ok := r.engines[engineName]
+	if !ok {
+		return false
+	}
+	emitter, ok := eng.(engine.StreamEmitter)
+	if !ok {
+		return false
+	}
+	return emitter.StreamFormat() == engine.StreamFormatOsmia
 }
 
 // startStreamReader launches a background goroutine that reads NDJSON events
@@ -2910,7 +2927,7 @@ func (r *Reconciler) launchRetryJob(ctx context.Context, tr *taskrun.TaskRun, pr
 
 	metrics.ActiveJobs.Inc()
 
-	if tr.CurrentEngine == "claude-code" {
+	if r.engineEmitsStream(tr.CurrentEngine) {
 		r.startStreamReader(ctx, tr)
 	}
 
@@ -3469,7 +3486,7 @@ func (r *Reconciler) launchTournament(ctx context.Context, ticket ticketing.Tick
 	}
 
 	for _, tr := range createdTaskRuns {
-		if tr.CurrentEngine == "claude-code" {
+		if r.engineEmitsStream(tr.CurrentEngine) {
 			r.startStreamReader(ctx, tr)
 		}
 	}
@@ -3715,7 +3732,7 @@ func (r *Reconciler) launchJudge(ctx context.Context, tournamentID string) {
 	metrics.ActiveJobs.Inc()
 	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
 
-	if judgeEngineName == "claude-code" {
+	if r.engineEmitsStream(judgeEngineName) {
 		r.startStreamReader(ctx, judgeTR)
 	}
 

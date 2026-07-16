@@ -1,0 +1,62 @@
+# Task: Fix login bug
+
+## Description
+
+The login page returns a 500 error when the password is empty.
+
+## Ticket
+
+https://example.atlassian.net/browse/TICKET-100
+
+## Repository
+
+https://github.com/org/repo
+
+## Labels
+
+bug, backend
+
+## Instructions
+
+**IMPORTANT: A merge request already exists for this task at:
+https://github.com/org/repo/pull/42
+Do NOT create a new merge request. Push your commits to the existing branch
+and the MR will update automatically.**
+
+1. Configure git globally:
+   ```
+   git config --global user.name "Osmia"
+   git config --global user.email "osmia@localhost"
+   git config --global init.defaultBranch main
+   # Configure git credentials from SCM token env vars
+   if [ -n "${GITLAB_TOKEN:-}" ]; then
+     git config --global credential.helper store
+     echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
+   fi
+   if [ -n "${GITHUB_TOKEN:-}" ]; then
+     git config --global credential.helper store
+     echo "https://x-access-token:${GITHUB_TOKEN}@github.com" >> ~/.git-credentials
+   fi
+   ```
+
+2. Clone the repository to /workspace/repo:
+   ```
+   git clone --depth=1 https://github.com/org/repo /workspace/repo
+   ```
+
+3. Create a branch for your changes (use the same branch on every retry so work is not lost):
+   ```
+   git checkout -b osmia/TICKET-100
+   ```
+
+4. Commit and push your changes to that branch at logical checkpoints:
+   ```
+   git add -A && git commit -m "wip: <short description>"
+   git push origin osmia/TICKET-100
+   ```
+
+5. An MR already exists — do NOT create another one.
+   Simply push your commits to branch `osmia/TICKET-100` and the MR will update automatically.
+
+6. When the full task is complete, write /workspace/result.json containing:
+   `{"success": true, "summary": "<one-line summary>", "branch_name": "osmia/TICKET-100", "merge_request_url": "https://github.com/org/repo/pull/42"}`

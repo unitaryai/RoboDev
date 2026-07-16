@@ -174,6 +174,18 @@ func (e *ClaudeCodeEngine) InterfaceVersion() int {
 	return interfaceVersion
 }
 
+// StreamFormat returns the stdout wire format Claude Code's agent pods emit.
+// Claude Code always runs with --output-format stream-json (see
+// BuildExecutionSpec), so its pod logs are Osmia-native NDJSON events that
+// internal/agentstream can parse.
+func (e *ClaudeCodeEngine) StreamFormat() engine.StreamFormat {
+	return engine.StreamFormatOsmia
+}
+
+// var _ engine.StreamEmitter asserts at compile time that ClaudeCodeEngine
+// implements the StreamEmitter capability interface.
+var _ engine.StreamEmitter = (*ClaudeCodeEngine)(nil)
+
 // effectiveMaxTurns returns the configured max turns, falling back to the
 // package default when none was set.
 func (e *ClaudeCodeEngine) effectiveMaxTurns() int {

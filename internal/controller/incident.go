@@ -227,7 +227,7 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 	metrics.ActiveJobs.Inc()
 	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
 
-	if engineName == defaultIncidentEngine {
+	if r.engineEmitsStream(engineName) {
 		r.startStreamReader(ctx, tr)
 	}
 
