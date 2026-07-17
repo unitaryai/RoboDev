@@ -272,27 +272,49 @@ func WithSessionStore(s engine.SessionStore) ReconcilerOption {
 	return func(r *Reconciler) { r.sessionStore = s }
 }
 
+// claudeCodeAPIKeyKeyCandidates are the well-known secret key names probed
+// for claude-code when the registered engine does not implement
+// engine.CredentialHints (e.g. it was not registered, or a test double is in
+// use). Kept in sync with claudecode.ClaudeCodeEngine.APIKeyKeyCandidates so
+// that behaviour is unchanged when the real engine is unavailable.
+var claudeCodeAPIKeyKeyCandidates = []string{"ANTHROPIC_API_KEY", "api_key"}
+
 // baseEngineConfig returns an EngineConfig pre-populated with the fields that
 // are common across all job creation sites: timeout, image, secret refs, env,
 // and the API key secret name resolved from the engine's auth config.
+//
+// The API key secret/key merge only applies to engines that declare
+// engine.CredentialHints (currently only claude-code, falling back to its
+// defaults if the registered engine instance doesn't implement the
+// interface) so that engines without hints keep their pre-existing
+// behaviour of relying on SecretEnv in BuildExecutionSpec instead.
 func (r *Reconciler) baseEngineConfig(ctx context.Context, engineName string) engine.EngineConfig {
 	apiKeySecret := ""
 	apiKeyKey := ""
-	if r.config.Engines.ClaudeCode != nil && engineName == "claude-code" {
-		apiKeySecret = r.config.Engines.ClaudeCode.Auth.APIKeySecret
-		apiKeyKey = r.config.Engines.ClaudeCode.Auth.APIKeyKey
-		// If no explicit key, probe the secret for well-known key names.
-		if apiKeyKey == "" && apiKeySecret != "" && r.k8sClient != nil {
-			if secret, err := r.k8sClient.CoreV1().Secrets(r.namespace).Get(ctx, apiKeySecret, metav1.GetOptions{}); err == nil {
-				for _, candidate := range []string{"ANTHROPIC_API_KEY", "api_key"} {
-					if _, ok := secret.Data[candidate]; ok {
-						apiKeyKey = candidate
-						break
+
+	hints, hasHints := r.engines[engineName].(engine.CredentialHints)
+	if hasHints || engineName == "claude-code" {
+		if auth, ok := r.config.Engines.AuthFor(engineName); ok {
+			apiKeySecret = auth.APIKeySecret
+			apiKeyKey = auth.APIKeyKey
+			// If no explicit key, probe the secret for well-known key names.
+			if apiKeyKey == "" && apiKeySecret != "" && r.k8sClient != nil {
+				candidates := claudeCodeAPIKeyKeyCandidates
+				if hasHints {
+					candidates = hints.APIKeyKeyCandidates()
+				}
+				if secret, err := r.k8sClient.CoreV1().Secrets(r.namespace).Get(ctx, apiKeySecret, metav1.GetOptions{}); err == nil {
+					for _, candidate := range candidates {
+						if _, ok := secret.Data[candidate]; ok {
+							apiKeyKey = candidate
+							break
+						}
 					}
 				}
 			}
 		}
 	}
+
 	return engine.EngineConfig{
 		TimeoutSeconds: r.config.GuardRails.MaxJobDurationMinutes * 60,
 		Image:          r.config.Engines.ImageFor(engineName),

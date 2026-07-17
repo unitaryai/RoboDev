@@ -325,6 +325,38 @@ func (e *EnginesConfig) ImageFor(engineName string) string {
 	return ""
 }
 
+// AuthFor returns the configured AuthConfig for the named engine and whether
+// one is set. It returns false when the engine has no auth block configured
+// (or is unrecognised), so callers can fall back to engine-provided defaults.
+func (e *EnginesConfig) AuthFor(engineName string) (AuthConfig, bool) {
+	if e == nil {
+		return AuthConfig{}, false
+	}
+	switch engineName {
+	case "claude-code":
+		if e.ClaudeCode != nil {
+			return e.ClaudeCode.Auth, true
+		}
+	case "codex":
+		if e.Codex != nil {
+			return e.Codex.Auth, true
+		}
+	case "aider":
+		if e.Aider != nil {
+			return e.Aider.Auth, true
+		}
+	case "opencode":
+		if e.OpenCode != nil {
+			return e.OpenCode.Auth, true
+		}
+	case "cline":
+		if e.Cline != nil {
+			return e.Cline.Auth, true
+		}
+	}
+	return AuthConfig{}, false
+}
+
 // OpenCodeEngineConfig holds OpenCode-specific engine settings.
 type OpenCodeEngineConfig struct {
 	Image    string     `yaml:"image,omitempty"`
