@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has no effect on runtime behaviour. See
   `docs/adr/0001-taskrun-store-sqlite-not-crd.md` for the decision to use
   SQLite rather than a `TaskRun` CRD.
+- **ADR 0002: Managed Agents self-hosted sandbox interop**: documents the
+  outcome of a research spike into Anthropic's Managed Agents `self_hosted`
+  environment type. Decision is to go ahead with a timeboxed prototype, with
+  no product commitment yet. See `docs/adr/0002-managed-agents-self-hosted-sandbox-interop.md`.
 
 ### Changed
 
