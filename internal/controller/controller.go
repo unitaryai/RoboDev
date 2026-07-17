@@ -37,6 +37,7 @@ import (
 	"github.com/unitaryai/osmia/internal/secretresolver"
 	"github.com/unitaryai/osmia/internal/taskrun"
 	"github.com/unitaryai/osmia/internal/tournament"
+	"github.com/unitaryai/osmia/internal/usecase"
 	"github.com/unitaryai/osmia/internal/watchdog"
 	"github.com/unitaryai/osmia/pkg/engine"
 	"github.com/unitaryai/osmia/pkg/plugin/approval"
@@ -153,6 +154,14 @@ type Reconciler struct {
 	// repoURLPoller asks humans for a repo URL when one is missing from
 	// the ticket. Nil when no interactive channel is configured.
 	repoURLPoller RepoURLPoller
+
+	// useCases holds the registered internal/usecase Definitions for the
+	// ticketing and incident-triage flows. Populated once in
+	// NewReconciler. Nothing dispatches through it yet — see
+	// docs/designs/use-case-abstraction.md and useCaseFor in usecase.go
+	// — TaskRuns are only tagged with the matching Definition's name
+	// today.
+	useCases *usecase.Registry
 }
 
 // ReconcilerOption configures the Reconciler.
@@ -403,7 +412,46 @@ func NewReconciler(cfg *config.Config, logger *slog.Logger, opts ...ReconcilerOp
 	if r.taskRunStore == nil {
 		r.taskRunStore = taskrun.NewMemoryStore()
 	}
+	r.useCases = newUseCaseRegistry()
 	return r
+}
+
+// newUseCaseRegistry builds and registers the two use-case Definitions
+// that exist today: ticketing (ProcessTicket) and incident triage
+// (ProcessIncidentEvent). Gates and execution modes are set per
+// docs/designs/use-case-abstraction.md section 4: ticketing opts into
+// every gate, matching its current unconditional behaviour; incident
+// triage opts into none, matching the gates ProcessIncidentEvent already
+// skips (see incident.go's package doc). This registry is inert in this
+// PR — nothing dispatches through Gates or Results yet.
+func newUseCaseRegistry() *usecase.Registry {
+	reg := usecase.NewRegistry()
+
+	// Registration only fails for a nil or unnamed Definition, neither of
+	// which applies to these two well-known, hard-coded values, so the
+	// errors are deliberately not surfaced to NewReconciler's callers.
+	_ = reg.Register(&usecase.Definition{
+		Name:          usecase.NameTicketing,
+		ExecutionMode: usecase.ModeClonePushMR,
+		Gates: usecase.Gates{
+			ApprovalGates:   true,
+			CostEstimation:  true,
+			EngineSelector:  true,
+			GuardRails:      true,
+			MarkInProgress:  true,
+			MemoryQuery:     true,
+			NotifyStart:     true,
+			RepoURLRequired: true,
+			Tournament:      true,
+		},
+	})
+	_ = reg.Register(&usecase.Definition{
+		Name:          usecase.NameIncidentTriage,
+		ExecutionMode: usecase.ModeAPIRead,
+		Gates:         usecase.Gates{},
+	})
+
+	return reg
 }
 
 // Run starts the main reconciliation loop. It polls the ticketing backend
@@ -615,6 +663,7 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 		idempotencyKey,
 		ticket.ID,
 		engineName,
+		usecase.NameTicketing,
 	)
 
 	// Check pre-start approval gate: if configured, hold the TaskRun in
