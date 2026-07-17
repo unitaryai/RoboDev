@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -41,7 +42,7 @@ type SQLiteStore struct {
 // NewSQLiteStore opens (or creates) a SQLite database at the given path and
 // runs auto-migration to ensure the task_runs table exists. Use ":memory:"
 // for an in-memory database (useful for tests).
-func NewSQLiteStore(path string, logger *slog.Logger) (*SQLiteStore, error) {
+func NewSQLiteStore(ctx context.Context, path string, logger *slog.Logger) (*SQLiteStore, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("opening sqlite database: %w", err)
@@ -54,20 +55,20 @@ func NewSQLiteStore(path string, logger *slog.Logger) (*SQLiteStore, error) {
 	db.SetMaxOpenConns(1)
 
 	// Enable WAL mode for better concurrent read performance.
-	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+	if _, err := db.ExecContext(ctx, "PRAGMA journal_mode=WAL"); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("setting wal mode: %w", err)
 	}
 
 	// Give concurrent callers a busy timeout so they queue and retry on
 	// SQLITE_BUSY rather than failing immediately.
-	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+	if _, err := db.ExecContext(ctx, "PRAGMA busy_timeout=5000"); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("setting busy timeout: %w", err)
 	}
 
 	store := &SQLiteStore{db: db, logger: logger}
-	if err := store.migrate(); err != nil {
+	if err := store.migrate(ctx); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("running migrations: %w", err)
 	}
@@ -76,7 +77,7 @@ func NewSQLiteStore(path string, logger *slog.Logger) (*SQLiteStore, error) {
 }
 
 // migrate creates the task_runs table and indices if they do not already exist.
-func (s *SQLiteStore) migrate() error {
+func (s *SQLiteStore) migrate(ctx context.Context) error {
 	stmts := []string{
 		createTaskRunsTable,
 		createTaskRunsIdempotencyIdx,
@@ -84,7 +85,7 @@ func (s *SQLiteStore) migrate() error {
 		createTaskRunsStateIdx,
 	}
 	for _, stmt := range stmts {
-		if _, err := s.db.Exec(stmt); err != nil {
+		if _, err := s.db.ExecContext(ctx, stmt); err != nil {
 			return fmt.Errorf("executing migration: %w", err)
 		}
 	}
@@ -129,17 +130,17 @@ func (s *SQLiteStore) Save(ctx context.Context, tr *TaskRun) error {
 
 // Get retrieves a TaskRun by ID. Returns an error if not found.
 func (s *SQLiteStore) Get(ctx context.Context, id string) (*TaskRun, error) {
-	var contentJSON string
+	var contentJSON []byte
 	err := s.db.QueryRowContext(ctx, `SELECT content_json FROM task_runs WHERE id = ?`, id).Scan(&contentJSON)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("task run %q not found", id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("task run %q not found: %w", id, err)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("querying task run %q: %w", id, err)
 	}
 
 	var tr TaskRun
-	if err := json.Unmarshal([]byte(contentJSON), &tr); err != nil {
+	if err := json.Unmarshal(contentJSON, &tr); err != nil {
 		return nil, fmt.Errorf("unmarshalling task run %q: %w", id, err)
 	}
 	return &tr, nil
@@ -176,13 +177,13 @@ func (s *SQLiteStore) Close() error {
 func (s *SQLiteStore) scanTaskRuns(rows *sql.Rows) ([]*TaskRun, error) {
 	var result []*TaskRun
 	for rows.Next() {
-		var contentJSON string
+		var contentJSON []byte
 		if err := rows.Scan(&contentJSON); err != nil {
 			return nil, fmt.Errorf("scanning task run row: %w", err)
 		}
 
 		var tr TaskRun
-		if err := json.Unmarshal([]byte(contentJSON), &tr); err != nil {
+		if err := json.Unmarshal(contentJSON, &tr); err != nil {
 			s.logger.Warn("skipping undeserialisable task run", "error", err)
 			continue
 		}

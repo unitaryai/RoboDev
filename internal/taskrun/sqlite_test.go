@@ -2,6 +2,7 @@ package taskrun
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,7 +24,7 @@ func testLogger() *slog.Logger {
 
 func newTestSQLiteStore(t *testing.T, path string) *SQLiteStore {
 	t.Helper()
-	store, err := NewSQLiteStore(path, testLogger())
+	store, err := NewSQLiteStore(context.Background(), path, testLogger())
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = store.Close() })
 	return store
@@ -101,11 +102,11 @@ func TestNewSQLiteStore_Construction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, err := NewSQLiteStore(tt.path, testLogger())
+			ctx := context.Background()
+			store, err := NewSQLiteStore(ctx, tt.path, testLogger())
 			require.NoError(t, err)
 			defer func() { _ = store.Close() }()
 
-			ctx := context.Background()
 			list, err := store.List(ctx)
 			require.NoError(t, err)
 			assert.Empty(t, list)
@@ -175,6 +176,7 @@ func TestSQLiteStore_GetNotFound(t *testing.T) {
 	_, err := store.Get(ctx, "nonexistent")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
+	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
 func TestSQLiteStore_List(t *testing.T) {
@@ -304,7 +306,7 @@ func TestSQLiteStore_Persistence(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "taskrun.db")
 	ctx := context.Background()
 
-	store1, err := NewSQLiteStore(dbPath, testLogger())
+	store1, err := NewSQLiteStore(ctx, dbPath, testLogger())
 	require.NoError(t, err)
 
 	tr := New("tr-persist", "key-persist", "TICKET-1", "claude-code")
