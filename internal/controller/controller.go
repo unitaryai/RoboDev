@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 
 	"github.com/unitaryai/osmia/internal/agentstream"
+	"github.com/unitaryai/osmia/internal/agentstream/adapters"
 	"github.com/unitaryai/osmia/internal/config"
 	"github.com/unitaryai/osmia/internal/diagnosis"
 	"github.com/unitaryai/osmia/internal/estimator"
@@ -2224,25 +2225,46 @@ func (r *Reconciler) launchContinuationJob(ctx context.Context, tr *taskrun.Task
 	)
 }
 
-// engineEmitsStream reports whether the named engine's agent pods write a
-// StreamFormatOsmia event stream to stdout, i.e. whether startStreamReader
-// should be launched for a job dispatched to it. Engines that don't
-// implement engine.StreamEmitter (or aren't registered) return false.
-func (r *Reconciler) engineEmitsStream(engineName string) bool {
+// streamTranslatorFor resolves the agentstream.Translator registered for the
+// named engine's stream format, and whether one exists. This is the single
+// source of truth consulted by both engineEmitsStream and startStreamReader:
+// an engine's stream can be read if and only if its StreamFormat has a
+// registered translator, so the gate and the reader construction can never
+// disagree.
+func (r *Reconciler) streamTranslatorFor(engineName string) (agentstream.Translator, bool) {
 	eng, ok := r.engines[engineName]
 	if !ok {
-		return false
+		return nil, false
 	}
 	emitter, ok := eng.(engine.StreamEmitter)
 	if !ok {
-		return false
+		return nil, false
 	}
-	return emitter.StreamFormat() == engine.StreamFormatOsmia
+	return adapters.For(emitter.StreamFormat())
+}
+
+// engineEmitsStream reports whether the named engine's agent pods write an
+// event stream to stdout that Osmia knows how to translate, i.e. whether
+// startStreamReader should be launched for a job dispatched to it. Engines
+// that don't implement engine.StreamEmitter (or aren't registered), or whose
+// StreamFormat has no registered adapters.For translator, return false.
+func (r *Reconciler) engineEmitsStream(engineName string) bool {
+	_, ok := r.streamTranslatorFor(engineName)
+	return ok
 }
 
 // startStreamReader launches a background goroutine that reads NDJSON events
 // from the agent pod's logs and forwards them through the event pipeline.
 func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun) {
+	translator, ok := r.streamTranslatorFor(tr.CurrentEngine)
+	if !ok {
+		r.logger.Warn("no stream translator registered for engine, not starting stream reader",
+			"task_run_id", tr.ID,
+			"engine", tr.CurrentEngine,
+		)
+		return
+	}
+
 	streamCtx, cancel := context.WithCancel(ctx)
 
 	r.mu.Lock()
@@ -2252,7 +2274,10 @@ func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun)
 	go func() {
 		eventCh := make(chan *agentstream.StreamEvent, 100)
 
-		reader := agentstream.NewReader(r.logger.With("component", "stream-reader", "task_run_id", tr.ID))
+		reader := agentstream.NewReader(
+			r.logger.With("component", "stream-reader", "task_run_id", tr.ID),
+			agentstream.WithTranslator(translator),
+		)
 
 		var forwarderOpts []agentstream.ForwarderOption
 

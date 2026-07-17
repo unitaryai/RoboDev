@@ -95,6 +95,64 @@ func TestReadStream(t *testing.T) {
 	}
 }
 
+// stubTranslator is a test Translator that lets each line be mapped to an
+// arbitrary number of events (including zero), so the reader's delegation
+// to a non-passthrough Translator can be exercised without a real engine
+// stream format.
+type stubTranslator struct {
+	// translate is called for every non-empty line the reader scans.
+	translate func(line []byte) ([]*StreamEvent, error)
+}
+
+func (s stubTranslator) Translate(line []byte) ([]*StreamEvent, error) {
+	return s.translate(line)
+}
+
+// TestReadStream_WithTranslator asserts that ReadStream delegates line
+// translation to a configured Translator instead of always parsing lines
+// as Osmia's native NDJSON envelope, and that a translator producing
+// multiple (or zero) events per line is handled correctly.
+func TestReadStream_WithTranslator(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	translator := stubTranslator{
+		translate: func(line []byte) ([]*StreamEvent, error) {
+			switch string(line) {
+			case "skip-me":
+				return nil, nil
+			case "boom":
+				return nil, assert.AnError
+			default:
+				// Emit two events per line to prove the reader forwards
+				// every event a Translator returns, not just one.
+				return []*StreamEvent{
+					{Type: EventContentDelta},
+					{Type: EventCost},
+				}, nil
+			}
+		},
+	}
+
+	reader := NewReader(logger, WithTranslator(translator))
+
+	input := strings.Join([]string{"skip-me", "boom", "line"}, "\n")
+	stream := nopCloser{strings.NewReader(input)}
+	eventCh := make(chan *StreamEvent, 100)
+
+	err := reader.ReadStream(context.Background(), stream, eventCh)
+	require.NoError(t, err)
+	close(eventCh)
+
+	var events []*StreamEvent
+	for ev := range eventCh {
+		events = append(events, ev)
+	}
+
+	require.Len(t, events, 2)
+	assert.Equal(t, EventContentDelta, events[0].Type)
+	assert.Equal(t, EventCost, events[1].Type)
+}
+
 func TestReadStream_ContextCancellation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	reader := NewReader(logger)
