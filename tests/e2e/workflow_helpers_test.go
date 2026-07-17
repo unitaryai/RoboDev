@@ -50,6 +50,12 @@ func (e *workflowFakeEngine) Name() string {
 
 func (e *workflowFakeEngine) InterfaceVersion() int { return 1 }
 
+// StreamFormat implements engine.StreamEmitter: the fake-agent binary always
+// writes the same Osmia-native NDJSON stream to stdout regardless of which
+// engine name this fake is standing in for, so the stream reader activates
+// unconditionally.
+func (e *workflowFakeEngine) StreamFormat() engine.StreamFormat { return engine.StreamFormatOsmia }
+
 // BuildExecutionSpec returns a spec that runs fake-agent with the configured
 // scenario. When the task title starts with "Tournament Judge:", the scenario
 // is automatically overridden to "judge" so the coordinator gets a valid winner

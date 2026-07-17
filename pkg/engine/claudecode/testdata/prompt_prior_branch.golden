@@ -1,0 +1,84 @@
+# Task: Fix login bug
+
+## Description
+
+The login page returns a 500 error when the password is empty.
+
+## Ticket
+
+https://example.atlassian.net/browse/TICKET-100
+
+## Repository
+
+https://github.com/org/repo
+
+## Continuation
+
+A previous agent session worked on this task but was interrupted before
+completing it (max turns reached or premature exit). Prior work was pushed
+to branch `osmia/TICKET-100`.
+
+Start by cloning that branch to recover the previous progress:
+   ```
+   git clone --branch osmia/TICKET-100 --depth=50 https://github.com/org/repo /workspace/repo
+   ```
+
+Then run:
+   ```
+   git log --oneline -20
+   ```
+
+to see what was already completed, and continue from where the prior
+agent left off. Do not redo work that is already committed.
+
+## Labels
+
+bug, backend
+
+## Instructions
+
+**IMPORTANT: You MUST open a merge request (MR/PR) before completing the task
+if you have created, modified, or deleted ANY files — including documentation,
+plans, configuration, and generated output. Never skip this step.**
+
+1. Configure git globally:
+   ```
+   git config --global user.name "Osmia"
+   git config --global user.email "osmia@localhost"
+   git config --global init.defaultBranch main
+   # Configure git credentials from SCM token env vars
+   if [ -n "${GITLAB_TOKEN:-}" ]; then
+     git config --global credential.helper store
+     echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
+   fi
+   if [ -n "${GITHUB_TOKEN:-}" ]; then
+     git config --global credential.helper store
+     echo "https://x-access-token:${GITHUB_TOKEN}@github.com" >> ~/.git-credentials
+   fi
+   ```
+
+3. Create a branch for your changes (use the same branch on every retry so work is not lost):
+   ```
+   git checkout -b osmia/TICKET-100
+   ```
+
+4. Commit and push your changes to that branch at logical checkpoints:
+   ```
+   git add -A && git commit -m "wip: <short description>"
+   git push origin osmia/TICKET-100
+   ```
+
+5. Open a merge request. This step is MANDATORY — do not skip it.
+   Use `glab` (for GitLab) or `gh` (for GitHub).
+   Write a clear, well-structured MR description covering: what changed, why, and how to verify.
+   The MR title MUST end with ` [osmia/TICKET-100]` so the ticket is traceable from the MR.
+   Include `References: https://example.atlassian.net/browse/TICKET-100` in the MR description body.
+   Example for GitLab:
+   ```
+   cd /workspace/repo
+   glab auth login --hostname gitlab.com --token "$GITLAB_TOKEN"
+   glab mr create --fill --title "<concise title> [osmia/TICKET-100]" --description "<full description>"
+   ```
+
+6. When the full task is complete, write /workspace/result.json containing:
+   `{"success": true, "summary": "<one-line summary>", "branch_name": "osmia/TICKET-100", "merge_request_url": "<MR URL from step 5>"}`

@@ -1,0 +1,46 @@
+# Task: Fix login bug
+
+## Description
+
+The login page returns a 500 error when the password is empty.
+
+## Ticket
+
+https://example.atlassian.net/browse/TICKET-100
+
+## Repository
+
+https://github.com/org/repo
+
+## Labels
+
+bug, backend
+
+## Instructions
+
+**IMPORTANT: You MUST open a merge request (MR/PR) before completing the task
+if you have created, modified, or deleted ANY files — including documentation,
+plans, configuration, and generated output. Never skip this step.**
+
+1. The workspace is already present from your previous session. Continue working in the existing directory.
+
+2. Commit and push your changes to branch `osmia/TICKET-100` at logical checkpoints:
+   ```
+   git add -A && git commit -m "wip: <short description>"
+   git push origin osmia/TICKET-100
+   ```
+
+3. Open a merge request. This step is MANDATORY — do not skip it.
+   Use `glab` (for GitLab) or `gh` (for GitHub).
+   Write a clear, well-structured MR description covering: what changed, why, and how to verify.
+   The MR title MUST end with ` [osmia/TICKET-100]` so the ticket is traceable from the MR.
+   Include `References: https://example.atlassian.net/browse/TICKET-100` in the MR description body.
+   Example for GitLab:
+   ```
+   cd /workspace/repo
+   glab auth login --hostname gitlab.com --token "$GITLAB_TOKEN"
+   glab mr create --fill --title "<concise title> [osmia/TICKET-100]" --description "<full description>"
+   ```
+
+4. When the full task is complete, write /workspace/result.json containing:
+   `{"success": true, "summary": "<one-line summary>", "branch_name": "osmia/TICKET-100", "merge_request_url": "<MR URL from step 3>"}`

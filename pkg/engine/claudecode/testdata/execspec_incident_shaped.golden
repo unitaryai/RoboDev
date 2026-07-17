@@ -1,0 +1,50 @@
+{
+  "command": [
+    "setup-claude.sh",
+    "-p",
+    "# Task: Database is down\n\n## Description\n\nCustomers reporting 500s\n\n## Ticket\n\nhttps://app.incident.io/incidents/01HZINCIDENTXYZ\n\n## Labels\n\nosmia:source:incident-io\n\n## Instructions\n\nComplete the task described above. Work in the /workspace directory.\nWrite a result.json file to /workspace/result.json when finished.\n",
+    "--output-format",
+    "stream-json",
+    "--max-turns",
+    "50",
+    "--dangerously-skip-permissions",
+    "--verbose",
+    "--mcp-config",
+    "/workspace/.mcp.json",
+    "--json-schema",
+    "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"success\": {\"type\": \"boolean\"},\n    \"summary\": {\"type\": \"string\"},\n    \"merge_request_url\": {\"type\": \"string\"},\n    \"branch_name\": {\"type\": \"string\"},\n    \"tests_passed\": {\"type\": \"integer\"},\n    \"tests_failed\": {\"type\": \"integer\"},\n    \"tests_added\": {\"type\": \"integer\"}\n  },\n  \"required\": [\"success\", \"summary\"]\n}",
+    "--append-system-prompt",
+    "Post a summary to the incident Slack channel via MCP."
+  ],
+  "env": {
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "OSMIA_REPO_URL": "",
+    "OSMIA_TASK_ID": "task-incident-1",
+    "OSMIA_TICKET_ID": "01HZINCIDENTXYZ"
+  },
+  "secret_key_refs": {
+    "ANTHROPIC_API_KEY": {
+      "secret_name": "osmia-anthropic-key",
+      "key": "api_key"
+    }
+  },
+  "volumes": [
+    {
+      "name": "workspace",
+      "mount_path": "/workspace"
+    },
+    {
+      "name": "config",
+      "mount_path": "/config",
+      "read_only": true
+    },
+    {
+      "name": "home",
+      "mount_path": "/home/osmia"
+    },
+    {
+      "name": "tmp",
+      "mount_path": "/tmp"
+    }
+  ]
+}

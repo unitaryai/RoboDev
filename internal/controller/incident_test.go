@@ -56,6 +56,16 @@ func (m *recordingEngine) BuildPrompt(_ engine.Task) (string, error) { return "t
 func (m *recordingEngine) Name() string                              { return m.name }
 func (m *recordingEngine) InterfaceVersion() int                     { return 1 }
 
+// StreamFormat makes recordingEngine implement engine.StreamEmitter whenever
+// it is standing in for the real claude-code engine, mirroring the fact that
+// only claude-code writes an Osmia-native NDJSON stream to stdout.
+func (m *recordingEngine) StreamFormat() engine.StreamFormat {
+	if m.name == "claude-code" {
+		return engine.StreamFormatOsmia
+	}
+	return ""
+}
+
 // incidentTestEvent returns a minimal valid IncidentEvent for the
 // public_incident.incident_created_v2 path. IncidentStatus.Category and
 // Mode are populated with realistic enum values so the predictable-
