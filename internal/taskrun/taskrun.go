@@ -121,6 +121,14 @@ type TaskRun struct {
 	ReviewThreadID string `json:"review_thread_id,omitempty"`
 	// ReviewPRURL is the PR/MR URL used for SCM reply and thread resolution.
 	ReviewPRURL string `json:"review_pr_url,omitempty"`
+
+	// UseCase records which registered internal/usecase Definition this
+	// TaskRun belongs to (for example "ticketing" or "incident-triage"),
+	// set at creation time. TaskRuns persisted before this field existed
+	// leave it empty; callers should use a legacy-inference fallback
+	// (based on the TaskRun ID shape) rather than treating an empty value
+	// as an error. See docs/designs/use-case-abstraction.md section 4.
+	UseCase string `json:"use_case,omitempty"`
 }
 
 // New creates a new TaskRun in the Queued state with the given parameters.

@@ -69,16 +69,24 @@ type launchSpec struct {
 }
 
 // newLaunchTaskRun constructs a new TaskRun for either flow's initial
-// dispatch — wiring CurrentEngine, EngineAttempts, and continuation
-// config — and persists it immediately, before any flow-specific gate
-// (for example ticketing's pre-start approval gate) or per-flow
-// EngineConfig override runs. Save failures are logged, not returned,
-// matching both flows' original behaviour: a task run that fails to
-// save here is still launched.
-func (r *Reconciler) newLaunchTaskRun(ctx context.Context, id, idempotencyKey, ticketID, engineName string) *taskrun.TaskRun {
+// dispatch — wiring CurrentEngine, EngineAttempts, UseCase, and
+// continuation config — and persists it immediately, before any
+// flow-specific gate (for example ticketing's pre-start approval gate) or
+// per-flow EngineConfig override runs. Save failures are logged, not
+// returned, matching both flows' original behaviour: a task run that
+// fails to save here is still launched.
+//
+// useCase is the registered internal/usecase Definition name for this
+// flow (usecase.NameTicketing or usecase.NameIncidentTriage). Tagging
+// happens here, at creation, rather than in launchTaskRun, so that a
+// TaskRun held at a pre-launch gate (for example ticketing's pre-start
+// approval gate) is still tagged even if it never reaches launchTaskRun
+// on this call.
+func (r *Reconciler) newLaunchTaskRun(ctx context.Context, id, idempotencyKey, ticketID, engineName, useCase string) *taskrun.TaskRun {
 	tr := taskrun.New(id, idempotencyKey, ticketID, engineName)
 	tr.CurrentEngine = engineName
 	tr.EngineAttempts = []string{engineName}
+	tr.UseCase = useCase
 	r.applyContinuationConfig(tr)
 
 	r.saveTaskRunOrLog(ctx, tr)

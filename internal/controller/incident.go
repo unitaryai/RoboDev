@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unitaryai/osmia/internal/usecase"
 	"github.com/unitaryai/osmia/internal/webhook"
 	"github.com/unitaryai/osmia/pkg/engine"
 )
@@ -119,7 +120,7 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 		eventTypeSuffix(evt.EventType),
 		time.Now().UnixMilli(),
 	)
-	tr := r.newLaunchTaskRun(ctx, trID, idempotencyKey, task.TicketID, engineName)
+	tr := r.newLaunchTaskRun(ctx, trID, idempotencyKey, task.TicketID, engineName, usecase.NameIncidentTriage)
 
 	task.TaskRunID = tr.ID
 

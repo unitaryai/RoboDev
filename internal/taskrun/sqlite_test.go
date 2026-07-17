@@ -88,6 +88,7 @@ func fullyPopulatedTaskRun() *TaskRun {
 		ReviewCommentID:       "comment-1",
 		ReviewThreadID:        "thread-1",
 		ReviewPRURL:           "https://example.com/pr/1",
+		UseCase:               "ticketing",
 	}
 }
 
