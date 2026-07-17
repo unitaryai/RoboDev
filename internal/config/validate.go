@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -168,6 +169,20 @@ func (c *Config) Validate() error {
 		}
 		if g.Secret == "" {
 			return fmt.Errorf("webhook.generic.secret is required")
+		}
+	}
+
+	switch c.TaskRunStore.Backend {
+	case "", "memory", "sqlite":
+		// supported
+	case "postgres":
+		return fmt.Errorf("taskrun_store.backend %q is not yet supported; use \"memory\" or \"sqlite\"", c.TaskRunStore.Backend)
+	default:
+		return fmt.Errorf("taskrun_store.backend %q is not recognised; use \"memory\" or \"sqlite\"", c.TaskRunStore.Backend)
+	}
+	if c.TaskRunStore.Backend == "sqlite" && c.TaskRunStore.SQLite.Path != "" {
+		if !filepath.IsAbs(c.TaskRunStore.SQLite.Path) {
+			return fmt.Errorf("taskrun_store.sqlite.path must be an absolute path, got %q", c.TaskRunStore.SQLite.Path)
 		}
 	}
 

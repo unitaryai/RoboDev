@@ -190,6 +190,14 @@ persistence:
   storageClass: ""  # leave empty to use cluster default
   accessMode: ReadWriteOnce
 
+# Example: durable TaskRun state via config.taskrun_store (requires persistence.enabled: true).
+# Defaults to backend: memory (no durability, matches pre-existing behaviour) when omitted.
+# config:
+#   taskrun_store:
+#     backend: sqlite
+#     sqlite:
+#       path: /data/taskruns.db
+
 service:
   type: ClusterIP
 
