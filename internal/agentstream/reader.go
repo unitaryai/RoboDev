@@ -14,12 +14,34 @@ import (
 // StreamEvents on a channel. It is tolerant of malformed lines, logging
 // parse errors and continuing to read the stream.
 type Reader struct {
-	logger *slog.Logger
+	logger     *slog.Logger
+	translator Translator
 }
 
-// NewReader creates a Reader with the given logger.
-func NewReader(logger *slog.Logger) *Reader {
-	return &Reader{logger: logger}
+// ReaderOption configures optional Reader behaviour.
+type ReaderOption func(*Reader)
+
+// WithTranslator configures the Reader to convert each raw log line into
+// stream events using t, instead of the default passthrough translator
+// (Osmia's native NDJSON envelope format, parsed via ParseEvent).
+func WithTranslator(t Translator) ReaderOption {
+	return func(r *Reader) {
+		r.translator = t
+	}
+}
+
+// NewReader creates a Reader with the given logger. By default it uses the
+// passthrough translator; pass WithTranslator to plug in an engine-specific
+// stream format translator.
+func NewReader(logger *slog.Logger, opts ...ReaderOption) *Reader {
+	r := &Reader{
+		logger:     logger,
+		translator: NewPassthroughTranslator(),
+	}
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
 }
 
 // ReadStream reads NDJSON lines from stream until EOF or context
@@ -42,7 +64,7 @@ func (r *Reader) ReadStream(ctx context.Context, stream io.ReadCloser, eventCh c
 			continue
 		}
 
-		ev, err := ParseEvent(line)
+		events, err := r.translator.Translate(line)
 		if err != nil {
 			r.logger.Warn("failed to parse agent stream line",
 				"error", err,
@@ -51,10 +73,12 @@ func (r *Reader) ReadStream(ctx context.Context, stream io.ReadCloser, eventCh c
 			continue
 		}
 
-		select {
-		case eventCh <- ev:
-		case <-ctx.Done():
-			return ctx.Err()
+		for _, ev := range events {
+			select {
+			case eventCh <- ev:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
 
