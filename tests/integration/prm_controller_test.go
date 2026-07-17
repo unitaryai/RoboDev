@@ -120,8 +120,9 @@ func TestPRMDisabledDoesNotInterfere(t *testing.T) {
 	)
 
 	ticket := ticketing.Ticket{
-		ID:    "PRM-OFF-1",
-		Title: "Test with PRM off",
+		ID:      "PRM-OFF-1",
+		Title:   "Test with PRM off",
+		RepoURL: "https://github.com/org/repo",
 	}
 
 	ctx := context.Background()

@@ -77,6 +77,25 @@ and uses the noop ticketing backend so the controller starts without external
 credentials. Use `make live-up` when you want to exercise real ticketing
 backends and engine containers.
 
+### Incident.io MCP setup smoke test
+
+`docker/engine-claude-code/setup-claude.sh` conditionally registers the
+incident.io remote MCP server in the agent workspace's `.mcp.json` when
+`INCIDENT_IO_API_KEY` is present. Because the script hardcodes the
+container's absolute paths (`/etc/claude-code/*.json`, `/workspace/.mcp.json`),
+it can only be exercised unmodified inside a container with that layout.
+`hack/test-incident-mcp-setup.sh` runs it in a throwaway `alpine` container
+via Docker and asserts the resulting `mcp.json` both with and without the
+key set:
+
+```bash
+./hack/test-incident-mcp-setup.sh
+```
+
+This is a local developer convenience, not a CI gate — it is not wired
+into any GitHub Actions workflow. It requires Docker (with the daemon
+running) and `jq`, and skips cleanly (exit 0) when either is unavailable.
+
 ## Code Style
 
 - Run `gofumpt` on all Go files before committing

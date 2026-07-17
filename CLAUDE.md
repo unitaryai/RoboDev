@@ -4,7 +4,7 @@
 
 Osmia is a Kubernetes-native AI coding agent harness that orchestrates autonomous developer agents (Claude Code, OpenAI Codex, Aider) to perform maintenance and development tasks on codebases at scale. It is Apache 2.0 licensed, enterprise-grade, and security-first.
 
-The full technical plan is in `oss-plan.md`. The product requirements are in `oss-prd.md`. Refer to these when you need architectural context or implementation details.
+The full technical plan, including the product requirements, is in `oss-plan.md`. Refer to it when you need architectural context or implementation details.
 
 ## Language & Stack
 
@@ -91,7 +91,7 @@ proto/                    — Protobuf definitions (source of truth for all inte
 
 ## What NOT to Do
 
-- Do not modify `oss-plan.md` or `oss-prd.md` — these are reference documents
+- Do not modify `oss-plan.md` (it is a reference document)
 - Do not introduce Python into the controller — the controller is Go only
 - Do not bypass the plugin interface abstraction — all external integrations go through the defined interfaces
 - Do not hard-code configuration values — use `osmia-config.yaml` and environment variables

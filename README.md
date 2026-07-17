@@ -42,7 +42,7 @@ An adaptive **watchdog** detects repetitive tool-call loops, cost-velocity spike
 - **Secret resolution** — SCM and notification credentials resolved from Kubernetes Secrets or HashiCorp Vault and injected into agent pods; the `secretresolver` package provides the infrastructure for per-task references
 - **Defence in depth** — Six layered safety boundaries: controller guard rails, engine hooks, quality gate, adaptive watchdog, NetworkPolicies, and secret resolution policy
 - **Kubernetes-native** — Isolated agent pods with non-root, read-only-FS, dropped-all-capabilities security contexts; optional gVisor/Kata Containers sandboxing
-- **Enterprise-ready** — Cost budgets per task, Prometheus metrics, and Grafana dashboards; multi-tenancy config schema is defined and planned for a future release
+- **Enterprise-ready** — Cost budgets per task, Prometheus metrics, and Grafana dashboards; multi-tenancy config schema is parsed but not enforced at runtime (namespace isolation planned)
 
 ---
 

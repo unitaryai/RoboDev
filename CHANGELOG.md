@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Incident-triage contract test suite**: unit and integration tests
+  pinning the externally observable behaviour of the incident.io webhook
+  flow (`ProcessIncidentEvent`), covering webhook signature verification,
+  config parsing, idempotency, TaskRun/Job naming, the ticketing-only
+  gates the flow deliberately skips (engine selection, cost estimation,
+  tournaments, approval, memory, notifications, `MarkInProgress`),
+  completion handling, stream-reader gating, and a golden-file prompt for
+  the no-repo-URL shape. Ahead of the planned use-case abstraction
+  refactor, so downstream deployments relying on this flow are not broken
+  silently. No production code changed.
+- **Design doc for the use-case abstraction and shadow mode**:
+  `docs/designs/use-case-abstraction.md` specifies a `Definition`/`Gates`/
+  `ResultHandler` model for generalising `ProcessTicket` and
+  `ProcessIncidentEvent` behind a shared dispatch pipeline, an
+  execution-mode taxonomy (`clone_push_mr`/`read_only`/`api_read`), a
+  result-handler taxonomy that fixes the incident-UUID
+  `MarkComplete`/`MarkFailed` warts, and a shadow-mode design with an
+  honest assessment of which enforcement layers are hard controls versus
+  aspirational. Fulfils the design-doc requirement in
+  [roadmap item 24](docs/roadmap.md#24-non-standard-task-types-analysis-reporting-review).
+  No behaviour changes; this is a design document only.
+
+### Changed
+
+- **Documentation accuracy pass**: clarified implemented-vs-planned status for
+  multi-tenancy, guardrails.md prompt injection, and leader-election RBAC
+  across docs/scaling.md, docs/index.md, README.md, docs/security.md,
+  docs/architecture.md, CLAUDE.md, and the `TenancyConfig` doc comment in
+  internal/config/config.go. Replaced dangling references to the removed
+  `oss-prd.md` file with pointers to `oss-plan.md`.
+
+### Fixed
+
+- **Repo-URL fixtures in `tests/integration`**: nine tests predated the
+  hard gate in `ProcessTicket`/`resolveRepoURL` (`internal/controller`)
+  that requires a resolvable repository URL — either on `ticket.RepoURL`
+  or extractable from the description — before a ticket is processed, and
+  now fail with "no repository URL found in ticket description and no
+  interactive channel configured to ask" unless a URL is present. Added
+  `RepoURL: "https://github.com/org/repo"` to the affected ticket
+  fixtures in `guardrails_test.go`, `engine_fallback_test.go`,
+  `prm_controller_test.go`, and `memory_controller_test.go`, matching the
+  convention already used by the passing tests in the same files.
+  `TestTaskRunInvalidTransitions` (`taskrun_lifecycle_test.go`) failed for
+  an unrelated reason surfaced by running the full suite: it asserted
+  `NeedsHuman→Failed` was an invalid transition, but that transition has
+  been legitimately allowed since `internal/taskrun`'s state machine was
+  extended (so the repo-URL poller can fail a TaskRun directly from
+  `NeedsHuman`); the stale case was removed from the test's invalid-
+  transition table.
+- **Integration test drift in `tests/integration`**: repaired a compile
+  break in `webhook_reconciler_test.go` left by `internal/webhook.NewServer`
+  returning `(*Server, error)`, then aligned three tests with the current,
+  deliberate production contract rather than stale expectations:
+  `TestJobBuilderSecurityHardening` now expects `RunAsUser: 10000` (matching
+  `fsGroup` for EBS volume ownership, not the old `1000`);
+  `TestAllEnginesProduceValidSpecs` now accepts either `SecretEnv` or
+  `SecretKeyRefs` (claude-code injects secrets exclusively via the latter);
+  `TestReconcilerJobFailureAndRetry` now polls for the terminal `Running`
+  state reached after a successful retry launch instead of racing to catch
+  the transient `Retrying` state, which `handleJobFailed` supersedes
+  synchronously within the same reconcile tick.
+
 ## [0.4.0] - 2026-07-16
 
 ### Added

@@ -91,7 +91,7 @@ When namespace-per-tenant isolation is implemented, each tenant will receive:
 - Isolated Karpenter NodePool (optional, for compute isolation)
 
 !!! note "Tenancy runtime isolation is on the roadmap"
-    The `tenancy` config block is parsed and stored but has no runtime effect today. All jobs currently run in the controller's own namespace regardless of tenant configuration.
+    The `tenancy` config block is parsed and stored but has no runtime effect today. All jobs currently run in the controller's own namespace regardless of tenant configuration. See the [roadmap](roadmap.md#namespace-per-tenant-isolation) for planned work.
 
 ## Observability
 

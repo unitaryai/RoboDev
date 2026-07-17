@@ -205,8 +205,9 @@ func TestGuardRailsConcurrentLimitSkipsPolling(t *testing.T) {
 	}
 
 	ticket1 := ticketing.Ticket{
-		ID:    "T-concurrent-1",
-		Title: "First ticket",
+		ID:      "T-concurrent-1",
+		Title:   "First ticket",
+		RepoURL: "https://github.com/org/repo",
 	}
 	ticket2 := ticketing.Ticket{
 		ID:    "T-concurrent-2",
