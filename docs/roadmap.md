@@ -237,6 +237,10 @@ Tasks like "review open MRs and report which need approval" do not fit the stand
 clone-fix-push-MR flow. They need read-only execution and a ticket comment + notification
 as output rather than a merge request.
 
+See [Use-Case Abstraction (Design)](designs/use-case-abstraction.md) for a design doc
+covering these questions, grounded against the current incident-triage pipeline as the
+second consumer shape. Not yet implemented.
+
 **Design questions before implementation:**
 
 1. **Execution mode taxonomy**: `clone_push_mr` (today) | `read_only` (no git clone) |
@@ -491,7 +495,7 @@ live controller and `main.go`:
 | # | Feature | Priority | Status |
 |---|---------|----------|--------|
 | 10 | Agent Dashboard | High | Not started |
-| 24 | Non-Standard Task Types | Medium | Design doc required |
+| 24 | Non-Standard Task Types | Medium | [Design doc](designs/use-case-abstraction.md) available |
 | 25 | Supervisor Agent / PRM V2 | Medium | Design doc required |
 | 9 | Plugin SDKs | Medium | 🚧 In progress |
 | 11 | Documentation Site | High | Partially complete |
