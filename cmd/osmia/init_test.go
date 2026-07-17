@@ -578,6 +578,75 @@ func TestTriggerLabelDerivation(t *testing.T) {
 	}
 }
 
+// ── TaskRun store ─────────────────────────────────────────────────────────────
+
+func TestTaskRunStorePath(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{name: "unset falls back to default", path: "", want: defaultTaskRunSQLitePath},
+		{name: "explicit path is preserved", path: "/mnt/taskruns.db", want: "/mnt/taskruns.db"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.Config{
+				TaskRunStore: config.TaskRunStoreConfig{
+					SQLite: config.SQLiteStoreConfig{Path: tt.path},
+				},
+			}
+			assert.Equal(t, tt.want, taskRunStorePath(cfg))
+		})
+	}
+}
+
+func TestBuildTaskRunStore_DefaultBackendReturnsNilStore(t *testing.T) {
+	cfg := &config.Config{}
+	store, closeFn, err := buildTaskRunStore(t.Context(), cfg, testLogger())
+	require.NoError(t, err)
+	assert.Nil(t, store, "default backend should leave WithTaskRunStore unset so the reconciler's own NewMemoryStore() is used")
+	require.NotNil(t, closeFn)
+	assert.NoError(t, closeFn())
+}
+
+func TestBuildTaskRunStore_ExplicitMemoryBackendReturnsNilStore(t *testing.T) {
+	cfg := &config.Config{
+		TaskRunStore: config.TaskRunStoreConfig{Backend: "memory"},
+	}
+	store, closeFn, err := buildTaskRunStore(t.Context(), cfg, testLogger())
+	require.NoError(t, err)
+	assert.Nil(t, store)
+	require.NotNil(t, closeFn)
+	assert.NoError(t, closeFn())
+}
+
+func TestBuildTaskRunStore_SQLiteBackend(t *testing.T) {
+	dbPath := t.TempDir() + "/taskruns.db"
+	cfg := &config.Config{
+		TaskRunStore: config.TaskRunStoreConfig{
+			Backend: "sqlite",
+			SQLite:  config.SQLiteStoreConfig{Path: dbPath},
+		},
+	}
+	store, closeFn, err := buildTaskRunStore(t.Context(), cfg, testLogger())
+	require.NoError(t, err)
+	require.NotNil(t, store)
+	assert.NoError(t, closeFn())
+}
+
+func TestBuildTaskRunStore_UnsupportedBackendReturnsError(t *testing.T) {
+	cfg := &config.Config{
+		TaskRunStore: config.TaskRunStoreConfig{Backend: "postgres"},
+	}
+	_, closeFn, err := buildTaskRunStore(t.Context(), cfg, testLogger())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "postgres")
+	require.NotNil(t, closeFn)
+	assert.NoError(t, closeFn())
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 func testLogger() *slog.Logger {

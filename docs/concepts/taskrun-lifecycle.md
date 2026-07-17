@@ -147,6 +147,21 @@ Every TaskRun is keyed by `<ticket_id>-<attempt>`. The controller checks this ke
 - Restarted controllers do not duplicate in-flight work.
 - Retries get a new attempt number and are tracked separately.
 
+## Durable TaskRun State
+
+By default, TaskRun state lives only in memory (`MemoryStore`) and is lost when the controller pod restarts. Set `taskrun_store.backend` to `sqlite` to persist TaskRun records to a SQLite database instead:
+
+```yaml
+taskrun_store:
+  backend: sqlite
+  sqlite:
+    path: /data/taskruns.db  # defaults to /data/taskruns.db if omitted
+```
+
+This requires a mounted, writable path — the Helm chart's `persistence.enabled: true` mounts a PVC at `/data` for exactly this purpose (see `charts/osmia/values.yaml`).
+
+Today this only persists state for post-mortem inspection and debugging (querying the SQLite file directly after a crash). The controller does not yet read the store back on startup, so in-flight TaskRuns are still forgotten across a restart — recovering and rehydrating them is separate follow-up work. See [ADR 0001](../adr/0001-taskrun-store-sqlite-not-crd.md) for the reasoning behind choosing SQLite over a `TaskRun` CRD.
+
 ## Real-Time Monitoring
 
 While a TaskRun is in the **Running** state, two monitoring systems operate in parallel:

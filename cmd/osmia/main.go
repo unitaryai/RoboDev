@@ -33,6 +33,7 @@ import (
 	"github.com/unitaryai/osmia/internal/scmrouter"
 	"github.com/unitaryai/osmia/internal/secretresolver"
 	"github.com/unitaryai/osmia/internal/sessionstore"
+	"github.com/unitaryai/osmia/internal/taskrun"
 	"github.com/unitaryai/osmia/internal/tournament"
 	"github.com/unitaryai/osmia/internal/watchdog"
 	"github.com/unitaryai/osmia/internal/webhook"
@@ -403,6 +404,16 @@ func main() {
 		logger.Info("received signal, shutting down", "signal", sig)
 		cancel()
 	}()
+
+	// --- TaskRun store (durable state for post-mortem/debugging) ---
+	taskRunStore, closeTaskRunStore, err := buildTaskRunStore(ctx, cfg, logger)
+	if err != nil {
+		logger.Error("failed to initialise taskrun store", "error", err)
+		os.Exit(1)
+	}
+	if taskRunStore != nil {
+		opts = append(opts, controller.WithTaskRunStore(taskRunStore))
+	}
 
 	// --- Session cleaner (background) ---
 	if sessionCleaner != nil {
@@ -913,6 +924,11 @@ func main() {
 		if err := memoryStore.Close(); err != nil {
 			logger.Error("memory store close error", "error", err)
 		}
+	}
+
+	// Close taskrun store if initialised (no-op for the default memory backend).
+	if err := closeTaskRunStore(); err != nil {
+		logger.Error("taskrun store close error", "error", err)
 	}
 
 	logger.Info("osmia controller stopped")
@@ -1529,4 +1545,43 @@ func initSlackChannel(chCfg config.ChannelConfig, k8sClient kubernetes.Interface
 	notifier := slacknotify.NewSlackChannel(channelID, token, logger)
 	poller := slackrepopoller.New(token, channelID, slackrepopoller.Config{})
 	return notifier, poller, nil
+}
+
+// defaultTaskRunSQLitePath is used when taskrun_store.sqlite.path is not set.
+// It matches the /data mount documented in charts/osmia/values.yaml under
+// persistence.enabled.
+const defaultTaskRunSQLitePath = "/data/taskruns.db"
+
+// taskRunStorePath returns the configured SQLite path for the TaskRun store,
+// falling back to defaultTaskRunSQLitePath when unset.
+func taskRunStorePath(cfg *config.Config) string {
+	if cfg.TaskRunStore.SQLite.Path != "" {
+		return cfg.TaskRunStore.SQLite.Path
+	}
+	return defaultTaskRunSQLitePath
+}
+
+// buildTaskRunStore constructs the TaskRun store selected by
+// cfg.TaskRunStore.Backend. For the default "" or "memory" backend it
+// returns a nil store so the caller leaves controller.WithTaskRunStore
+// unset, matching the pre-existing behaviour where the reconciler
+// constructs its own taskrun.NewMemoryStore(). The returned close function
+// is always safe to call and never nil.
+func buildTaskRunStore(ctx context.Context, cfg *config.Config, logger *slog.Logger) (taskrun.TaskRunStore, func() error, error) {
+	noopClose := func() error { return nil }
+
+	switch cfg.TaskRunStore.Backend {
+	case "", "memory":
+		return nil, noopClose, nil
+	case "sqlite":
+		path := taskRunStorePath(cfg)
+		store, err := taskrun.NewSQLiteStore(ctx, path, logger.With("component", "taskrun-store"))
+		if err != nil {
+			return nil, noopClose, fmt.Errorf("opening sqlite taskrun store at %q: %w", path, err)
+		}
+		logger.Info("taskrun store enabled", "backend", "sqlite", "path", path)
+		return store, store.Close, nil
+	default:
+		return nil, noopClose, fmt.Errorf("unsupported taskrun_store.backend %q: supported backends are \"memory\" and \"sqlite\"", cfg.TaskRunStore.Backend)
+	}
 }

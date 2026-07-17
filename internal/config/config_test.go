@@ -900,6 +900,102 @@ webhook:
 	}
 }
 
+func TestLoad_TaskRunStoreValidation(t *testing.T) {
+	baseRequired := `
+ticketing:
+  backend: github
+secrets:
+  backend: env
+engines:
+  default: claude-code
+guardrails:
+  max_cost_per_job: 5.0
+  max_concurrent_jobs: 10
+  max_job_duration_minutes: 60
+`
+
+	tests := []struct {
+		name           string
+		taskRunStore   string
+		wantErrMsg     string
+		wantSQLitePath string
+	}{
+		{
+			name:         "no taskrun_store block — defaults to memory",
+			taskRunStore: "",
+		},
+		{
+			name: "explicit memory backend",
+			taskRunStore: `
+taskrun_store:
+  backend: memory
+`,
+		},
+		{
+			name: "sqlite backend with absolute path",
+			taskRunStore: `
+taskrun_store:
+  backend: sqlite
+  sqlite:
+    path: /data/taskruns.db
+`,
+			wantSQLitePath: "/data/taskruns.db",
+		},
+		{
+			name: "sqlite backend with no path — validation passes, default applied at startup",
+			taskRunStore: `
+taskrun_store:
+  backend: sqlite
+`,
+		},
+		{
+			name: "sqlite backend with relative path is rejected",
+			taskRunStore: `
+taskrun_store:
+  backend: sqlite
+  sqlite:
+    path: relative/taskruns.db
+`,
+			wantErrMsg: `taskrun_store.sqlite.path must be an absolute path, got "relative/taskruns.db"`,
+		},
+		{
+			name: "postgres backend is not yet supported",
+			taskRunStore: `
+taskrun_store:
+  backend: postgres
+`,
+			wantErrMsg: `taskrun_store.backend "postgres" is not yet supported`,
+		},
+		{
+			name: "unrecognised backend is rejected",
+			taskRunStore: `
+taskrun_store:
+  backend: mongodb
+`,
+			wantErrMsg: `taskrun_store.backend "mongodb" is not recognised`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmp := filepath.Join(t.TempDir(), "osmia-config.yaml")
+			err := os.WriteFile(tmp, []byte(baseRequired+tt.taskRunStore), 0o600)
+			require.NoError(t, err)
+
+			cfg, err := Load(tmp)
+			if tt.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrMsg)
+				return
+			}
+			require.NoError(t, err)
+			if tt.wantSQLitePath != "" {
+				assert.Equal(t, tt.wantSQLitePath, cfg.TaskRunStore.SQLite.Path)
+			}
+		})
+	}
+}
+
 func TestLoad_ExpandsEnvVars(t *testing.T) {
 	tests := []struct {
 		name      string

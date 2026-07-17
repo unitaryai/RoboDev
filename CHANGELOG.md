@@ -43,6 +43,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outcome of a research spike into Anthropic's Managed Agents `self_hosted`
   environment type. Decision is to go ahead with a timeboxed prototype, with
   no product commitment yet. See `docs/adr/0002-managed-agents-self-hosted-sandbox-interop.md`.
+- **`taskrun_store` config wired into controller startup**: `cmd/osmia/main.go`
+  now reads `taskrun_store.backend` and constructs the matching
+  `taskrun.TaskRunStore`. `""`/`"memory"` (the default) is unchanged
+  behaviour; `"sqlite"` opens `taskrun.NewSQLiteStore` at
+  `taskrun_store.sqlite.path` (defaulting to `/data/taskruns.db`) and closes
+  it on shutdown; any other value (including `"postgres"`, which the config
+  comment has long advertised but nothing implements) fails fast at
+  startup. `internal/config` validates the backend name and requires an
+  absolute path when `sqlite.path` is set. This only persists state for
+  post-mortem inspection today — startup recovery of in-flight TaskRuns is
+  separate follow-up work. See
+  `docs/concepts/taskrun-lifecycle.md#durable-taskrun-state` and
+  `charts/osmia/values.yaml` for the persistence PVC this backend expects.
 
 ### Changed
 
