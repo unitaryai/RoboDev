@@ -5,7 +5,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -217,10 +216,10 @@ func TestMetrics_GaugeVecIncDecSymmetry(t *testing.T) {
 	assert.Equal(t, float64(1), after-before)
 }
 
-// TestMetrics_CollectorsImplementDTO is a light sanity check that Gather()
-// output on a fresh registry decodes into the expected dto.MetricFamily type,
-// guarding against accidental signature drift in the client_golang dependency.
-func TestMetrics_CollectorsImplementDTO(t *testing.T) {
+// TestMetrics_CollectorsGatherExpectedDTO is a light sanity check that
+// Gather() on a fresh registry returns the expected metric family for a
+// simple counter.
+func TestMetrics_CollectorsGatherExpectedDTO(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	require.NoError(t, reg.Register(TournamentTotal))
 	TournamentTotal.Inc()
@@ -230,6 +229,5 @@ func TestMetrics_CollectorsImplementDTO(t *testing.T) {
 	require.Len(t, families, 1)
 
 	mf := families[0]
-	assert.IsType(t, (*dto.MetricFamily)(nil), mf)
 	assert.Equal(t, "osmia_tournament_total", mf.GetName())
 }
