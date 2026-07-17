@@ -1,14 +1,16 @@
 package controller
 
 // ProcessIncidentEvent is a reconciler entry point that runs in parallel
-// to ProcessTicket rather than sharing code with it. It handles the
-// incident.io webhook flow, where the agent is launched without a
-// repository or merge-request lifecycle. A future refactor will lift
-// both ProcessTicket and ProcessIncidentEvent behind a common interface;
-// until then, the duplication is bounded and intentional. Shared
-// primitives (engine config, JobBuilder, k8s client, taskRuns map) are
-// reused; the SCM-specific bits (engineSelector chain, repo-URL gate,
-// ticketing.MarkInProgress, etc.) are skipped.
+// to ProcessTicket. It handles the incident.io webhook flow, where the
+// agent is launched without a repository or merge-request lifecycle.
+// The two flows now share their task-launch tail (see launchTaskRun in
+// launch.go: prepareSession through the stream-reader start), but each
+// keeps its own front half — gates, repo-URL resolution, engine
+// selection, memory queries, and per-flow EngineConfig overrides — since
+// those genuinely differ between a ticketing-backed run and an
+// incident-triage run. A future refactor may lift both behind a common
+// use-case interface (see docs/designs/use-case-abstraction.md); until
+// then, the duplication in the front half is bounded and intentional.
 
 import (
 	"context"
@@ -16,10 +18,6 @@ import (
 	"strings"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/unitaryai/osmia/internal/metrics"
-	"github.com/unitaryai/osmia/internal/taskrun"
 	"github.com/unitaryai/osmia/internal/webhook"
 	"github.com/unitaryai/osmia/pkg/engine"
 )
@@ -121,24 +119,9 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 		eventTypeSuffix(evt.EventType),
 		time.Now().UnixMilli(),
 	)
-	tr := taskrun.New(
-		trID,
-		idempotencyKey,
-		task.TicketID,
-		engineName,
-	)
-	tr.CurrentEngine = engineName
-	tr.EngineAttempts = []string{engineName}
-	r.applyContinuationConfig(tr)
+	tr := r.newLaunchTaskRun(ctx, trID, idempotencyKey, task.TicketID, engineName)
 
 	task.TaskRunID = tr.ID
-
-	if err := r.taskRunStore.Save(ctx, tr); err != nil {
-		r.logger.ErrorContext(ctx, "failed to save task run to store",
-			"task_run_id", tr.ID,
-			"error", err,
-		)
-	}
 
 	engineCfg := r.baseEngineConfig(ctx, engineName)
 	if prompt := r.config.IncidentTriage.AppendSystemPrompt; prompt != "" {
@@ -184,62 +167,18 @@ func (r *Reconciler) ProcessIncidentEvent(ctx context.Context, evt webhook.Incid
 		}
 	}
 
-	if err := r.prepareSession(ctx, tr.ID); err != nil {
-		return fmt.Errorf("preparing session storage: %w", err)
-	}
-
-	spec, err := eng.BuildExecutionSpec(task, engineCfg)
-	if err != nil {
-		return fmt.Errorf("building execution spec: %w", err)
-	}
-
-	if r.jobBuilder == nil {
-		return fmt.Errorf("no job builder configured")
-	}
-	job, err := r.jobBuilder.Build(tr.ID, engineName, spec)
-	if err != nil {
-		return fmt.Errorf("building k8s job: %w", err)
-	}
-
-	if r.k8sClient != nil {
-		if _, err := r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
-			return fmt.Errorf("creating k8s job: %w", err)
-		}
-	}
-
-	if err := tr.Transition(taskrun.StateRunning); err != nil {
-		return fmt.Errorf("transitioning task run: %w", err)
-	}
-	tr.JobName = job.Name
-
-	r.mu.Lock()
-	r.taskRuns[idempotencyKey] = tr
-	r.engineChains[idempotencyKey] = []string{engineName}
-	r.mu.Unlock()
-
-	if err := r.taskRunStore.Save(ctx, tr); err != nil {
-		r.logger.ErrorContext(ctx, "failed to save task run to store",
-			"task_run_id", tr.ID,
-			"error", err,
-		)
-	}
-
-	metrics.ActiveJobs.Inc()
-	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
-
-	if r.engineEmitsStream(engineName) {
-		r.startStreamReader(ctx, tr)
-	}
-
-	r.logger.InfoContext(ctx, "incident triage job created",
-		"incident_id", evt.Incident.ID,
-		"event_type", evt.EventType,
-		"engine", engineName,
-		"job", job.Name,
-		"task_run_id", tr.ID,
-	)
-
-	return nil
+	_, err := r.launchTaskRun(ctx, launchSpec{
+		TaskRun:        tr,
+		IdempotencyKey: idempotencyKey,
+		EngineName:     engineName,
+		Engine:         eng,
+		EngineChain:    []string{engineName},
+		Task:           task,
+		EngineConfig:   engineCfg,
+		LogMessage:     "incident triage job created",
+		LogFields:      []any{"incident_id", evt.Incident.ID, "event_type", evt.EventType},
+	})
+	return err
 }
 
 // incidentLabels assembles the `osmia:*:*` labels the agent's user prompt

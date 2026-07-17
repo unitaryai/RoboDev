@@ -609,24 +609,13 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 		return r.launchTournament(ctx, ticket)
 	}
 
-	// Create TaskRun.
-	tr := taskrun.New(
+	// Create and persist the TaskRun.
+	tr := r.newLaunchTaskRun(ctx,
 		fmt.Sprintf("tr-%s-%d", ticket.ID, time.Now().UnixMilli()),
 		idempotencyKey,
 		ticket.ID,
 		engineName,
 	)
-	tr.CurrentEngine = engineName
-	tr.EngineAttempts = []string{engineName}
-	r.applyContinuationConfig(tr)
-
-	// Persist the newly created TaskRun.
-	if err := r.taskRunStore.Save(ctx, tr); err != nil {
-		r.logger.ErrorContext(ctx, "failed to save task run to store",
-			"task_run_id", tr.ID,
-			"error", err,
-		)
-	}
 
 	// Check pre-start approval gate: if configured, hold the TaskRun in
 	// NeedsHuman state instead of launching a job immediately.
@@ -709,80 +698,27 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 	tr.NotificationThreadRef = threadRef
 	injectThreadRef(&engineCfg, threadRef)
 
-	if err := r.prepareSession(ctx, tr.ID); err != nil {
-		return fmt.Errorf("preparing session storage: %w", err)
-	}
-
-	spec, err := eng.BuildExecutionSpec(task, engineCfg)
-	if err != nil {
-		return fmt.Errorf("building execution spec: %w", err)
-	}
-
-	// Build K8s Job.
-	if r.jobBuilder == nil {
-		return fmt.Errorf("no job builder configured")
-	}
-
-	job, err := r.jobBuilder.Build(tr.ID, engineName, spec)
-	if err != nil {
-		return fmt.Errorf("building k8s job: %w", err)
-	}
-
-	// Create the job in Kubernetes.
-	if r.k8sClient != nil {
-		_, err = r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{})
-		if err != nil {
-			return fmt.Errorf("creating k8s job: %w", err)
-		}
-	}
-
-	// Transition to Running.
-	if err := tr.Transition(taskrun.StateRunning); err != nil {
-		return fmt.Errorf("transitioning task run: %w", err)
-	}
-
-	tr.JobName = job.Name
-
-	// Store the TaskRun and engine chain.
-	r.mu.Lock()
-	r.taskRuns[idempotencyKey] = tr
-	r.engineChains[idempotencyKey] = engineChain
-	r.mu.Unlock()
-
-	// Persist state after transition (includes NotificationThreadRef set above).
-	if err := r.taskRunStore.Save(ctx, tr); err != nil {
-		r.logger.ErrorContext(ctx, "failed to save task run to store",
-			"task_run_id", tr.ID,
-			"error", err,
-		)
-	}
-
-	// Update metrics.
-	metrics.ActiveJobs.Inc()
-	metrics.TaskRunsTotal.WithLabelValues(string(taskrun.StateRunning)).Inc()
-
-	// Mark ticket as in progress.
-	if err := r.ticketing.MarkInProgress(ctx, ticket.ID); err != nil {
-		r.logger.ErrorContext(ctx, "failed to mark ticket in progress",
-			"ticket_id", ticket.ID,
-			"error", err,
-		)
-	}
-
-	// Start stream reader to parse NDJSON events from pod logs, for engines
-	// that emit them.
-	if r.engineEmitsStream(engineName) {
-		r.startStreamReader(ctx, tr)
-	}
-
-	r.logger.InfoContext(ctx, "job created",
-		"ticket_id", ticket.ID,
-		"engine", engineName,
-		"job", job.Name,
-		"task_run_id", tr.ID,
-	)
-
-	return nil
+	_, err := r.launchTaskRun(ctx, launchSpec{
+		TaskRun:        tr,
+		IdempotencyKey: idempotencyKey,
+		EngineName:     engineName,
+		Engine:         eng,
+		EngineChain:    engineChain,
+		Task:           task,
+		EngineConfig:   engineCfg,
+		OnLaunched: func(ctx context.Context) {
+			// Mark ticket as in progress.
+			if err := r.ticketing.MarkInProgress(ctx, ticket.ID); err != nil {
+				r.logger.ErrorContext(ctx, "failed to mark ticket in progress",
+					"ticket_id", ticket.ID,
+					"error", err,
+				)
+			}
+		},
+		LogMessage: "job created",
+		LogFields:  []any{"ticket_id", ticket.ID},
+	})
+	return err
 }
 
 // validateGuardRails checks whether a ticket passes controller-level guard rails.
