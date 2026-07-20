@@ -186,6 +186,22 @@ func (e *ClaudeCodeEngine) StreamFormat() engine.StreamFormat {
 // implements the StreamEmitter capability interface.
 var _ engine.StreamEmitter = (*ClaudeCodeEngine)(nil)
 
+// APIKeyEnvName returns the environment variable the Claude Code CLI reads
+// its API key from.
+func (e *ClaudeCodeEngine) APIKeyEnvName() string {
+	return "ANTHROPIC_API_KEY"
+}
+
+// APIKeyKeyCandidates returns the well-known secret key names to probe, in
+// priority order, when no explicit api_key_key is configured.
+func (e *ClaudeCodeEngine) APIKeyKeyCandidates() []string {
+	return []string{"ANTHROPIC_API_KEY", "api_key"}
+}
+
+// var _ engine.CredentialHints asserts at compile time that ClaudeCodeEngine
+// implements the CredentialHints capability interface.
+var _ engine.CredentialHints = (*ClaudeCodeEngine)(nil)
+
 // effectiveMaxTurns returns the configured max turns, falling back to the
 // package default when none was set.
 func (e *ClaudeCodeEngine) effectiveMaxTurns() int {

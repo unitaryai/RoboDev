@@ -16,3 +16,15 @@ type StreamEmitter interface {
 	// pods write to stdout.
 	StreamFormat() StreamFormat
 }
+
+// CredentialHints lets an engine declare the environment variable its CLI
+// reads its API key from, and the well-known secret key names to probe when
+// the operator has not set an explicit api_key_key.
+type CredentialHints interface {
+	// APIKeyEnvName returns the environment variable the engine's CLI reads
+	// its API key from (e.g. "ANTHROPIC_API_KEY").
+	APIKeyEnvName() string
+	// APIKeyKeyCandidates returns the well-known secret key names to probe,
+	// in priority order, when no explicit api_key_key is configured.
+	APIKeyKeyCandidates() []string
+}

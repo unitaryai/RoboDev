@@ -1227,3 +1227,44 @@ webhook:
 		})
 	}
 }
+
+func TestEnginesConfig_AuthFor(t *testing.T) {
+	claudeAuth := AuthConfig{Method: "api_key", APIKeySecret: "claude-secret"}
+	codexAuth := AuthConfig{Method: "api_key", APIKeySecret: "codex-secret"}
+	aiderAuth := AuthConfig{Method: "api_key", APIKeySecret: "aider-secret"}
+	opencodeAuth := AuthConfig{Method: "api_key", APIKeySecret: "opencode-secret"}
+	clineAuth := AuthConfig{Method: "api_key", APIKeySecret: "cline-secret"}
+
+	engines := EnginesConfig{
+		ClaudeCode: &ClaudeCodeEngineConfig{Auth: claudeAuth},
+		Codex:      &CodexEngineConfig{Auth: codexAuth},
+		Aider:      &AiderEngineConfig{Auth: aiderAuth},
+		OpenCode:   &OpenCodeEngineConfig{Auth: opencodeAuth},
+		Cline:      &ClineEngineConfig{Auth: clineAuth},
+	}
+
+	tests := []struct {
+		name       string
+		engines    *EnginesConfig
+		engineName string
+		wantAuth   AuthConfig
+		wantOK     bool
+	}{
+		{name: "claude-code", engines: &engines, engineName: "claude-code", wantAuth: claudeAuth, wantOK: true},
+		{name: "codex", engines: &engines, engineName: "codex", wantAuth: codexAuth, wantOK: true},
+		{name: "aider", engines: &engines, engineName: "aider", wantAuth: aiderAuth, wantOK: true},
+		{name: "opencode", engines: &engines, engineName: "opencode", wantAuth: opencodeAuth, wantOK: true},
+		{name: "cline", engines: &engines, engineName: "cline", wantAuth: clineAuth, wantOK: true},
+		{name: "unrecognised engine name", engines: &engines, engineName: "unknown", wantOK: false},
+		{name: "engine block not configured", engines: &EnginesConfig{}, engineName: "claude-code", wantOK: false},
+		{name: "nil EnginesConfig", engines: nil, engineName: "claude-code", wantOK: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotAuth, gotOK := tt.engines.AuthFor(tt.engineName)
+			assert.Equal(t, tt.wantOK, gotOK)
+			assert.Equal(t, tt.wantAuth, gotAuth)
+		})
+	}
+}
