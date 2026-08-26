@@ -182,6 +182,12 @@ type GraphQuery struct {
 	TaskDescription string `json:"task_description,omitempty"`
 	RepoURL         string `json:"repo_url,omitempty"`
 	Engine          string `json:"engine,omitempty"`
-	TenantID        string `json:"tenant_id"`
-	MaxResults      int    `json:"max_results,omitempty"`
+	// TenantID restricts the query to facts stored under one tenant.
+	//
+	// Empty means unrestricted: the query matches every node whatever its
+	// tenant. That is deliberate, for whole-graph administrative reads, but
+	// it is fail-open, so a caller serving one flow must always set it.
+	// Every production caller does; see Reconciler's QueryForTask sites.
+	TenantID   string `json:"tenant_id"`
+	MaxResults int    `json:"max_results,omitempty"`
 }

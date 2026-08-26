@@ -735,7 +735,7 @@ func (r *Reconciler) ProcessTicket(ctx context.Context, ticket ticketing.Ticket)
 	// Query episodic memory for prior knowledge relevant to this task.
 	var memoryContext string
 	if r.memoryQuery != nil {
-		mc, qErr := r.memoryQuery.QueryForTask(ctx, ticket.Description, ticket.RepoURL, engineName, "")
+		mc, qErr := r.memoryQuery.QueryForTask(ctx, ticket.Description, ticket.RepoURL, engineName, tr.TenantID)
 		if qErr != nil {
 			r.logger.WarnContext(ctx, "memory query failed, continuing without prior knowledge",
 				"ticket_id", ticket.ID,
@@ -1802,7 +1802,7 @@ func (r *Reconciler) resolvePreStartApproval(ctx context.Context, tr *taskrun.Ta
 	// Query episodic memory for prior knowledge relevant to this task.
 	var memoryContext string
 	if r.memoryQuery != nil {
-		mc, qErr := r.memoryQuery.QueryForTask(ctx, cachedTicket.Description, cachedTicket.RepoURL, engineName, "")
+		mc, qErr := r.memoryQuery.QueryForTask(ctx, cachedTicket.Description, cachedTicket.RepoURL, engineName, tr.TenantID)
 		if qErr != nil {
 			r.logger.WarnContext(ctx, "memory query failed, continuing without prior knowledge",
 				"ticket_id", cachedTicket.ID,
@@ -3348,7 +3348,7 @@ func (r *Reconciler) launchTournament(ctx context.Context, ticket ticketing.Tick
 	// Query episodic memory once and share the context across all candidates.
 	var memoryContext string
 	if r.memoryQuery != nil {
-		if mc, qErr := r.memoryQuery.QueryForTask(ctx, ticket.Description, ticket.RepoURL, candidateEngines[0], ""); qErr == nil && mc != nil {
+		if mc, qErr := r.memoryQuery.QueryForTask(ctx, ticket.Description, ticket.RepoURL, candidateEngines[0], taskrun.TenantTicketing); qErr == nil && mc != nil {
 			memoryContext = mc.FormattedSection
 			if mc.FormattedSection != "" {
 				r.logger.InfoContext(ctx, "memory context injected into tournament prompt",

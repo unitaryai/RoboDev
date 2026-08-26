@@ -116,14 +116,16 @@ func TestMemoryContextInjection(t *testing.T) {
 		Confidence: 0.9,
 		DecayRate:  0.01,
 		ValidFrom:  time.Now(),
-		TenantID:   "", // no tenant isolation for this test
+		// The ticketing flow tenants its TaskRuns, so its memory query is
+		// tenanted too. A fact stored without this is invisible to it.
+		TenantID: taskrun.TenantTicketing,
 	}))
 
 	extractor := memory.NewExtractor(logger)
 	queryEngine := memory.NewQueryEngine(graph, logger)
 
 	// Verify the query engine returns the fact.
-	mc, err := queryEngine.QueryForTask(ctx, "fix login timeout", "", "claude-code", "")
+	mc, err := queryEngine.QueryForTask(ctx, "fix login timeout", "", "claude-code", taskrun.TenantTicketing)
 	require.NoError(t, err)
 	require.NotNil(t, mc)
 	assert.NotEmpty(t, mc.FormattedSection)

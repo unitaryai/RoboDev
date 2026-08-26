@@ -129,7 +129,31 @@ type TaskRun struct {
 	// (based on the TaskRun ID shape) rather than treating an empty value
 	// as an error. See docs/designs/use-case-abstraction.md section 4.
 	UseCase string `json:"use_case,omitempty"`
+
+	// TenantID scopes this TaskRun's episodic-memory reads and writes.
+	// Facts extracted from the run are written under it, and the memory
+	// query for a later run filters on it, so one flow's learned heuristics
+	// cannot surface in another's prompt.
+	//
+	// Partitioning is per use case rather than per deployment, so it still
+	// holds if the ticketing-only and incident-triage deployments are ever
+	// consolidated into one binary hosting both flows. Empty means
+	// untenanted: a query with no tenant matches every fact regardless of
+	// tenant, which is what TaskRuns persisted before this field existed
+	// fall back to.
+	TenantID string `json:"tenant_id,omitempty"`
 }
+
+// Tenant identifiers partition episodic memory per use case. They mirror the
+// registered internal/usecase Definition names, but are declared here rather
+// than imported so that internal/memory can scope facts without depending on
+// the use-case registry.
+const (
+	// TenantTicketing scopes memory to the ticket-to-merge-request flow.
+	TenantTicketing = "ticketing"
+	// TenantIncidentTriage scopes memory to the incident triage flow.
+	TenantIncidentTriage = "incident-triage"
+)
 
 // New creates a new TaskRun in the Queued state with the given parameters.
 func New(id, idempotencyKey, ticketID, engineName string) *TaskRun {

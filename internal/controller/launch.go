@@ -87,6 +87,12 @@ func (r *Reconciler) newLaunchTaskRun(ctx context.Context, id, idempotencyKey, t
 	tr.CurrentEngine = engineName
 	tr.EngineAttempts = []string{engineName}
 	tr.UseCase = useCase
+	// The memory tenant tracks the use case one-for-one today. It is a
+	// separate field because the two answer different questions: UseCase
+	// selects behaviour, TenantID scopes stored knowledge, and a future use
+	// case could reasonably want its own behaviour while sharing another's
+	// memory.
+	tr.TenantID = useCase
 	r.applyContinuationConfig(tr)
 
 	r.saveTaskRunOrLog(ctx, tr)

@@ -53,7 +53,7 @@ func (e *Extractor) Extract(
 			ValidFrom:  now,
 			Confidence: 0.8,
 			DecayRate:  0.01,
-			TenantID:   "",
+			TenantID:   tr.TenantID,
 		}
 		if tr.Result != nil && tr.Result.Summary != "" {
 			fact.Content = fmt.Sprintf("engine %q succeeded on task %q: %s",
@@ -80,7 +80,7 @@ func (e *Extractor) Extract(
 			ValidFrom:  now,
 			Confidence: 0.9,
 			DecayRate:  0.02,
-			TenantID:   "",
+			TenantID:   tr.TenantID,
 		}
 		nodes = append(nodes, fact)
 	}
@@ -96,7 +96,7 @@ func (e *Extractor) Extract(
 			ValidFrom:  now,
 			Confidence: 0.7,
 			DecayRate:  0.03,
-			TenantID:   "",
+			TenantID:   tr.TenantID,
 		}
 		nodes = append(nodes, fact)
 	}
@@ -113,7 +113,7 @@ func (e *Extractor) Extract(
 				ValidFrom:  now,
 				Confidence: 0.85,
 				DecayRate:  0.015,
-				TenantID:   "",
+				TenantID:   tr.TenantID,
 			}
 			nodes = append(nodes, fact)
 		}
@@ -131,7 +131,7 @@ func (e *Extractor) Extract(
 				LastSeen:    now,
 				Confidence:  0.6,
 				DecayRate:   0.02,
-				TenantID:    "",
+				TenantID:    tr.TenantID,
 			}
 			nodes = append(nodes, pattern)
 		}
