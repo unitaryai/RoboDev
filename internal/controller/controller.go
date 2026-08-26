@@ -1255,6 +1255,7 @@ func (r *Reconciler) processFollowUpTask(ctx context.Context, req reviewpoller.F
 	)
 	tr.CurrentEngine = engineName
 	tr.EngineAttempts = []string{engineName}
+	tagTaskRun(tr, usecase.NameTicketing)
 	tr.ParentTicketID = req.TicketID
 	tr.ReviewCommentID = strings.Join(req.ReplyCommentIDs, ",")
 	tr.ReviewThreadID = strings.Join(req.ThreadIDs, ",")
@@ -2571,6 +2572,18 @@ func (r *Reconciler) cleanupPRMEvaluator(taskRunID string) {
 // failed TaskRun. It runs in a background goroutine and logs errors without
 // affecting the TaskRun outcome.
 func (r *Reconciler) extractMemory(ctx context.Context, tr *taskrun.TaskRun) {
+	// An untenanted TaskRun writes facts that no tenanted query will ever
+	// return, and nothing downstream fails, so the knowledge is simply lost.
+	// That is the failure mode of a launch path that skipped tagTaskRun, and
+	// it is invisible without this line. TaskRuns persisted before TenantID
+	// existed also land here, which is expected and harmless.
+	if tr.TenantID == "" {
+		r.logger.WarnContext(ctx, "extracting memory from an untenanted task run; facts will not be visible to tenanted queries",
+			"task_run_id", tr.ID,
+			"use_case", tr.UseCase,
+		)
+	}
+
 	nodes, edges, err := r.memoryExtractor.Extract(ctx, tr, nil)
 	if err != nil {
 		r.logger.WarnContext(ctx, "memory extraction failed",
@@ -3398,6 +3411,7 @@ func (r *Reconciler) launchTournament(ctx context.Context, ticket ticketing.Tick
 		)
 		tr.CurrentEngine = engineName
 		tr.EngineAttempts = []string{engineName}
+		tagTaskRun(tr, usecase.NameTicketing)
 		tr.NotificationThreadRef = tournamentThreadRef
 
 		task := engine.Task{
@@ -3720,6 +3734,7 @@ func (r *Reconciler) launchJudge(ctx context.Context, tournamentID string) {
 	)
 	judgeTR.CurrentEngine = judgeEngineName
 	judgeTR.EngineAttempts = []string{judgeEngineName}
+	tagTaskRun(judgeTR, usecase.NameTicketing)
 
 	job, err := r.jobBuilder.Build(judgeTR.ID, judgeEngineName, spec)
 	if err != nil {

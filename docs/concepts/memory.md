@@ -89,7 +89,6 @@ memory:
   decay_interval_hours: 24            # Hours between decay cycles
   prune_threshold: 0.05               # Remove facts below this confidence
   max_facts_per_query: 10             # Maximum facts injected per prompt
-  tenant_isolation: true              # Enforce cross-tenant boundaries
 ```
 
 ### Configuration Fields

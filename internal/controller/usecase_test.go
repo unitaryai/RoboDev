@@ -2,9 +2,13 @@ package controller
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/unitaryai/osmia/internal/config"
 	"github.com/unitaryai/osmia/internal/taskrun"
@@ -111,4 +115,58 @@ func TestNewLaunchTaskRunSetsTenant(t *testing.T) {
 func TestTenantConstantsMatchUseCaseNames(t *testing.T) {
 	assert.Equal(t, usecase.NameTicketing, taskrun.TenantTicketing)
 	assert.Equal(t, usecase.NameIncidentTriage, taskrun.TenantIncidentTriage)
+}
+
+// TestTagTaskRun covers the helper that keeps UseCase and TenantID in step.
+func TestTagTaskRun(t *testing.T) {
+	tr := taskrun.New("tr-1", "key-1", "TICKET-1", "claude-code")
+
+	tagTaskRun(tr, usecase.NameTicketing)
+
+	assert.Equal(t, usecase.NameTicketing, tr.UseCase)
+	assert.Equal(t, taskrun.TenantTicketing, tr.TenantID)
+}
+
+// TestEveryTaskRunConstructorIsTagged is a source-level guard rather than a
+// behavioural test, because the alternative is standing up the tournament,
+// judge, follow-up and repo-URL-poll paths in full just to read one field.
+//
+// It exists because the failure it catches is silent: a launch path that
+// builds a TaskRun with taskrun.New and forgets to tag it writes its
+// extracted facts under no tenant, where no tenanted query will return them.
+// Nothing errors, and the knowledge is just quietly lost. That is exactly
+// what happened to all four of these paths when TenantID was introduced.
+//
+// Any new taskrun.New call site must either go through newLaunchTaskRun or
+// call tagTaskRun.
+func TestEveryTaskRunConstructorIsTagged(t *testing.T) {
+	files, err := filepath.Glob("*.go")
+	require.NoError(t, err)
+
+	for _, file := range files {
+		if strings.HasSuffix(file, "_test.go") {
+			continue
+		}
+
+		src, err := os.ReadFile(file)
+		require.NoError(t, err)
+		lines := strings.Split(string(src), "\n")
+
+		for i, line := range lines {
+			if !strings.Contains(line, "taskrun.New(") {
+				continue
+			}
+			// newLaunchTaskRun is the shared path and tags via tagTaskRun.
+			if file == "launch.go" {
+				continue
+			}
+
+			// Look ahead a short window for the tag call. Every current site
+			// tags within a few lines of construction.
+			window := lines[i:min(i+14, len(lines))]
+			assert.Truef(t, strings.Contains(strings.Join(window, "\n"), "tagTaskRun("),
+				"%s:%d constructs a TaskRun without calling tagTaskRun nearby; "+
+					"its extracted memory would be written untenanted", file, i+1)
+		}
+	}
 }
