@@ -4,6 +4,13 @@
 // dispatches to the appropriate secrets backend for resolution.
 package secretresolver
 
+// MaxSecretRequests caps how many secrets a single task may declare across
+// its description block and its labels combined. Every request costs at
+// least one backend call, and the declarations come from semi-trusted ticket
+// and incident text, so the fan-out is bounded. A real task asks for one or
+// two credentials; 32 is well clear of any legitimate use.
+const MaxSecretRequests = 32
+
 // SecretRequest represents a parsed secret requirement from a ticket.
 type SecretRequest struct {
 	// EnvName is the environment variable name (e.g. "DATABASE_URL").

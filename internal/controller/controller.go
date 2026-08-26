@@ -515,6 +515,11 @@ func (r *Reconciler) reconcileOnce(ctx context.Context) error {
 	// the active count never decreases (causing permanent stall).
 	defer r.checkRunningJobs(ctx)
 
+	// Likewise unconditional: an ephemeral task Secret stranded by a crash
+	// holds plaintext credentials, and being at the job limit is no reason
+	// to leave it there.
+	defer r.sweepOrphanedTaskSecrets(ctx)
+
 	// Check concurrent job limit.
 	activeCount := r.activeJobCount()
 	maxConcurrent := r.config.GuardRails.MaxConcurrentJobs

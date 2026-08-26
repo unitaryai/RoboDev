@@ -4,6 +4,12 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/unitaryai/osmia/internal/jobbuilder"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -362,4 +368,93 @@ func TestDeleteTaskSecret(t *testing.T) {
 	_, err := r.k8sClient.CoreV1().Secrets("test-ns").
 		Get(ctx, "osmia-task-secrets-tr-1", metav1.GetOptions{})
 	assert.Error(t, err)
+}
+
+// TestSweepOrphanedTaskSecrets covers the gap the abort paths cannot: a
+// controller killed between creating an ephemeral Secret and the Job
+// adopting it leaves plaintext credentials with no owner and nothing to
+// collect them.
+func TestSweepOrphanedTaskSecrets(t *testing.T) {
+	ctx := context.Background()
+
+	taskSecret := func(name string, age time.Duration, owners []metav1.OwnerReference) *corev1.Secret {
+		return &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: "test-ns",
+				Labels: map[string]string{
+					labelComponent:            componentAgent,
+					labelManagedBy:            managedByOsmia,
+					labelSecretPurpose:        secretPurposeTaskSecret,
+					jobbuilder.LabelTaskRunID: "tr-1",
+				},
+				CreationTimestamp: metav1.NewTime(time.Now().Add(-age)),
+				OwnerReferences:   owners,
+			},
+		}
+	}
+
+	ownedByJob := []metav1.OwnerReference{{APIVersion: "batch/v1", Kind: "Job", Name: "osmia-tr-1"}}
+
+	tests := []struct {
+		name     string
+		objects  []runtime.Object
+		wantGone []string
+		wantKept []string
+	}{
+		{
+			name:     "an unadopted secret past the grace period is deleted",
+			objects:  []runtime.Object{taskSecret("orphan", taskSecretOrphanGrace+time.Minute, nil)},
+			wantGone: []string{"orphan"},
+		},
+		{
+			name:     "an unadopted secret inside the grace period is left alone",
+			objects:  []runtime.Object{taskSecret("just-created", time.Second, nil)},
+			wantKept: []string{"just-created"},
+		},
+		{
+			name:     "an adopted secret is left to Kubernetes garbage collection",
+			objects:  []runtime.Object{taskSecret("adopted", taskSecretOrphanGrace+time.Hour, ownedByJob)},
+			wantKept: []string{"adopted"},
+		},
+		{
+			name: "secrets that are not task secrets are never touched",
+			objects: []runtime.Object{
+				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{
+					Name:              "anthropic-secret",
+					Namespace:         "test-ns",
+					CreationTimestamp: metav1.NewTime(time.Now().Add(-30 * 24 * time.Hour)),
+				}},
+			},
+			wantKept: []string{"anthropic-secret"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8s := fake.NewSimpleClientset(tt.objects...)
+			r := NewReconciler(&config.Config{}, testLogger(),
+				WithK8sClient(k8s),
+				WithNamespace("test-ns"),
+			)
+
+			r.sweepOrphanedTaskSecrets(ctx)
+
+			for _, name := range tt.wantGone {
+				_, err := k8s.CoreV1().Secrets("test-ns").Get(ctx, name, metav1.GetOptions{})
+				assert.Truef(t, apierrors.IsNotFound(err), "expected %q to be deleted, got %v", name, err)
+			}
+			for _, name := range tt.wantKept {
+				_, err := k8s.CoreV1().Secrets("test-ns").Get(ctx, name, metav1.GetOptions{})
+				assert.NoErrorf(t, err, "expected %q to survive the sweep", name)
+			}
+		})
+	}
+}
+
+// TestSweepOrphanedTaskSecretsWithoutClient guards the nil-client path used
+// by tests and by the local backend, where there is nothing to sweep.
+func TestSweepOrphanedTaskSecretsWithoutClient(t *testing.T) {
+	r := NewReconciler(&config.Config{}, testLogger(), WithNamespace("test-ns"))
+	assert.NotPanics(t, func() { r.sweepOrphanedTaskSecrets(context.Background()) })
 }

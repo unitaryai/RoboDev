@@ -342,3 +342,28 @@ func TestParseScheme(t *testing.T) {
 		})
 	}
 }
+
+// TestResolveRejectsTooManyRequests pins the fan-out bound. Every request
+// costs at least one backend call and the list originates in ticket text.
+func TestResolveRejectsTooManyRequests(t *testing.T) {
+	resolver := NewResolver(
+		WithPolicy(Policy{AllowRawRefs: true, AllowedSchemes: []string{"k8s"}}),
+	)
+
+	requests := make([]SecretRequest, MaxSecretRequests+1)
+	for i := range requests {
+		requests[i] = SecretRequest{
+			EnvName: fmt.Sprintf("VAR_%d", i),
+			URI:     "k8s://db/url",
+		}
+	}
+
+	_, err := resolver.Resolve(context.Background(), requests)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "over the limit")
+
+	// Exactly at the limit still resolves, so the boundary is inclusive.
+	_, err = resolver.Resolve(context.Background(), requests[:MaxSecretRequests])
+	require.NoError(t, err)
+}

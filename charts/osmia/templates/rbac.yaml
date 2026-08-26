@@ -27,9 +27,13 @@ rules:
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # create/update/delete are required by task-scoped secrets: values resolved
+  # from a non-Kubernetes backend are staged into an ephemeral Secret, which
+  # is then updated to add the owning Job's ownerReference, and deleted again
+  # if the launch aborts or the orphan sweep finds it unadopted.
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "list", "watch"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "create", "delete"]

@@ -8,6 +8,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// maxSecretBlockBytes caps the YAML body of a single osmia:secrets block.
+// Ticket and incident descriptions reach this parser as semi-trusted input,
+// so the amount of it handed to a YAML decoder is bounded before decoding
+// rather than after. 64 KiB is orders of magnitude above any real
+// declaration; a legitimate block is a handful of lines.
+//
+// This is not a defence against recursive anchor expansion, which is
+// already covered twice over: decoding targets []secretEntry, so a mapping
+// never gets far enough to expand, and gopkg.in/yaml.v3 refuses the
+// expansion itself with "document contains excessive aliasing". Both are
+// pinned by TestAliasBombIsRejected. This cap bounds ordinary bulk.
+const maxSecretBlockBytes = 64 * 1024
+
 // secretCommentPattern matches <!-- osmia:secrets ... --> HTML comment blocks.
 var secretCommentPattern = regexp.MustCompile(`(?s)<!--\s*osmia:secrets\s*\n(.*?)-->`)
 
@@ -32,6 +45,11 @@ func ParseCommentBlock(body string) ([]SecretRequest, error) {
 	var requests []SecretRequest
 	for _, match := range matches {
 		yamlContent := match[1]
+
+		if len(yamlContent) > maxSecretBlockBytes {
+			return nil, fmt.Errorf("osmia:secrets block is %d bytes, over the %d byte limit",
+				len(yamlContent), maxSecretBlockBytes)
+		}
 
 		var entries []secretEntry
 		if err := yaml.Unmarshal([]byte(yamlContent), &entries); err != nil {

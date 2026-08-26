@@ -1,10 +1,13 @@
 package secretresolver
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestParseCommentBlock(t *testing.T) {
@@ -180,4 +183,62 @@ func TestParseLabels(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// TestParseCommentBlockRejectsOversizedBlock pins the input bound on the
+// semi-trusted description text handed to the YAML decoder.
+func TestParseCommentBlockRejectsOversizedBlock(t *testing.T) {
+	filler := strings.Repeat("# padding padding padding\n", (maxSecretBlockBytes/26)+1)
+	body := "<!-- osmia:secrets\n" + filler + "- ref: k8s://db/url\n  env: DATABASE_URL\n-->"
+
+	_, err := ParseCommentBlock(body)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "over the")
+}
+
+// aliasBombYAML returns a nested-anchor document that expands to billions of
+// nodes from a few hundred bytes, the classic "billion laughs" shape.
+func aliasBombYAML() string {
+	var sb strings.Builder
+	sb.WriteString("a: &a [\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\"]\n")
+	prev := "a"
+	for i := range 8 {
+		name := fmt.Sprintf("b%d", i)
+		fmt.Fprintf(&sb, "%s: &%s [*%s,*%s,*%s,*%s,*%s,*%s,*%s,*%s,*%s]\n",
+			name, name, prev, prev, prev, prev, prev, prev, prev, prev, prev)
+		prev = name
+	}
+	return sb.String()
+}
+
+// TestAliasBombIsRejected covers the two independent reasons a recursive
+// anchor document cannot exhaust memory here, so the byte cap does not have
+// to be sized against expansion.
+//
+// The reasons are asserted separately because the first one masks the second:
+// the parser decodes into []secretEntry, so a document shaped as a mapping
+// fails its type check before expansion finishes, and the error never
+// mentions aliasing. That makes the type check load-bearing today, and it
+// would stop being so if the entry shape ever changed. The second assertion
+// pins gopkg.in/yaml.v3's own guard directly, which is the protection that
+// does not depend on our target type.
+func TestAliasBombIsRejected(t *testing.T) {
+	bomb := aliasBombYAML()
+	require.Less(t, len(bomb), maxSecretBlockBytes, "bomb must be under the size cap to test anything")
+
+	t.Run("the parser rejects it", func(t *testing.T) {
+		_, err := ParseCommentBlock("<!-- osmia:secrets\n" + bomb + "-->")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "parsing osmia:secrets YAML block")
+	})
+
+	t.Run("the yaml decoder refuses the expansion on its own", func(t *testing.T) {
+		var into any
+		err := yaml.Unmarshal([]byte(bomb), &into)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "excessive aliasing")
+	})
 }

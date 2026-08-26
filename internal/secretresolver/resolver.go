@@ -72,6 +72,14 @@ func NewResolver(opts ...Option) *Resolver {
 // It returns the resolved secrets ready for injection into an execution
 // environment.
 func (r *Resolver) Resolve(ctx context.Context, requests []SecretRequest) ([]ResolvedSecret, error) {
+	// Each request costs at least one call to a secrets backend, and the
+	// list originates in ticket or incident text. Bound it here, at the one
+	// point every caller passes through, rather than in each parser.
+	if len(requests) > MaxSecretRequests {
+		return nil, fmt.Errorf("task declares %d secrets, over the limit of %d",
+			len(requests), MaxSecretRequests)
+	}
+
 	// Whether a task may name a secret directly is a property of what the
 	// task asked for, so it is checked before expansion. Checking it after
 	// would reject every alias whenever AllowRawRefs is false, because an
