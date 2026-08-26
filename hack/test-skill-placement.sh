@@ -221,15 +221,25 @@ for bad in "/tmp/.." "//" "/"; do
         chmod +x /usr/local/bin/claude
         cp /usr/local/bin/setup-claude.sh /tmp/setup-claude.sh
         chmod +x /tmp/setup-claude.sh
+
+        # Both halves matter and are asserted separately. Letting set -e
+        # abort on the expected failure would make the container exit
+        # nonzero without ever reaching the canary, so the test would pass
+        # even if the script had deleted the ConfigMap mount on its way out.
+        set +e
         /tmp/setup-claude.sh >/dev/null 2>&1
-        # Reaching here means the script ran; the canary proves whether the
-        # ConfigMap mount point survived.
+        setup_status=$?
+        set -e
+
+        # The script must have refused...
+        test "${setup_status}" -ne 0
+        # ...and must not have touched the mount point on its way to refusing.
         test -f /skills/canary/SKILL.md
       ' >/dev/null 2>&1; then
-    echo "FAIL: CLAUDE_CONFIG_DIR=${bad} was accepted"
-    FAILURES=$((FAILURES + 1))
+    echo "PASS: CLAUDE_CONFIG_DIR=${bad} is refused with /skills intact"
   else
-    echo "PASS: CLAUDE_CONFIG_DIR=${bad} is refused"
+    echo "FAIL: CLAUDE_CONFIG_DIR=${bad} was accepted, or /skills was altered"
+    FAILURES=$((FAILURES + 1))
   fi
 done
 
