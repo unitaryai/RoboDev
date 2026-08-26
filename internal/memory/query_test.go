@@ -2,11 +2,15 @@ package memory
 
 import (
 	"context"
+	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/unitaryai/osmia/internal/taskrun"
 )
 
 func TestQueryEngine_QueryForTask(t *testing.T) {
@@ -181,4 +185,58 @@ func TestQueryEngine_TemporalWeighting(t *testing.T) {
 	// Recent fact should appear first due to temporal weighting.
 	assert.Equal(t, "recent", mc.RelevantFacts[0].ID)
 	assert.Equal(t, "old", mc.RelevantFacts[1].ID)
+}
+
+// TestQueryForTaskIsolatesTenants is the end-to-end check that tenant
+// scoping actually keeps one flow's learned knowledge out of another's
+// prompt. The graph holds a fact per tenant plus an untenanted one, and each
+// query must see only its own.
+func TestQueryForTaskIsolatesTenants(t *testing.T) {
+	graph := NewGraph(nil, slog.Default())
+	ctx := context.Background()
+
+	add := func(id, tenant, content string) {
+		require.NoError(t, graph.AddNode(ctx, &Fact{
+			ID:         id,
+			Content:    content,
+			FactKind:   FactTypeSuccessPattern,
+			ValidFrom:  time.Now(),
+			Confidence: 0.9,
+			TenantID:   tenant,
+		}))
+	}
+	add("f-ticketing", taskrun.TenantTicketing, "ticketing flow knowledge")
+	add("f-incident", taskrun.TenantIncidentTriage, "incident flow knowledge")
+	add("f-legacy", "", "knowledge from before tenanting")
+
+	qe := NewQueryEngine(graph, slog.Default())
+
+	seen := func(tenant string) []string {
+		mc, err := qe.QueryForTask(ctx, "some task", "https://example.com/repo", "claude-code", tenant)
+		require.NoError(t, err)
+		require.NotNil(t, mc)
+		var out []string
+		for _, f := range mc.RelevantFacts {
+			out = append(out, f.Content)
+		}
+		// The rendered section is what actually reaches the prompt, so
+		// assert against it too rather than only the structured facts.
+		out = append(out, mc.FormattedSection)
+		return out
+	}
+
+	ticketing := strings.Join(seen(taskrun.TenantTicketing), "\n")
+	assert.Contains(t, ticketing, "ticketing flow knowledge")
+	assert.NotContains(t, ticketing, "incident flow knowledge",
+		"the ticketing flow must not be shown the incident flow's facts")
+
+	incident := strings.Join(seen(taskrun.TenantIncidentTriage), "\n")
+	assert.Contains(t, incident, "incident flow knowledge")
+	assert.NotContains(t, incident, "ticketing flow knowledge")
+
+	// A fact stored before tenanting existed belongs to no tenant, so a
+	// tenanted query no longer surfaces it. That is the migration cost of
+	// this change and is called out in the changelog rather than papered
+	// over with a match-anything fallback, which would defeat the isolation.
+	assert.NotContains(t, ticketing, "knowledge from before tenanting")
 }

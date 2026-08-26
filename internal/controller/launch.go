@@ -86,12 +86,32 @@ func (r *Reconciler) newLaunchTaskRun(ctx context.Context, id, idempotencyKey, t
 	tr := taskrun.New(id, idempotencyKey, ticketID, engineName)
 	tr.CurrentEngine = engineName
 	tr.EngineAttempts = []string{engineName}
-	tr.UseCase = useCase
+	tagTaskRun(tr, useCase)
 	r.applyContinuationConfig(tr)
 
 	r.saveTaskRunOrLog(ctx, tr)
 
 	return tr
+}
+
+// tagTaskRun stamps the use case and its episodic-memory tenant onto a
+// TaskRun.
+//
+// The two fields track each other one-for-one today but stay separate,
+// because they answer different questions: UseCase selects behaviour, while
+// TenantID scopes stored knowledge, and a future use case could reasonably
+// want its own behaviour while sharing another's memory. Keeping the mapping
+// in one function means the pair cannot be set inconsistently.
+//
+// Most TaskRuns get this via newLaunchTaskRun. The ones that do not are the
+// paths that build a TaskRun directly rather than going through the shared
+// launch pipeline: review follow-ups, tournament candidates, the tournament
+// judge, and the repo-URL poll. They must call this themselves. An untagged
+// TaskRun writes its extracted facts under no tenant, where a later tenanted
+// query cannot see them, and nothing fails at the time.
+func tagTaskRun(tr *taskrun.TaskRun, useCase string) {
+	tr.UseCase = useCase
+	tr.TenantID = useCase
 }
 
 // saveTaskRunOrLog persists tr to the task run store, logging (but not

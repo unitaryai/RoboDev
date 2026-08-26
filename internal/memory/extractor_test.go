@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -180,4 +181,49 @@ func TestExtractor_CountToolCalls(t *testing.T) {
 	assert.Equal(t, 1, counts["Read"])
 	assert.Equal(t, 1, counts["Write"])
 	assert.Equal(t, 0, counts["Edit"])
+}
+
+// TestExtractStampsTenantID pins that every node an extraction produces
+// carries the TaskRun's tenant. Without it the facts are untenanted, a later
+// tenanted query cannot match them, and one flow's heuristics would be
+// offered to another. The rules are exercised through one TaskRun shaped to
+// trigger several of them at once, so a rule added later that forgets the
+// stamp is caught by the same assertion.
+func TestExtractStampsTenantID(t *testing.T) {
+	tr := &taskrun.TaskRun{
+		ID:             "tr-tenant-1",
+		TicketID:       "TICKET-1",
+		State:          taskrun.StateSucceeded,
+		CurrentEngine:  "claude-code",
+		EngineAttempts: []string{"codex", "claude-code"},
+		TenantID:       taskrun.TenantIncidentTriage,
+	}
+
+	nodes, _, err := NewExtractor(slog.Default()).Extract(context.Background(), tr, nil)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, nodes, "the fixture must trigger at least one extraction rule")
+	for _, n := range nodes {
+		assert.Equalf(t, taskrun.TenantIncidentTriage, n.GetTenantID(),
+			"node %q was extracted without the TaskRun's tenant", n.NodeID())
+	}
+}
+
+// TestExtractUntenantedTaskRun covers a TaskRun persisted before TenantID
+// existed: extraction still works and simply produces untenanted facts.
+func TestExtractUntenantedTaskRun(t *testing.T) {
+	tr := &taskrun.TaskRun{
+		ID:            "tr-legacy",
+		TicketID:      "TICKET-2",
+		State:         taskrun.StateSucceeded,
+		CurrentEngine: "claude-code",
+	}
+
+	nodes, _, err := NewExtractor(slog.Default()).Extract(context.Background(), tr, nil)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, nodes)
+	for _, n := range nodes {
+		assert.Empty(t, n.GetTenantID())
+	}
 }

@@ -12,7 +12,7 @@ Without memory, every task starts from scratch. The same mistakes are repeated, 
 - **Cross-engine learning** — knowledge from Claude Code tasks benefits Aider tasks and vice versa
 - **Failure prevention** — prior failure patterns are surfaced before they recur ("this repo has a known flaky test in `auth_test.go`")
 - **Temporal awareness** — knowledge decays over time as repositories evolve, so stale facts don't mislead agents
-- **Multi-tenant isolation** — tenant A's knowledge is never exposed to tenant B
+- **Per-use-case isolation** — what the ticketing flow learns is never offered to incident triage, or the reverse
 
 ## How It Works
 
@@ -89,7 +89,6 @@ memory:
   decay_interval_hours: 24            # Hours between decay cycles
   prune_threshold: 0.05               # Remove facts below this confidence
   max_facts_per_query: 10             # Maximum facts injected per prompt
-  tenant_isolation: true              # Enforce cross-tenant boundaries
 ```
 
 ### Configuration Fields
@@ -101,7 +100,7 @@ memory:
 | `decay_interval_hours` | int | `24` | Hours between confidence decay cycles |
 | `prune_threshold` | float | `0.05` | Facts below this confidence are pruned |
 | `max_facts_per_query` | int | `10` | Maximum facts returned per query |
-| `tenant_isolation` | bool | `true` | Whether to enforce tenant boundaries on queries |
+| `tenant_isolation` | bool | `true` | **Not read.** Isolation is unconditional; see [Multi-Tenant Isolation](#multi-tenant-isolation) |
 
 ### Storage
 
@@ -187,13 +186,29 @@ internal/memory/
 
 ## Multi-Tenant Isolation
 
-When `tenant_isolation: true` (the default), all memory operations are scoped by tenant ID:
+Memory is partitioned by tenant:
 
-- **Extraction** tags every new node with the originating tenant
+- **Extraction** tags every new node with the originating TaskRun's tenant
 - **Queries** filter results to the requesting tenant's nodes only
 - **Decay and pruning** operate across all tenants (stale facts are pruned regardless of tenant)
 
-This ensures that sensitive information (repo structures, failure patterns, approaches) from one tenant never leaks to another.
+### What a tenant is here
+
+A tenant is a **use case**, not a customer. The controller assigns one automatically from the flow that created the TaskRun:
+
+| Flow | Tenant |
+|---|---|
+| Ticket to merge request | `ticketing` |
+| Incident triage | `incident-triage` |
+
+So what one flow learns is never offered to the other: an incident classification does not surface in a code-change prompt, and vice versa. There is no per-customer or per-repository partition, and no way to configure one. Partitioning by use case rather than by deployment means it still holds if the two flows are ever consolidated into a single binary.
+
+!!! warning "`tenant_isolation` is not read"
+    The `tenant_isolation` config field is declared but nothing consumes it. Isolation is unconditional and cannot be turned off. Setting it to `false` has no effect.
+
+A query made with no tenant matches every node regardless of tenant. That path is intended for whole-graph administrative reads; every query the controller makes is tenanted.
+
+Facts written before tenanting existed carry no tenant, so a tenanted query does not return them. In practice a memory graph re-accumulates within a few runs.
 
 ## Backwards Compatibility
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/unitaryai/osmia/internal/taskrun"
+	"github.com/unitaryai/osmia/internal/usecase"
 	"github.com/unitaryai/osmia/pkg/plugin/ticketing"
 )
 
@@ -72,6 +73,7 @@ func (r *Reconciler) startRepoURLPoll(ctx context.Context, ticket ticketing.Tick
 	)
 	tr.CurrentEngine = engineName
 	tr.EngineAttempts = []string{engineName}
+	tagTaskRun(tr, usecase.NameTicketing)
 
 	if err := tr.Transition(taskrun.StateNeedsHuman); err != nil {
 		return fmt.Errorf("transitioning to NeedsHuman: %w", err)

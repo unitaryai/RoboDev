@@ -95,7 +95,10 @@ func (g *Graph) Query(_ context.Context, query GraphQuery) ([]Node, error) {
 	var candidates []scored
 
 	for _, node := range g.nodes {
-		// Enforce tenant isolation.
+		// Enforce tenant isolation. An empty query tenant matches every
+		// node, including nodes belonging to other tenants; see the note on
+		// GraphQuery.TenantID for why that default is what it is and who
+		// may rely on it.
 		if query.TenantID != "" && node.GetTenantID() != query.TenantID {
 			continue
 		}
