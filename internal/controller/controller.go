@@ -2359,6 +2359,7 @@ func (r *Reconciler) startStreamReader(ctx context.Context, tr *taskrun.TaskRun)
 				Summary:         re.Summary,
 				MergeRequestURL: re.MergeRequestURL,
 				BranchName:      re.BranchName,
+				RawStructured:   re.RawStructured,
 				CostEstimateUSD: lastCost.CostUSD,
 				TokenUsage: &engine.TokenUsage{
 					InputTokens:  lastCost.InputTokens,

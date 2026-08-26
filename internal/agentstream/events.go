@@ -84,6 +84,18 @@ type ResultEvent struct {
 	// StructuredOutput holds the schema-conforming result when --json-schema
 	// is used. Claude Code puts structured data here instead of in result.
 	StructuredOutput *ResultEvent `json:"structured_output,omitempty"`
+
+	// RawStructured preserves the whole structured_output object as raw JSON,
+	// including every field that has no counterpart on this struct. The merge
+	// below reads structured_output through ResultEvent's own typed fields, so
+	// anything a caller's schema declares beyond them is discarded; capturing
+	// the raw object first is what lets a flow define its own output schema
+	// without widening ResultEvent for every flow that ever will.
+	//
+	// It is deliberately not serialised: this struct is the wire format for a
+	// line the agent emitted, and re-emitting the payload twice would double
+	// the size of every result event for consumers that do not want it.
+	RawStructured json.RawMessage `json:"-"`
 }
 
 // SystemEvent carries system-level metadata emitted at session initialisation.
@@ -167,6 +179,16 @@ func ParseEvent(line []byte) (*StreamEvent, error) {
 		// result in structured_output instead of result. Merge those fields
 		// into the top-level ResultEvent so callers see a consistent view.
 		if re.StructuredOutput != nil {
+			// Capture the full structured_output object before the typed
+			// merge below nulls it, since that merge keeps only the fields
+			// ResultEvent happens to declare.
+			var rawEnvelope struct {
+				StructuredOutput json.RawMessage `json:"structured_output"`
+			}
+			if err := json.Unmarshal(line, &rawEnvelope); err == nil && len(rawEnvelope.StructuredOutput) > 0 {
+				re.RawStructured = rawEnvelope.StructuredOutput
+			}
+
 			so := re.StructuredOutput
 			re.Success = so.Success
 			if so.Summary != "" {

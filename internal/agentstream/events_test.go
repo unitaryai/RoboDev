@@ -1,6 +1,7 @@
 package agentstream
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -179,4 +180,91 @@ func TestParseEvent(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestParseEventPreservesRawStructured covers the reason RawStructured
+// exists: the typed merge reads structured_output through ResultEvent's own
+// fields, so anything a flow's schema declares beyond them is dropped. A flow
+// that defines its own output shape needs the raw object to survive.
+func TestParseEventPreservesRawStructured(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		check func(t *testing.T, re *ResultEvent)
+	}{
+		{
+			name: "fields with no counterpart on ResultEvent survive",
+			input: `{"type":"result","is_error":false,"result":"",` +
+				`"structured_output":{"success":true,"summary":"Evaluated",` +
+				`"verdict":"revise","scores":{"coverage":0.82},` +
+				`"open_questions":["no fallback path"]},` +
+				`"timestamp":"2026-01-01T00:00:00Z"}`,
+			check: func(t *testing.T, re *ResultEvent) {
+				require.NotEmpty(t, re.RawStructured)
+
+				var got map[string]any
+				require.NoError(t, json.Unmarshal(re.RawStructured, &got))
+				assert.Equal(t, "revise", got["verdict"])
+				assert.Equal(t, []any{"no fallback path"}, got["open_questions"])
+
+				scores, ok := got["scores"].(map[string]any)
+				require.True(t, ok)
+				assert.InDelta(t, 0.82, scores["coverage"], 0.0001)
+
+				// The typed merge still happens as before.
+				assert.True(t, re.Success)
+				assert.Equal(t, "Evaluated", re.Summary)
+			},
+		},
+		{
+			name: "typed fields are readable from the raw object too",
+			input: `{"type":"result","is_error":false,"result":"",` +
+				`"structured_output":{"success":true,"summary":"Done",` +
+				`"merge_request_url":"https://gitlab.com/org/repo/-/merge_requests/18"},` +
+				`"timestamp":"2026-01-01T00:00:00Z"}`,
+			check: func(t *testing.T, re *ResultEvent) {
+				var got map[string]any
+				require.NoError(t, json.Unmarshal(re.RawStructured, &got))
+				assert.Equal(t, "https://gitlab.com/org/repo/-/merge_requests/18", got["merge_request_url"])
+				assert.Equal(t, re.MergeRequestURL, got["merge_request_url"])
+			},
+		},
+		{
+			name:  "no structured_output leaves RawStructured nil",
+			input: `{"type":"result","is_error":false,"result":"Done","timestamp":"2026-01-01T00:00:00Z"}`,
+			check: func(t *testing.T, re *ResultEvent) {
+				assert.Nil(t, re.RawStructured)
+				assert.Equal(t, "Done", re.Summary)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ev, err := ParseEvent([]byte(tt.input))
+			require.NoError(t, err)
+
+			re, ok := ev.Parsed.(*ResultEvent)
+			require.True(t, ok)
+			tt.check(t, re)
+		})
+	}
+}
+
+// TestResultEventRawStructuredNotSerialised pins that re-marshalling a parsed
+// result event does not emit the captured payload a second time.
+func TestResultEventRawStructuredNotSerialised(t *testing.T) {
+	ev, err := ParseEvent([]byte(`{"type":"result","is_error":false,"result":"",` +
+		`"structured_output":{"success":true,"summary":"Done","verdict":"pass"},` +
+		`"timestamp":"2026-01-01T00:00:00Z"}`))
+	require.NoError(t, err)
+
+	re, ok := ev.Parsed.(*ResultEvent)
+	require.True(t, ok)
+	require.NotEmpty(t, re.RawStructured)
+
+	encoded, err := json.Marshal(re)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "raw_structured")
+	assert.NotContains(t, string(encoded), "verdict")
 }
