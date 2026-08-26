@@ -1019,6 +1019,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Multi-Tenant Isolation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-a-tenant-is-here" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a tenant is here
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2209,6 +2226,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Multi-Tenant Isolation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-a-tenant-is-here" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a tenant is here
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2279,7 +2313,7 @@
 <li><strong>Cross-engine learning</strong> — knowledge from Claude Code tasks benefits Aider tasks and vice versa</li>
 <li><strong>Failure prevention</strong> — prior failure patterns are surfaced before they recur ("this repo has a known flaky test in <code>auth_test.go</code>")</li>
 <li><strong>Temporal awareness</strong> — knowledge decays over time as repositories evolve, so stale facts don't mislead agents</li>
-<li><strong>Multi-tenant isolation</strong> — tenant A's knowledge is never exposed to tenant B</li>
+<li><strong>Per-use-case isolation</strong> — what the ticketing flow learns is never offered to incident triage, or the reverse</li>
 </ul>
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <p>Memory operates in two phases: <strong>extraction</strong> (after a task completes) and <strong>injection</strong> (before a new task starts).</p>
@@ -2342,7 +2376,6 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">decay_interval_hours</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24</span><span class="w">            </span><span class="c1"># Hours between decay cycles</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">prune_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.05</span><span class="w">               </span><span class="c1"># Remove facts below this confidence</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">max_facts_per_query</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w">             </span><span class="c1"># Maximum facts injected per prompt</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">tenant_isolation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">              </span><span class="c1"># Enforce cross-tenant boundaries</span>
 </code></pre></div>
 <h3 id="configuration-fields">Configuration Fields<a class="headerlink" href="#configuration-fields" title="Permanent link">&para;</a></h3>
 <table>
@@ -2389,7 +2422,7 @@
 <td><code>tenant_isolation</code></td>
 <td>bool</td>
 <td><code>true</code></td>
-<td>Whether to enforce tenant boundaries on queries</td>
+<td><strong>Not read.</strong> Isolation is unconditional; see <a href="#multi-tenant-isolation">Multi-Tenant Isolation</a></td>
 </tr>
 </tbody>
 </table>
@@ -2566,13 +2599,39 @@
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>└── *_test.go      — Unit tests
 </code></pre></div>
 <h2 id="multi-tenant-isolation">Multi-Tenant Isolation<a class="headerlink" href="#multi-tenant-isolation" title="Permanent link">&para;</a></h2>
-<p>When <code>tenant_isolation: true</code> (the default), all memory operations are scoped by tenant ID:</p>
+<p>Memory is partitioned by tenant:</p>
 <ul>
-<li><strong>Extraction</strong> tags every new node with the originating tenant</li>
+<li><strong>Extraction</strong> tags every new node with the originating TaskRun's tenant</li>
 <li><strong>Queries</strong> filter results to the requesting tenant's nodes only</li>
 <li><strong>Decay and pruning</strong> operate across all tenants (stale facts are pruned regardless of tenant)</li>
 </ul>
-<p>This ensures that sensitive information (repo structures, failure patterns, approaches) from one tenant never leaks to another.</p>
+<h3 id="what-a-tenant-is-here">What a tenant is here<a class="headerlink" href="#what-a-tenant-is-here" title="Permanent link">&para;</a></h3>
+<p>A tenant is a <strong>use case</strong>, not a customer. The controller assigns one automatically from the flow that created the TaskRun:</p>
+<table>
+<thead>
+<tr>
+<th>Flow</th>
+<th>Tenant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ticket to merge request</td>
+<td><code>ticketing</code></td>
+</tr>
+<tr>
+<td>Incident triage</td>
+<td><code>incident-triage</code></td>
+</tr>
+</tbody>
+</table>
+<p>So what one flow learns is never offered to the other: an incident classification does not surface in a code-change prompt, and vice versa. There is no per-customer or per-repository partition, and no way to configure one. Partitioning by use case rather than by deployment means it still holds if the two flows are ever consolidated into a single binary.</p>
+<div class="admonition warning">
+<p class="admonition-title"><code>tenant_isolation</code> is not read</p>
+<p>The <code>tenant_isolation</code> config field is declared but nothing consumes it. Isolation is unconditional and cannot be turned off. Setting it to <code>false</code> has no effect.</p>
+</div>
+<p>A query made with no tenant matches every node regardless of tenant. That path is intended for whole-graph administrative reads; every query the controller makes is tenanted.</p>
+<p>Facts written before tenanting existed carry no tenant, so a tenanted query does not return them. In practice a memory graph re-accumulates within a few runs.</p>
 <h2 id="backwards-compatibility">Backwards Compatibility<a class="headerlink" href="#backwards-compatibility" title="Permanent link">&para;</a></h2>
 <p>Memory is <strong>disabled by default</strong>. When disabled:</p>
 <ul>
