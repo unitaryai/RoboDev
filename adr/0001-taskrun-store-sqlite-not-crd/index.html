@@ -10,31 +10,27 @@
       
       
       
-        <link rel="canonical" href="https://unitaryai.github.io/osmia/security-policy/">
+        <link rel="canonical" href="https://unitaryai.github.io/osmia/adr/0001-taskrun-store-sqlite-not-crd/">
       
       
-        <link rel="prev" href="../code-of-conduct/">
-      
-      
-        <link rel="next" href="../roadmap/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Security Policy - Osmia</title>
+        <title>ADR 0001: Persist TaskRun state in SQLite, not a Kubernetes CRD - Osmia</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#security-policy" class="md-skip">
+        <a href="#adr-0001-persist-taskrun-state-in-sqlite-not-a-kubernetes-crd" class="md-skip">
           Skip to content
         </a>
       
@@ -94,7 +90,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Osmia" class="md-header__button md-logo" aria-label="Osmia" data-md-component="logo">
+    <a href="../.." title="Osmia" class="md-header__button md-logo" aria-label="Osmia" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Security Policy
+              ADR 0001: Persist TaskRun state in SQLite, not a Kubernetes CRD
             
           </span>
         </div>
@@ -232,7 +228,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Osmia" class="md-nav__button md-logo" aria-label="Osmia" data-md-component="logo">
+    <a href="../.." title="Osmia" class="md-nav__button md-logo" aria-label="Osmia" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +258,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -343,7 +339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -371,7 +367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/docker-compose/" class="md-nav__link">
+      <a href="../../getting-started/docker-compose/" class="md-nav__link">
         
   
   
@@ -399,7 +395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/kubernetes/" class="md-nav__link">
+      <a href="../../getting-started/kubernetes/" class="md-nav__link">
         
   
   
@@ -427,7 +423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/github-issues-slack/" class="md-nav__link">
+      <a href="../../getting-started/github-issues-slack/" class="md-nav__link">
         
   
   
@@ -455,7 +451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/shortcut-slack/" class="md-nav__link">
+      <a href="../../getting-started/shortcut-slack/" class="md-nav__link">
         
   
   
@@ -483,7 +479,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/linear-slack/" class="md-nav__link">
+      <a href="../../getting-started/linear-slack/" class="md-nav__link">
         
   
   
@@ -511,7 +507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/configuration/" class="md-nav__link">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -539,7 +535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/troubleshooting/" class="md-nav__link">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
         
   
   
@@ -628,7 +624,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/what-is-osmia/" class="md-nav__link">
+      <a href="../../concepts/what-is-osmia/" class="md-nav__link">
         
   
   
@@ -656,7 +652,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/taskrun-lifecycle/" class="md-nav__link">
+      <a href="../../concepts/taskrun-lifecycle/" class="md-nav__link">
         
   
   
@@ -684,7 +680,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/engines/" class="md-nav__link">
+      <a href="../../concepts/engines/" class="md-nav__link">
         
   
   
@@ -712,7 +708,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/guardrails-overview/" class="md-nav__link">
+      <a href="../../concepts/guardrails-overview/" class="md-nav__link">
         
   
   
@@ -740,7 +736,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/prm/" class="md-nav__link">
+      <a href="../../concepts/prm/" class="md-nav__link">
         
   
   
@@ -768,7 +764,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/memory/" class="md-nav__link">
+      <a href="../../concepts/memory/" class="md-nav__link">
         
   
   
@@ -796,7 +792,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/llm/" class="md-nav__link">
+      <a href="../../concepts/llm/" class="md-nav__link">
         
   
   
@@ -824,7 +820,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/diagnosis/" class="md-nav__link">
+      <a href="../../concepts/diagnosis/" class="md-nav__link">
         
   
   
@@ -852,7 +848,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/estimator/" class="md-nav__link">
+      <a href="../../concepts/estimator/" class="md-nav__link">
         
   
   
@@ -941,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -969,7 +965,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../security/" class="md-nav__link">
+      <a href="../../security/" class="md-nav__link">
         
   
   
@@ -997,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guardrails/" class="md-nav__link">
+      <a href="../../guardrails/" class="md-nav__link">
         
   
   
@@ -1025,7 +1021,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../scaling/" class="md-nav__link">
+      <a href="../../scaling/" class="md-nav__link">
         
   
   
@@ -1053,7 +1049,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../designs/use-case-abstraction/" class="md-nav__link">
+      <a href="../../designs/use-case-abstraction/" class="md-nav__link">
         
   
   
@@ -1142,7 +1138,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/engines/" class="md-nav__link">
+      <a href="../../plugins/engines/" class="md-nav__link">
         
   
   
@@ -1231,7 +1227,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/writing-a-plugin/" class="md-nav__link">
+      <a href="../../plugins/writing-a-plugin/" class="md-nav__link">
         
   
   
@@ -1259,7 +1255,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/ticketing/" class="md-nav__link">
+      <a href="../../plugins/ticketing/" class="md-nav__link">
         
   
   
@@ -1287,7 +1283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/notifications/" class="md-nav__link">
+      <a href="../../plugins/notifications/" class="md-nav__link">
         
   
   
@@ -1315,7 +1311,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/secrets/" class="md-nav__link">
+      <a href="../../plugins/secrets/" class="md-nav__link">
         
   
   
@@ -1343,7 +1339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/sdks/" class="md-nav__link">
+      <a href="../../plugins/sdks/" class="md-nav__link">
         
   
   
@@ -1432,7 +1428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
@@ -1460,7 +1456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/webhooks/" class="md-nav__link">
+      <a href="../../api/webhooks/" class="md-nav__link">
         
   
   
@@ -1488,7 +1484,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/plugins/" class="md-nav__link">
+      <a href="../../api/plugins/" class="md-nav__link">
         
   
   
@@ -1520,8 +1516,6 @@
       
   
   
-    
-  
   
   
     
@@ -1534,11 +1528,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
         
           
           <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
@@ -1559,7 +1555,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1577,7 +1573,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1605,7 +1601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../code-of-conduct/" class="md-nav__link">
+      <a href="../../code-of-conduct/" class="md-nav__link">
         
   
   
@@ -1630,37 +1626,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Security Policy
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../security-policy/" class="md-nav__link">
         
   
   
@@ -1676,87 +1645,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#supported-versions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supported Versions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reporting-a-vulnerability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reporting a Vulnerability
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Reporting a Vulnerability">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#what-to-include" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What to Include
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#response-timeline" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Response Timeline
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#security-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Security Design
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1769,7 +1657,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../roadmap/" class="md-nav__link">
+      <a href="../../roadmap/" class="md-nav__link">
         
   
   
@@ -1797,7 +1685,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -1852,10 +1740,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supported-versions" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Supported Versions
+        Status
       
     </span>
   </a>
@@ -1863,49 +1751,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#reporting-a-vulnerability" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reporting a Vulnerability
+        Context
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Reporting a Vulnerability">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#what-to-include" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What to Include
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#response-timeline" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Response Timeline
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#security-design" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Security Design
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revisit-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revisit Criteria
       
     </span>
   </a>
@@ -1929,7 +1811,7 @@
 
 
   
-    <a href="https://github.com/unitaryai/osmia/edit/main/docs/security-policy.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/unitaryai/osmia/edit/main/docs/adr/0001-taskrun-store-sqlite-not-crd.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1937,41 +1819,87 @@
   
 
 
-<h1 id="security-policy">Security Policy<a class="headerlink" href="#security-policy" title="Permanent link">&para;</a></h1>
-<h2 id="supported-versions">Supported Versions<a class="headerlink" href="#supported-versions" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Version</th>
-<th>Supported</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.x</td>
-<td><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /></td>
-</tr>
-</tbody>
-</table>
-<h2 id="reporting-a-vulnerability">Reporting a Vulnerability<a class="headerlink" href="#reporting-a-vulnerability" title="Permanent link">&para;</a></h2>
-<p>If you discover a security vulnerability in Osmia, please report it responsibly.</p>
-<p><strong>Do not open a public GitHub issue for security vulnerabilities.</strong></p>
-<p>Instead, please email: <strong>security@osmia.dev</strong> (placeholder)</p>
-<h3 id="what-to-include">What to Include<a class="headerlink" href="#what-to-include" title="Permanent link">&para;</a></h3>
+<h1 id="adr-0001-persist-taskrun-state-in-sqlite-not-a-kubernetes-crd">ADR 0001: Persist TaskRun state in SQLite, not a Kubernetes CRD<a class="headerlink" href="#adr-0001-persist-taskrun-state-in-sqlite-not-a-kubernetes-crd" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p><code>TaskRun</code> is the controller's record of a single execution of a task,
+tracking its lifecycle from creation through completion (state, retry
+count, engine attempts, heartbeat, diagnosis history, and so on). Today
+<code>TaskRun</code> lives only in <code>MemoryStore</code>, an in-memory map guarded by a mutex.
+When the controller pod restarts, that map is gone. Every in-flight
+TaskRun is forgotten, along with the idempotency key that would otherwise
+stop the controller from launching a duplicate Job for the same ticket.
+Orphaned-run recovery after a controller restart is the top gap on the
+project roadmap, and it cannot be fixed without durable storage underneath
+<code>TaskRun</code>.</p>
+<p><code>oss-plan.md</code> (section 13, open question 7) left the underlying storage
+model undecided: should <code>TaskRun</code> be a proper Kubernetes CRD, visible via
+<code>kubectl</code> and surviving controller restarts, or an in-memory structure
+backed by some other persistence mechanism? <code>CLAUDE.md</code> explicitly forbids
+adding Kubernetes CRD types "until explicitly decided", so this question
+had to be settled before any durable-storage work could proceed.</p>
+<p>The controller is a hand-rolled reconciler built directly on <code>client-go</code>
+and <code>hashicorp/go-plugin</code>; it does not use <code>controller-runtime</code>, and it has
+no CRD scaffolding, no generated clientset, and no informer machinery.
+Introducing a <code>TaskRun</code> CRD would mean either adopting controller-runtime
+wholesale (a large architectural change affecting the whole controller) or
+hand-rolling CRD watch/list/informer logic from scratch. Either path is a
+much bigger lift than the durability problem actually requires.</p>
+<p>The codebase already has an established, working pattern for durable
+local storage: four other components (<code>internal/memory</code>,
+<code>internal/routing</code>, <code>internal/estimator</code>, and now <code>internal/taskrun</code>) use
+<code>modernc.org/sqlite</code>, a pure-Go SQLite driver with no CGO dependency. Each
+follows the same shape: a <code>content_json</code> column holding the full
+JSON-marshalled record as the source of truth, a small number of promoted
+columns used only as query keys, <code>PRAGMA journal_mode=WAL</code> for read
+concurrency, and an idempotent <code>migrate()</code> step using
+<code>CREATE TABLE IF NOT EXISTS</code>. Adopting the same pattern for <code>TaskRun</code>
+keeps the storage architecture consistent across the controller rather
+than introducing a second, different durability mechanism.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Persist <code>TaskRun</code> records in a SQLite database using the same pattern as
+the other in-house SQLite-backed stores, rather than as a Kubernetes CRD.</p>
+<p>This resolves open question 7 in <code>oss-plan.md</code>: <code>TaskRun</code> will not become
+a CRD. The SQLite-backed <code>TaskRunStore</code> (<code>internal/taskrun/sqlite.go</code>)
+implements the existing <code>TaskRunStore</code> interface alongside <code>MemoryStore</code>,
+so callers that already depend on the interface do not need to change.
+Wiring the controller to actually construct and use the SQLite store,
+along with any state-recovery logic on startup, is deliberately left to a
+later piece of work; this decision only settles the storage model.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Description of the vulnerability</li>
-<li>Steps to reproduce</li>
-<li>Potential impact</li>
-<li>Suggested fix (if any)</li>
+<li>SQLite supports only one writer at a time. Deployed on a
+  <code>ReadWriteOnce</code> PersistentVolumeClaim, this is fine for a single
+  controller replica, which is the only supported topology today.</li>
+<li>Running more than one controller replica against the same SQLite file
+  is not supported without further work (for example, leader election so
+  only one replica ever holds the write connection). This coupling
+  between the storage choice and the single-replica assumption is now
+  documented rather than implicit.</li>
+<li><code>TaskRun</code> state is no longer inspectable via <code>kubectl</code>, since it is not
+  a Kubernetes resource. Operators needing to inspect TaskRun state must
+  use controller-exposed APIs or query the SQLite file directly.</li>
+<li>Recovering and rehydrating in-flight TaskRuns from the store after a
+  controller restart is not implemented by this decision; it is separate
+  follow-up work that builds on top of durable storage now being
+  available.</li>
 </ul>
-<h3 id="response-timeline">Response Timeline<a class="headerlink" href="#response-timeline" title="Permanent link">&para;</a></h3>
+<h2 id="revisit-criteria">Revisit Criteria<a class="headerlink" href="#revisit-criteria" title="Permanent link">&para;</a></h2>
+<p>Reconsider the CRD approach if either of the following becomes a real
+requirement:</p>
 <ul>
-<li><strong>Acknowledgement:</strong> within 48 hours</li>
-<li><strong>Initial assessment:</strong> within 1 week</li>
-<li><strong>Fix and disclosure:</strong> coordinated with reporter</li>
+<li><strong>Multi-replica high availability</strong>: running more than one controller
+  replica concurrently, which SQLite's single-writer model cannot support
+  without additional coordination.</li>
+<li><strong><code>kubectl</code>-visible task state</strong>: operators needing to list, watch, or
+  <code>kubectl describe</code> TaskRun state directly through the Kubernetes API,
+  which only a CRD can provide natively.</li>
 </ul>
-<h2 id="security-design">Security Design<a class="headerlink" href="#security-design" title="Permanent link">&para;</a></h2>
-<p>Osmia follows a defence-in-depth approach. See the <a href="../security/">Security Model</a> for the full security model and threat analysis.</p>
+<p>If either becomes a firm requirement, revisit this decision alongside the
+question of whether to adopt controller-runtime, since a CRD-backed
+<code>TaskRun</code> is much more naturally built on top of it than on the current
+hand-rolled <code>client-go</code> reconciler.</p>
 
 
 
@@ -2047,10 +1975,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

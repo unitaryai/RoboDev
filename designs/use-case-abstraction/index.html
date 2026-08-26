@@ -1,0 +1,2569 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Kubernetes-native AI coding agent harness">
+      
+      
+      
+        <link rel="canonical" href="https://unitaryai.github.io/osmia/designs/use-case-abstraction/">
+      
+      
+        <link rel="prev" href="../../scaling/">
+      
+      
+        <link rel="next" href="../../plugins/engines/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Use-Case Abstraction (Design) - Osmia</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#design-use-case-abstraction-and-shadow-mode" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Osmia" class="md-header__button md-logo" aria-label="Osmia" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Osmia
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Use-Case Abstraction (Design)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/unitaryai/osmia" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/osmia
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Osmia" class="md-nav__button md-logo" aria-label="Osmia" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Osmia
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/unitaryai/osmia" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    unitaryai/osmia
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start: Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/github-issues-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: GitHub Issues + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/shortcut-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: Shortcut + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/linear-slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guide: Linear + Slack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/what-is-osmia/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What is Osmia?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/taskrun-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How a TaskRun Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines Explained
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/guardrails-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/prm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-Time Agent Coaching (PRM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/memory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Episodic Memory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Abstraction Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/diagnosis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Causal Failure Diagnosis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/estimator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Predictive Cost Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guard Rails (Detailed)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use-Case Abstraction (Design)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use-Case Abstraction (Design)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-context-and-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Context and motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-do-not-break-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Do-not-break contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-decision-descriptor-with-hooks-not-an-interface-not-pure-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Decision: descriptor with hooks, not an interface, not pure config
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-use-case-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Use-case model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-execution-mode-taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Execution-mode taxonomy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-result-handler-taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Result-handler taxonomy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-shadow-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Shadow mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-migration-and-sequencing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Migration and sequencing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/engines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine Comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/writing-a-plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a Plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/ticketing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ticketing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/notifications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notifications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/sdks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SDKs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/webhooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webhook API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin gRPC API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code-of-conduct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-context-and-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Context and motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-do-not-break-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Do-not-break contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-decision-descriptor-with-hooks-not-an-interface-not-pure-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Decision: descriptor with hooks, not an interface, not pure config
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-use-case-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Use-case model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-execution-mode-taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Execution-mode taxonomy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-result-handler-taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Result-handler taxonomy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-shadow-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Shadow mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-migration-and-sequencing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Migration and sequencing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/unitaryai/osmia/edit/main/docs/designs/use-case-abstraction.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="design-use-case-abstraction-and-shadow-mode">Design: Use-Case Abstraction and Shadow Mode<a class="headerlink" href="#design-use-case-abstraction-and-shadow-mode" title="Permanent link">&para;</a></h1>
+<p>Status: proposed, no code changes yet.
+Owner: controller team.
+Related: <a href="../../roadmap/#24-non-standard-task-types-analysis-reporting-review">roadmap item 24</a>.</p>
+<h2 id="1-context-and-motivation">1. Context and motivation<a class="headerlink" href="#1-context-and-motivation" title="Permanent link">&para;</a></h2>
+<p>Osmia currently has one fully-built dispatch pipeline, <code>ProcessTicket</code>, and one
+purpose-built parallel pipeline, <code>ProcessIncidentEvent</code>. The package comment at
+the top of <code>internal/controller/incident.go:3-11</code> states the relationship
+plainly:</p>
+<blockquote>
+<p><code>ProcessIncidentEvent</code> is a reconciler entry point that runs in parallel to
+<code>ProcessTicket</code> rather than sharing code with it. ... A future refactor will
+lift both <code>ProcessTicket</code> and <code>ProcessIncidentEvent</code> behind a common
+interface; until then, the duplication is bounded and intentional.</p>
+</blockquote>
+<p>That comment was written with intent: incident triage was shipped as a second,
+narrower pipeline rather than as a generalisation of the first, because
+generalising a state machine from a single example tends to produce the wrong
+abstraction. Now that a second consumer shape exists (incident triage: no
+repository, no merge request, single engine, no approval gates) and roadmap
+item 24 describes a third (read-only analysis/reporting tasks with no git
+clone at all and a comment-and-notify result), the codebase has enough
+evidence to design the abstraction properly instead of guessing at it.</p>
+<p>Roadmap item 24 ("Non-Standard Task Types (Analysis, Reporting, Review)",
+<code>docs/roadmap.md:230-256</code>) already lists the open design questions this
+document answers: execution-mode taxonomy, result-handler taxonomy, profile
+dispatch, and prompt design. This document is the design doc that item asks
+for. It does not implement the abstraction; it specifies what "use case"
+means as a concept in Osmia, what the do-not-break contract is for the two
+existing consumers, and how a third consumer would be added without another
+bespoke <code>ProcessXEvent</code> function.</p>
+<p>Future consumers this abstraction should accommodate, based on the
+roadmap-24 sketch and the incident-triage precedent: read-only analysis
+tasks (<code>api_read</code> or <code>read_only</code> execution mode, <code>comment_and_notify</code> result
+handling), and any future webhook-driven flow that, like incident triage,
+has no ticketing backend of its own.</p>
+<h2 id="2-do-not-break-contract">2. Do-not-break contract<a class="headerlink" href="#2-do-not-break-contract" title="Permanent link">&para;</a></h2>
+<p>Any refactor must preserve every one of the following behaviours exactly.
+Each is cited with its current file and line so a reviewer can re-check it
+against the diff.</p>
+<table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ticketing idempotency key is <code>"&lt;ticket.ID&gt;-1"</code></td>
+<td><code>internal/controller/controller.go:508</code></td>
+</tr>
+<tr>
+<td>Incident idempotency key is <code>"&lt;incident.ID&gt;:&lt;event.Type&gt;"</code></td>
+<td><code>internal/controller/incident.go:79</code></td>
+</tr>
+<tr>
+<td>Ticketing TaskRun ID format <code>tr-&lt;ticketID&gt;-&lt;unixMilli&gt;</code></td>
+<td><code>internal/controller/controller.go:614</code></td>
+</tr>
+<tr>
+<td>Incident TaskRun ID format <code>tr-incident-&lt;lower(incidentID)&gt;-&lt;eventSuffix&gt;-&lt;unixMilli&gt;</code></td>
+<td><code>internal/controller/incident.go:119-123</code></td>
+</tr>
+<tr>
+<td>Empty <code>RepoURL</code> produces a workspace-only prompt with no git instructions</td>
+<td><code>pkg/engine/claudecode/engine.go:563-566</code></td>
+</tr>
+<tr>
+<td>Non-empty <code>RepoURL</code> produces the full clone/branch/push/MR prompt, further branching on <code>SessionID</code>, <code>PriorBranchName</code>, <code>PriorMergeRequestURL</code></td>
+<td><code>pkg/engine/claudecode/engine.go:423-562</code></td>
+</tr>
+<tr>
+<td><code>startStreamReader</code> only runs when <code>engineName == "claude-code"</code></td>
+<td><code>internal/controller/controller.go:773</code> (ticketing), <code>internal/controller/incident.go:230-232</code> (incident, via <code>defaultIncidentEngine</code> constant)</td>
+</tr>
+<tr>
+<td>Pre-start approval gate (<code>hasApprovalGate("pre_start")</code>) exists for ticketing, is skipped entirely for incident triage</td>
+<td><code>internal/controller/controller.go:633-666</code>; no equivalent call in <code>incident.go</code></td>
+</tr>
+<tr>
+<td>Pre-merge approval gate (<code>hasApprovalGate("pre_merge")</code>) exists for ticketing's <code>handleJobComplete</code>, applies today to incident runs too because they share <code>handleJobComplete</code></td>
+<td><code>internal/controller/controller.go:908-945</code></td>
+</tr>
+<tr>
+<td>Episodic memory query and <code>runNotifyStart</code> run for ticketing only</td>
+<td><code>internal/controller/controller.go:670-687</code> (memory), <code>controller.go:708</code> (<code>runNotifyStart</code>); <code>incident.go:64-70</code> documents both as skipped</td>
+</tr>
+<tr>
+<td><code>ticketing.MarkInProgress</code> runs for ticketing only</td>
+<td><code>internal/controller/controller.go:765</code></td>
+</tr>
+<tr>
+<td>Per-flow Slack config: <code>IncidentTriage.SlackChannelID</code> / <code>SlackTokenSecret</code>, falling back to the first <code>Notifications.Channels</code> entry when empty</td>
+<td><code>internal/controller/incident.go:147-171</code>, config fields at <code>internal/config/config.go:199-216</code></td>
+</tr>
+<tr>
+<td>Per-flow incident.io MCP credentials: <code>IncidentTriage.IncidentIOAPIKeySecret</code> sets <code>SecretKeyRefs["INCIDENT_IO_API_KEY"]</code>, which <code>setup-claude.sh</code> reads to register the MCP server</td>
+<td><code>internal/controller/incident.go:172-185</code>; <code>internal/config/config.go:218-224</code>; <code>docker/engine-claude-code/setup-claude.sh:54-55</code></td>
+</tr>
+<tr>
+<td>Webhook route <code>/webhooks/incident-io</code>, Svix signature verification</td>
+<td><code>internal/webhook/server.go:177</code>; <code>internal/webhook/incident.go:202</code> (<code>verifySvixSignature</code>); <code>IncidentIOWebhookConfig</code> at <code>internal/config/config.go:174-181</code></td>
+</tr>
+<tr>
+<td>Known incident-UUID wart: <code>handleJobComplete</code> calls <code>ticketing.MarkComplete(ctx, tr.TicketID, result)</code> with the incident ID as <code>TicketID</code>; the ticketing backend does not recognise it, logs a non-fatal error</td>
+<td><code>internal/controller/controller.go:1044-1050</code>; documented at <code>internal/controller/incident.go:72-77</code></td>
+</tr>
+<tr>
+<td>Same wart on the failure path: <code>handleJobFailed</code> calls <code>ticketing.MarkFailed(ctx, tr.TicketID, reason)</code></td>
+<td><code>internal/controller/controller.go:1533-1539</code></td>
+</tr>
+</tbody>
+</table>
+<p>The last two rows are warts, not features, but "do not break" still applies
+in the narrow sense that today they degrade gracefully (a logged error, not a
+crash). Section 6 proposes fixing them as part of this refactor rather than
+preserving them, because a use-case-aware result handler makes the fix
+nearly free and the current behaviour produces noisy, confusing logs on
+every single incident run.</p>
+<h2 id="3-decision-descriptor-with-hooks-not-an-interface-not-pure-config">3. Decision: descriptor with hooks, not an interface, not pure config<a class="headerlink" href="#3-decision-descriptor-with-hooks-not-an-interface-not-pure-config" title="Permanent link">&para;</a></h2>
+<p>Three shapes were considered.</p>
+<p><strong>Option A: fat <code>UseCase</code> interface.</strong> Each use case implements a Go interface
+with a <code>Process(ctx, event) error</code> method that owns its entire pipeline,
+mirroring how <code>ProcessTicket</code> and <code>ProcessIncidentEvent</code> work today. This is
+the least disruptive option but does not solve the actual problem: it
+formalises "one bespoke function per use case" instead of removing the
+duplication. A third consumer under this option is still a full rewrite of
+job launch, idempotency, gate checks, and completion handling.</p>
+<p><strong>Option B: pure YAML/config-driven use cases.</strong> Execution mode, result
+handler, gates, and prompt shape are all declared in <code>osmia-config.yaml</code> with
+no per-use-case Go code. This was rejected because several of the
+distinguishing behaviours are not declarative: how the idempotency key is
+built, how the TaskRun ID is formatted (DNS-1123 constraints differ per
+source system), which fields populate <code>engine.Task</code>, and how Slack fallback
+resolves are all pieces of logic, not scalar config values. Forcing this
+logic into a config DSL would recreate a worse version of Go inside YAML.</p>
+<p><strong>Option C (chosen): a data-driven <code>Definition</code> descriptor with hook
+functions, plus a <code>ResultHandler</code> interface, in a new <code>internal/usecase</code>
+package.</strong> A use case is a struct of small, mostly-pure functions (build the
+idempotency key, build the TaskRun ID, build the <code>engine.Task</code>, decide which
+gates apply) registered by name. The shared pipeline in the controller loops
+over data (which gates apply, which execution mode, which result handler)
+rather than branching on <code>if engineName == "claude-code"</code>-style ad hoc
+checks scattered through two files. New use cases are additions to a
+registry map, not new top-level <code>ProcessX</code> functions.</p>
+<p>The test this design must pass: <strong>adding a third consumer (the roadmap-24
+read-only analysis flow) should require one new <code>Definition</code> value and one
+new config block, not a new file that duplicates <code>ProcessTicket</code>'s
+plumbing.</strong> Section 4 defines the <code>Definition</code> shape that makes this true.</p>
+<h2 id="4-use-case-model">4. Use-case model<a class="headerlink" href="#4-use-case-model" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">package</span><span class="w"> </span><span class="nx">usecase</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1">// Definition describes one dispatch pipeline shape. It is a set of hook</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1">// functions and declarative flags, not a Process() entry point: the</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1">// shared controller pipeline calls these hooks in a fixed order, so a</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1">// new use case cannot silently skip a step the way a hand-written</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1">// ProcessX function could.</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Definition</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nx">Name</span><span class="w">          </span><span class="kt">string</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nx">ExecutionMode</span><span class="w"> </span><span class="nx">ExecutionMode</span><span class="w"> </span><span class="c1">// see section 5</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nx">Gates</span><span class="w">         </span><span class="nx">Gates</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nx">Results</span><span class="w">       </span><span class="nx">ResultHandler</span><span class="w"> </span><span class="c1">// see section 6</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nx">Shadow</span><span class="w">        </span><span class="nx">ShadowConfig</span><span class="w">  </span><span class="c1">// see section 7</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nx">IdempotencyKey</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">event</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="nx">TaskRunID</span><span class="w">      </span><span class="kd">func</span><span class="p">(</span><span class="nx">event</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="nx">BuildTask</span><span class="w">      </span><span class="kd">func</span><span class="p">(</span><span class="nx">event</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Task</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="nx">ConfigureEngine</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cfg</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">EngineConfig</span><span class="p">,</span><span class="w"> </span><span class="nx">event</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">}</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="c1">// Gates is a boolean set. Every field defaults to false so a new use</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="c1">// case is gate-free (matching incident triage's current behaviour)</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="c1">// unless it opts in explicitly.</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Gates</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="nx">PreStart</span><span class="w">          </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// hold in NeedsHuman before launch</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="nx">PreMerge</span><span class="w">          </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// hold in NeedsHuman before marking complete</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span><span class="nx">CodeReview</span><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// run the configured review backend</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span><span class="nx">EpisodicMemory</span><span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// query memory before building the prompt</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">    </span><span class="nx">NotifyStart</span><span class="w">       </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// runNotifyStart / thread-ref injection</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">    </span><span class="nx">MarkInProgress</span><span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// ticketing.MarkInProgress call</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="p">}</span>
+</code></pre></div>
+<p>Gate table for the two existing consumers, derived from section 2's
+citations:</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Ticketing</th>
+<th>Incident triage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PreStart</code></td>
+<td>true (<code>controller.go:633</code>)</td>
+<td>false</td>
+</tr>
+<tr>
+<td><code>PreMerge</code></td>
+<td>true (<code>controller.go:908</code>, currently applies to incident runs too as a side effect of sharing <code>handleJobComplete</code>, see section 6)</td>
+<td>false today, becomes explicitly false under the refactor</td>
+</tr>
+<tr>
+<td><code>CodeReview</code></td>
+<td>true if <code>config.CodeReview.Enabled</code> (<code>controller.go:950</code>)</td>
+<td>false</td>
+</tr>
+<tr>
+<td><code>EpisodicMemory</code></td>
+<td>true (<code>controller.go:670-687</code>)</td>
+<td>false</td>
+</tr>
+<tr>
+<td><code>NotifyStart</code></td>
+<td>true (<code>controller.go:708</code>)</td>
+<td>false</td>
+</tr>
+<tr>
+<td><code>MarkInProgress</code></td>
+<td>true (<code>controller.go:765</code>)</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>The registry is a <code>map[string]*Definition</code> keyed by name (for example
+<code>"ticketing"</code>, <code>"incident_triage"</code>). A new field, <code>TaskRun.UseCase string</code>,
+is persisted alongside the existing <code>TaskRun</code> fields
+(<code>internal/taskrun/taskrun.go:56-</code> onward has no such field today) so that
+<code>handleJobComplete</code> and <code>handleJobFailed</code> can look up the right
+<code>Definition</code> for an in-flight or resumed TaskRun without re-deriving it from
+the TaskRun ID's shape.</p>
+<p>Until that field exists on every persisted TaskRun, the <code>tr-incident-</code>
+prefix on the TaskRun ID (<code>internal/controller/incident.go:119</code>) is the only
+signal available for inferring use case on old records. The refactor should
+add a small legacy-inference shim, "TaskRun IDs starting with <code>tr-incident-</code>
+without a persisted <code>UseCase</code> field are the incident_triage use case,
+everything else is ticketing", and that shim should be removed at a release
+boundary once no unresolved TaskRuns from before the migration remain (see
+section 8).</p>
+<p>Scope note: this design covers the launch tail and completion/failure
+dispatch. <code>ProcessTicket</code>'s front half, repo-URL resolution, Slack polling,
+engine selection, cost estimation, and tournament dispatch
+(<code>controller.go:530-610</code>), is out of scope for v1 and stays as-is; incident
+triage does not use any of it today, and folding it into the shared
+descriptor is a separate, larger piece of work that is not required to
+satisfy roadmap item 24.</p>
+<h2 id="5-execution-mode-taxonomy">5. Execution-mode taxonomy<a class="headerlink" href="#5-execution-mode-taxonomy" title="Permanent link">&para;</a></h2>
+<p>Roadmap item 24 already names the three modes needed:</p>
+<ul>
+<li><code>clone_push_mr</code>: today's default. Clone, branch, commit, push, open an MR.</li>
+<li><code>read_only</code>: no git clone; the agent works against a live checkout or
+  read-only mirror, or does not touch a repository filesystem at all.</li>
+<li><code>api_read</code>: no workspace, no clone; the agent only calls SCM/ticketing
+  APIs (for example, "list open MRs needing review").</li>
+</ul>
+<p>This should become an explicit field, <code>ExecutionMode</code> on <code>Definition</code> and
+(where a task can vary per-instance rather than per-use-case) an
+<code>engine.Task.ExecutionMode</code> field, rather than being inferred solely from
+<code>RepoURL</code> presence as it is today.</p>
+<p>The existing inference must be preserved exactly, because it is what every
+engine's <code>BuildPrompt</code> currently branches on:</p>
+<ul>
+<li><code>RepoURL == ""</code> produces the plain "work in /workspace, write
+  result.json" prompt with no git instructions
+  (<code>pkg/engine/claudecode/engine.go:563-566</code>).</li>
+<li><code>RepoURL != ""</code> produces the full clone/branch/push/MR flow, further
+  branching on <code>SessionID</code> (resumed session skips clone,
+  <code>engine.go:498-515</code>), <code>PriorBranchName</code> (recovery clone of a prior
+  branch, <code>engine.go:432-453</code>), and <code>PriorMergeRequestURL</code> (push to
+  existing MR instead of opening a new one, <code>engine.go:485-494</code>).</li>
+</ul>
+<p>The recommended approach is an <code>effectiveMode()</code> helper: if
+<code>Definition.ExecutionMode</code> is unset, fall back to the empty-<code>RepoURL</code>
+convention indefinitely, so this is additive rather than a breaking change
+to every engine's <code>BuildPrompt</code>. Concretely:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">effectiveMode</span><span class="p">(</span><span class="nx">task</span><span class="w"> </span><span class="nx">engine</span><span class="p">.</span><span class="nx">Task</span><span class="p">,</span><span class="w"> </span><span class="nx">def</span><span class="w"> </span><span class="o">*</span><span class="nx">Definition</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecutionMode</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">def</span><span class="p">.</span><span class="nx">ExecutionMode</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">""</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">def</span><span class="p">.</span><span class="nx">ExecutionMode</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">task</span><span class="p">.</span><span class="nx">RepoURL</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">""</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">ModeAPIRead</span><span class="w"> </span><span class="c1">// or ModeReadOnly, see open questions</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">ModeClonePushMR</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>Each engine's <code>BuildPrompt</code> and <code>BuildExecutionSpec</code> would eventually branch
+on <code>effectiveMode()</code> instead of <code>task.RepoURL != ""</code> directly, but the
+inferred default for existing callers does not change, so this can land
+without touching every engine implementation in the same PR. This taxonomy
+should be coordinated with any parallel engine-parity work on the prompt
+contract (for example Codex/Aider <code>BuildPrompt</code> equivalents), since
+<code>read_only</code> and <code>api_read</code> prompts need equivalent treatment in every
+engine, not only claude-code.</p>
+<h2 id="6-result-handler-taxonomy">6. Result-handler taxonomy<a class="headerlink" href="#6-result-handler-taxonomy" title="Permanent link">&para;</a></h2>
+<p>Three handlers, one already implicit, one fixing existing warts, one new:</p>
+<ul>
+<li><strong><code>open_mr</code></strong> (today's implicit ticketing behaviour): on success, call
+  <code>ticketing.MarkComplete</code>; on failure, call <code>ticketing.MarkFailed</code>; both
+  keyed on <code>tr.TicketID</code>, which is a real ticket ID for this use case.</li>
+<li><strong><code>notify_only</code></strong>: on success or failure, skip <code>ticketing.MarkComplete</code> /
+  <code>MarkFailed</code> entirely and only run the notification path
+  (<code>r.notifiers</code>, <code>updateNotificationStatus</code>). This directly fixes both
+  warts in section 2: incident triage's <code>TicketID</code> is an incident UUID that
+  no ticketing backend recognises, and today's code calls
+  <code>MarkComplete</code>/<code>MarkFailed</code> on it anyway
+  (<code>controller.go:1044-1050</code>, <code>controller.go:1533-1539</code>), producing a
+  logged-but-ignored error on every single incident run. Under
+  <code>notify_only</code>, incident triage's result handler simply does not call
+  either ticketing method, so the error disappears rather than being
+  suppressed after the fact.</li>
+<li><strong><code>comment_and_notify</code></strong> (new, per roadmap item 24): on success, post the
+  agent's summary as a ticket comment (distinct from <code>MarkComplete</code>, which
+  transitions ticket state) and notify configured channels; no MR is
+  expected. This is the handler a read-only analysis use case would use.</li>
+</ul>
+<p>Dispatch becomes a lookup on <code>Definition.Results</code> (an interface with
+<code>OnSuccess(ctx, tr, result) error</code> and <code>OnFailure(ctx, tr, reason) error</code>)
+inside <code>handleJobComplete</code> and <code>handleJobFailed</code>, replacing the current
+unconditional <code>r.ticketing.MarkComplete</code> / <code>MarkFailed</code> calls at
+<code>controller.go:1044-1050</code> and <code>controller.go:1533-1539</code>.</p>
+<p><strong>Behaviour tightening to flag explicitly:</strong> today, because
+<code>handleJobComplete</code> is shared code with no use-case awareness, incident
+runs pass through the exact same pre-merge approval gate check as ticketing
+runs (<code>controller.go:908</code>, <code>hasApprovalGate("pre_merge")</code>). In practice this
+gate is never held for incident runs today only because operators do not
+configure a <code>pre_merge</code> gate on deployments that also run incident triage,
+not because the code prevents it. Once <code>Gates.PreMerge</code> is explicit per
+<code>Definition</code> (section 4) and incident triage's <code>Definition</code> sets it to
+<code>false</code>, an incident run can no longer be accidentally held at a pre-merge
+approval gate, even if an operator later enables that gate for the
+ticketing flow. This is a deliberate behaviour change, not an oversight: it
+formalises what is currently true only by convention, but it means an
+operator who was relying on the shared code path to gate incident runs
+(unlikely, since no config exposes that combination as intentional) would
+need to add an explicit incident-triage gate config once one exists.</p>
+<h2 id="7-shadow-mode">7. Shadow mode<a class="headerlink" href="#7-shadow-mode" title="Permanent link">&para;</a></h2>
+<p>Shadow mode lets a use case run end to end, including calling out to
+external systems for read purposes, while suppressing any write/mutating
+side effect (ticket state changes, MR creation, Slack "task complete"
+posts) so that a new use case or a risky prompt change can be validated in
+production traffic without user-visible consequences.</p>
+<p><strong>Config surface.</strong> A global <code>shadow</code> block sets the default; each use
+case's config block, for example <code>incident_triage.shadow</code>, can override it;
+a task-profile-level flag can override both for a specific task type.
+Default is off everywhere. This mirrors the existing per-flow override
+pattern already used for <code>IncidentTriage.Engine</code> and
+<code>IncidentTriage.AppendSystemPrompt</code> (<code>internal/config/config.go:188-225</code>).</p>
+<p><strong>Four enforcement layers</strong>, from strongest to weakest:</p>
+<ol>
+<li><strong>Controller-enforced result-handler suppression (hard).</strong> When
+   <code>TaskRun.Shadow</code> is true, the <code>Definition.Results</code> dispatch in section 6
+   is bypassed entirely in favour of a shadow-only handler that logs the
+   would-be action and posts to a dedicated shadow-feedback channel
+   instead of calling <code>ticketing.MarkComplete</code>/<code>MarkFailed</code>, posting a
+   real Slack completion message, or registering an MR with the review
+   poller. This layer also suppresses <code>recordTaskOutcome</code> and
+   <code>extractMemory</code> (<code>controller.go:1073</code>, <code>controller.go:1093</code>), because
+   shadow runs should not influence engine calibration or episodic memory
+   built from real production outcomes.</li>
+<li><strong>Prompt preamble plus <code>ProposedActions</code> (soft).</strong> The prompt gains a
+   preamble telling the agent it is running in shadow mode: it should
+   still do its normal analysis and decide what it would do, but describe
+   the action rather than performing it where practical (for example,
+   describe the MR it would open rather than opening one). <code>TaskResult</code>
+   gains a <code>ProposedActions []string</code> field for the agent to report this
+   explicitly. This layer is soft because it depends on the agent
+   following the instruction; nothing in the harness verifies compliance.</li>
+<li><strong>In-pod PreToolUse guard hook (nominally hard, honestly mostly
+   inert).</strong> The plan for this layer is a <code>PreToolUse</code> hook that blocks
+   mutating tool calls (git push, SCM write calls) when <code>OSMIA_SHADOW=1</code>
+   is set in the pod environment, merged into
+   <code>GenerateHooksConfig</code>'s existing <code>Bash</code>/<code>Write|Edit</code> matcher blocks
+   (<code>pkg/engine/claudecode/hooks.go:71-133</code>). Three things must be stated
+   honestly about this layer, because they materially weaken it:</li>
+<li><code>GenerateHooksConfig</code> has no production caller today; the only
+     caller in the repository is its own test,
+     <code>pkg/engine/claudecode/engine_test.go:1243</code>. The generated hooks
+     JSON is never written into a running pod's settings.</li>
+<li><code>docker/engine-claude-code/settings.json</code> ships only a <code>permissions</code>
+     block; it has no <code>hooks</code> key at all today.</li>
+<li>The scripts a hooks config would reference
+     (<code>/opt/osmia/hooks/heartbeat.sh</code>, <code>/opt/osmia/hooks/on-complete.sh</code>)
+     do not exist on disk; only <code>block-dangerous-commands.sh</code> and
+     <code>block-sensitive-files.sh</code> exist, in
+     <code>docker/engine-claude-code/hooks/</code>.</li>
+<li>Even once wired, a <code>Bash</code>/<code>Write|Edit</code> matcher hook cannot intercept
+     MCP tool calls (for example a hypothetical ticket-comment MCP tool),
+     because MCP tool invocations are a different tool-call shape and do
+     not match those matchers. So this layer, even at full strength, only
+     covers shell/file-write mutation, not MCP-mediated mutation.</li>
+</ol>
+<p>Given this, layer 3 should be described in any shadow-mode
+   implementation plan as a gap to close, not a control that already
+   exists. Layer 1 (controller-enforced suppression) is the layer that
+   actually protects production state today and should be treated as the
+   real guarantee; layers 2 and 3 are best-effort/defence-in-depth once
+   built.
+4. <strong>Credential minimisation (documented, not enforced).</strong> Operators
+   running shadow-mode use cases are advised to configure a read-only or
+   scoped-down SCM/ticketing token for the shadow deployment, since the
+   harness itself does not currently enforce least-privilege on a
+   per-shadow-run basis. This is a deployment-time recommendation, not a
+   code-level control.</p>
+<p><strong>Annotations and observability.</strong> A <code>TaskRun.Shadow bool</code> field, a Job
+label <code>osmia.io/shadow: "true"</code>, and a new Prometheus counter
+<code>osmia_shadow_task_runs_total</code> (labelled by use case and outcome) give
+operators a way to find and count shadow runs distinctly from real ones.</p>
+<p><strong>Feedback loop, v1 scope.</strong> For the first version, feedback from shadow
+runs is a structured post to a dedicated shadow-feedback channel (what the
+agent proposed, whether it succeeded, cost, duration), for a human to read
+and compare against expectations. Automated comparison against a golden
+set, or promotion of a shadow use case to live status, is out of scope for
+v1 and is not designed here.</p>
+<h2 id="8-migration-and-sequencing">8. Migration and sequencing<a class="headerlink" href="#8-migration-and-sequencing" title="Permanent link">&para;</a></h2>
+<p>The downstream ArgoCD deployment tracks <code>main</code> continuously (see project
+memory: the <code>0.0.0-edge</code> Helm chart is republished on every push to <code>main</code>
+and pulled automatically). This means every merged PR in this refactor must
+leave the system in a fully working, individually deployable state; there
+is no batched "big bang" release to hide behind.</p>
+<p>Recommended sequencing:</p>
+<ol>
+<li><strong>Contract tests first.</strong> Write tests that pin every row in section 2's
+   do-not-break table (idempotency key formats, TaskRun ID formats, prompt
+   branching on <code>RepoURL</code>/<code>SessionID</code>/<code>PriorBranchName</code>, gate applicability
+   per flow, the two <code>MarkComplete</code>/<code>MarkFailed</code> call sites) against
+   today's code, before any refactor lands. These tests are the safety net
+   for every subsequent step.</li>
+<li><strong>Strangler refactor</strong>, one behaviour at a time, each landing as its own
+   deployable PR: introduce the <code>internal/usecase</code> package and
+   <code>Definition</code> type without changing any call site; wire
+   <code>ProcessIncidentEvent</code> to build its <code>Definition</code> and route through the
+   new gate/result-handler dispatch (this is the PR that fixes the
+   <code>MarkComplete</code>/<code>MarkFailed</code> warts, since incident triage is the
+   simpler of the two flows to convert first); leave <code>ProcessTicket</code>'s
+   front half untouched per section 4's scope note and only route its
+   completion/failure tail through the same dispatch that
+   <code>ProcessIncidentEvent</code> now uses.</li>
+<li><strong>Release boundary before removing the <code>tr-incident-</code> legacy shim</strong>
+   (section 4). The shim can only be safely deleted once every
+   in-flight/resumable TaskRun created before the <code>TaskRun.UseCase</code> field
+   existed has reached a terminal state, which in practice means picking a
+   release/version boundary and documenting it (analogous to the
+   <code>NoSessionPersistence</code> field removal precedent already in this
+   codebase) rather than deleting it opportunistically.</li>
+</ol>
+<h2 id="9-open-questions">9. Open questions<a class="headerlink" href="#9-open-questions" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Mutating incident.io MCP tool deny-list naming.</strong> Once incident triage
+  gains any mutating incident.io MCP tools (for example, updating incident
+  status), shadow mode's layer 3 (section 7) needs a name-based deny-list
+  for those specific MCP tool names, since matcher-based hooks cannot see
+  them. What that deny-list configuration surface looks like (per-tool
+  allow-list versus deny-list, where it is declared) is not decided here.</li>
+<li><strong>Read-only token strategy for clone-mode shadow.</strong> If a shadow-mode use
+  case still uses <code>clone_push_mr</code> execution mode (to validate a prompt
+  change end to end before trusting it with real MRs), what credential
+  should it clone with so that an agent cannot push even if layer 1 or 2
+  fails? A read-only deploy token scoped per shadow run is one option; the
+  operational cost of provisioning those tokens is not assessed here.</li>
+<li><strong>Whether to fix the hooks-wiring gap as part of this work.</strong> Section
+  7's honest note is that <code>GenerateHooksConfig</code> is currently dead code with
+  no caller, no corresponding <code>hooks</code> key in <code>settings.json</code>, and missing
+  target scripts. Should wiring it up (calling it from job/pod setup,
+  writing <code>heartbeat.sh</code>/<code>on-complete.sh</code>, adding the <code>hooks</code> key to
+  <code>settings.json</code>) be done as a prerequisite PR in this same sequencing, or
+  tracked as a separate, independent piece of work? This document takes no
+  position; it only records that shadow mode's layer 3 depends on that gap
+  being closed to be more than aspirational.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 Unitary AI — Apache 2.0 Licence
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/unitaryai/osmia" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

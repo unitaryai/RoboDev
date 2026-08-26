@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1046,6 +1046,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../designs/use-case-abstraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use-Case Abstraction (Design)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1711,6 +1739,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Pull Requests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changelog-fragments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changelog fragments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2092,6 +2137,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Pull Requests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changelog-fragments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changelog fragments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2340,9 +2402,26 @@ running) and <code>jq</code>, and skips cleanly (exit 0) when either is unavaila
 <ul>
 <li>Keep PRs focused — one logical change per PR</li>
 <li>Update documentation as needed</li>
-<li>Add an entry to <code>CHANGELOG.md</code> under "Unreleased"</li>
+<li>Add a changelog fragment (see below)</li>
 <li>Ensure CI passes before requesting review</li>
 </ul>
+<h3 id="changelog-fragments">Changelog fragments<a class="headerlink" href="#changelog-fragments" title="Permanent link">&para;</a></h3>
+<p>Do not edit <code>CHANGELOG.md</code>. Add a new file under <code>changelog.d/</code> instead,
+named <code>+&lt;slug&gt;.&lt;category&gt;.md</code>, where the category is one of <code>added</code>,
+<code>changed</code>, <code>deprecated</code>, <code>removed</code>, <code>fixed</code> or <code>security</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>changelog.d/+wire-task-scoped-secrets.added.md
+</code></pre></div>
+<p>The contents are the entry as it should read in the released notes, written
+as prose without a leading <code>-</code>. See
+<a href="https://github.com/unitaryai/osmia/blob/main/changelog.d/README.md"><code>changelog.d/README.md</code></a>
+for the full conventions.</p>
+<p>One file per change means two PRs in flight never touch the same lines.
+Appending to a shared "Unreleased" section conflicted every time, and every
+merge then forced a rebase on everything behind it.</p>
+<p>You do not need <code>towncrier</code> installed to add a fragment. It is run once per
+release, by a maintainer.</p>
+<p>Purely internal changes that no user or operator would notice need no
+fragment. A refactor that changes observable behaviour does.</p>
 <h2 id="dev-releases-edge-deployments">Dev Releases (Edge Deployments)<a class="headerlink" href="#dev-releases-edge-deployments" title="Permanent link">&para;</a></h2>
 <p>Every push to <code>main</code> automatically publishes:</p>
 <ul>
@@ -2353,40 +2432,40 @@ running) and <code>jq</code>, and skips cleanly (exit 0) when either is unavaila
 <code>appVersion</code> is set to the full git SHA so you can trace exactly which commit is
 running.</p>
 <h3 id="consuming-the-edge-chart">Consuming the edge chart<a class="headerlink" href="#consuming-the-edge-chart" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>osmia<span class="w"> </span>https://unitaryai.github.io/osmia
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>helm<span class="w"> </span>repo<span class="w"> </span>update
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Inspect the dev chart (--devel required for pre-release versions)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>helm<span class="w"> </span>show<span class="w"> </span>chart<span class="w"> </span>osmia/osmia<span class="w"> </span>--version<span class="w"> </span><span class="m">0</span>.0.0-edge<span class="w"> </span>--devel
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Install/upgrade with the edge chart</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>osmia<span class="w"> </span>osmia/osmia<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span>--version<span class="w"> </span><span class="m">0</span>.0.0-edge<span class="w"> </span>--devel<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span>--set<span class="w"> </span>image.tag<span class="o">=</span>main<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span>--set<span class="w"> </span>image.pullPolicy<span class="o">=</span>Always
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>osmia<span class="w"> </span>https://unitaryai.github.io/osmia
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>helm<span class="w"> </span>repo<span class="w"> </span>update
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Inspect the dev chart (--devel required for pre-release versions)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>helm<span class="w"> </span>show<span class="w"> </span>chart<span class="w"> </span>osmia/osmia<span class="w"> </span>--version<span class="w"> </span><span class="m">0</span>.0.0-edge<span class="w"> </span>--devel
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Install/upgrade with the edge chart</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>osmia<span class="w"> </span>osmia/osmia<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span>--version<span class="w"> </span><span class="m">0</span>.0.0-edge<span class="w"> </span>--devel<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">  </span>--set<span class="w"> </span>image.tag<span class="o">=</span>main<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">  </span>--set<span class="w"> </span>image.pullPolicy<span class="o">=</span>Always
 </code></pre></div>
 <h3 id="switching-argocd-between-dev-and-release-mode">Switching ArgoCD between dev and release mode<a class="headerlink" href="#switching-argocd-between-dev-and-release-mode" title="Permanent link">&para;</a></h3>
 <p><strong>Dev mode</strong> — track <code>main</code> continuously (no semver release needed):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># kustomization.yaml</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0.0-edge</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># values.yaml</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nt">image</span><span class="p">:</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">pullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Always</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="nt">engines</span><span class="p">:</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="nt">claude-code</span><span class="p">:</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/unitaryai/osmia/engine-claude-code:main</span>
-</code></pre></div>
-<p><strong>Release mode</strong> — pin to a specific semver release:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># kustomization.yaml</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">X.Y.Z</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0.0-edge</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># values.yaml</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nt">image</span><span class="p">:</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;X.Y.Z&quot;</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nt">pullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="c1"># remove engines.claude-code.image override (uses chart default)</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s">"main"</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nt">pullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Always</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nt">engines</span><span class="p">:</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="nt">claude-code</span><span class="p">:</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/unitaryai/osmia/engine-claude-code:main</span>
+</code></pre></div>
+<p><strong>Release mode</strong> — pin to a specific semver release:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># kustomization.yaml</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">X.Y.Z</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># values.yaml</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nt">image</span><span class="p">:</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s">"X.Y.Z"</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nt">pullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1"># remove engines.claude-code.image override (uses chart default)</span>
 </code></pre></div>
 <h3 id="dev-vs-full-release">Dev vs full release<a class="headerlink" href="#dev-vs-full-release" title="Permanent link">&para;</a></h3>
 <table>
@@ -2429,22 +2508,34 @@ repository (<code>https://unitaryai.github.io/osmia</code>).</p>
 <li>Patch (<code>x.y.Z</code>) for bug fixes</li>
 <li>Minor (<code>x.Y.0</code>) for new features (backward-compatible)</li>
 <li>Major (<code>X.0.0</code>) for breaking changes</li>
-<li><strong>Stamp <code>CHANGELOG.md</code></strong> — move the <code>[Unreleased]</code> section to a new
-   <code>[x.y.z] - YYYY-MM-DD</code> heading. Add a fresh empty <code>[Unreleased]</code> above it.</li>
-<li><strong>Bump <code>charts/osmia/Chart.yaml</code></strong> — set both <code>version</code> and <code>appVersion</code> to
+<li><strong>Build <code>CHANGELOG.md</code></strong> — assemble the fragments in <code>changelog.d/</code> into a
+   new release section:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uvx<span class="w"> </span>towncrier<span class="w"> </span>build<span class="w"> </span>--version<span class="w"> </span>x.y.z
+</code></pre></div>
+<p>Pass the version <strong>without</strong> the <code>v</code> prefix, so the heading matches every
+   prior release. Preview first with <code>--draft</code>, which writes nothing. The
+   build consumes the fragments, so their deletion is part of the release
+   commit. Configuration is in <code>towncrier.toml</code>.</p>
+<p>Entries are ordered alphabetically within each category, not by
+   importance. Reorder by hand afterwards if a release has an entry that
+   should lead.</p>
+<p>On a machine configured against Unitary's private package index, <code>uvx</code>
+   will not find <code>towncrier</code> on that index. Prefix the command with
+   <code>UV_NO_CONFIG=1</code> and add <code>--default-index https://pypi.org/simple</code>.
+4. <strong>Bump <code>charts/osmia/Chart.yaml</code></strong> — set both <code>version</code> and <code>appVersion</code> to
    the new version (without the <code>v</code> prefix). The <code>chart-releaser-action</code> uses
    this to decide whether to publish; if it matches an already-published version
-   the chart release is silently skipped.</li>
-<li><strong>Commit</strong> — <code>chore: release vX.Y.Z</code></li>
-<li><strong>Tag</strong> — <code>git tag vX.Y.Z</code></li>
-<li><strong>Push both</strong> — <code>git push &amp;&amp; git push origin vX.Y.Z</code></li>
-<li><strong>Verify the release pipeline</strong> — check GitHub Actions for:</li>
-<li>Container images built and pushed to <code>ghcr.io</code></li>
-<li>Images signed with cosign</li>
-<li>Helm chart published to the <code>gh-pages</code> branch</li>
-<li><strong>Verify ArgoCD</strong> (if applicable) — confirm the new chart version is
-   available: <code>helm repo update &amp;&amp; helm search repo osmia</code></li>
-</ol>
+   the chart release is silently skipped.
+5. <strong>Commit</strong> — <code>chore: release vX.Y.Z</code>
+6. <strong>Tag</strong> — <code>git tag vX.Y.Z</code>
+7. <strong>Push both</strong> — <code>git push &amp;&amp; git push origin vX.Y.Z</code>
+8. <strong>Verify the release pipeline</strong> — check GitHub Actions for:
+   - Container images built and pushed to <code>ghcr.io</code>
+   - Images signed with cosign
+   - Helm chart published to the <code>gh-pages</code> branch
+9. <strong>Verify ArgoCD</strong> (if applicable) — confirm the new chart version is
+   available: <code>helm repo update &amp;&amp; helm search repo osmia</code></p>
 <h3 id="common-mistakes">Common mistakes<a class="headerlink" href="#common-mistakes" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Forgetting <code>Chart.yaml</code></strong> — the most common failure. If <code>version</code> in
@@ -2537,7 +2628,7 @@ repository (<code>https://unitaryai.github.io/osmia</code>).</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

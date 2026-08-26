@@ -10,31 +10,27 @@
       
       
       
-        <link rel="canonical" href="https://unitaryai.github.io/osmia/security-policy/">
+        <link rel="canonical" href="https://unitaryai.github.io/osmia/adr/0002-managed-agents-self-hosted-sandbox-interop/">
       
       
-        <link rel="prev" href="../code-of-conduct/">
-      
-      
-        <link rel="next" href="../roadmap/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Security Policy - Osmia</title>
+        <title>ADR 0002: Managed Agents self-hosted sandbox interop - Osmia</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#security-policy" class="md-skip">
+        <a href="#adr-0002-managed-agents-self-hosted-sandbox-interop" class="md-skip">
           Skip to content
         </a>
       
@@ -94,7 +90,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Osmia" class="md-header__button md-logo" aria-label="Osmia" data-md-component="logo">
+    <a href="../.." title="Osmia" class="md-header__button md-logo" aria-label="Osmia" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Security Policy
+              ADR 0002: Managed Agents self-hosted sandbox interop
             
           </span>
         </div>
@@ -232,7 +228,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Osmia" class="md-nav__button md-logo" aria-label="Osmia" data-md-component="logo">
+    <a href="../.." title="Osmia" class="md-nav__button md-logo" aria-label="Osmia" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +258,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -343,7 +339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -371,7 +367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/docker-compose/" class="md-nav__link">
+      <a href="../../getting-started/docker-compose/" class="md-nav__link">
         
   
   
@@ -399,7 +395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/kubernetes/" class="md-nav__link">
+      <a href="../../getting-started/kubernetes/" class="md-nav__link">
         
   
   
@@ -427,7 +423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/github-issues-slack/" class="md-nav__link">
+      <a href="../../getting-started/github-issues-slack/" class="md-nav__link">
         
   
   
@@ -455,7 +451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/shortcut-slack/" class="md-nav__link">
+      <a href="../../getting-started/shortcut-slack/" class="md-nav__link">
         
   
   
@@ -483,7 +479,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/linear-slack/" class="md-nav__link">
+      <a href="../../getting-started/linear-slack/" class="md-nav__link">
         
   
   
@@ -511,7 +507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/configuration/" class="md-nav__link">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -539,7 +535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/troubleshooting/" class="md-nav__link">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
         
   
   
@@ -628,7 +624,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/what-is-osmia/" class="md-nav__link">
+      <a href="../../concepts/what-is-osmia/" class="md-nav__link">
         
   
   
@@ -656,7 +652,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/taskrun-lifecycle/" class="md-nav__link">
+      <a href="../../concepts/taskrun-lifecycle/" class="md-nav__link">
         
   
   
@@ -684,7 +680,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/engines/" class="md-nav__link">
+      <a href="../../concepts/engines/" class="md-nav__link">
         
   
   
@@ -712,7 +708,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/guardrails-overview/" class="md-nav__link">
+      <a href="../../concepts/guardrails-overview/" class="md-nav__link">
         
   
   
@@ -740,7 +736,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/prm/" class="md-nav__link">
+      <a href="../../concepts/prm/" class="md-nav__link">
         
   
   
@@ -768,7 +764,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/memory/" class="md-nav__link">
+      <a href="../../concepts/memory/" class="md-nav__link">
         
   
   
@@ -796,7 +792,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/llm/" class="md-nav__link">
+      <a href="../../concepts/llm/" class="md-nav__link">
         
   
   
@@ -824,7 +820,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/diagnosis/" class="md-nav__link">
+      <a href="../../concepts/diagnosis/" class="md-nav__link">
         
   
   
@@ -852,7 +848,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/estimator/" class="md-nav__link">
+      <a href="../../concepts/estimator/" class="md-nav__link">
         
   
   
@@ -941,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -969,7 +965,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../security/" class="md-nav__link">
+      <a href="../../security/" class="md-nav__link">
         
   
   
@@ -997,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guardrails/" class="md-nav__link">
+      <a href="../../guardrails/" class="md-nav__link">
         
   
   
@@ -1025,7 +1021,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../scaling/" class="md-nav__link">
+      <a href="../../scaling/" class="md-nav__link">
         
   
   
@@ -1053,7 +1049,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../designs/use-case-abstraction/" class="md-nav__link">
+      <a href="../../designs/use-case-abstraction/" class="md-nav__link">
         
   
   
@@ -1142,7 +1138,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/engines/" class="md-nav__link">
+      <a href="../../plugins/engines/" class="md-nav__link">
         
   
   
@@ -1231,7 +1227,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/writing-a-plugin/" class="md-nav__link">
+      <a href="../../plugins/writing-a-plugin/" class="md-nav__link">
         
   
   
@@ -1259,7 +1255,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/ticketing/" class="md-nav__link">
+      <a href="../../plugins/ticketing/" class="md-nav__link">
         
   
   
@@ -1287,7 +1283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/notifications/" class="md-nav__link">
+      <a href="../../plugins/notifications/" class="md-nav__link">
         
   
   
@@ -1315,7 +1311,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/secrets/" class="md-nav__link">
+      <a href="../../plugins/secrets/" class="md-nav__link">
         
   
   
@@ -1343,7 +1339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/sdks/" class="md-nav__link">
+      <a href="../../plugins/sdks/" class="md-nav__link">
         
   
   
@@ -1432,7 +1428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
@@ -1460,7 +1456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/webhooks/" class="md-nav__link">
+      <a href="../../api/webhooks/" class="md-nav__link">
         
   
   
@@ -1488,7 +1484,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/plugins/" class="md-nav__link">
+      <a href="../../api/plugins/" class="md-nav__link">
         
   
   
@@ -1520,8 +1516,6 @@
       
   
   
-    
-  
   
   
     
@@ -1534,11 +1528,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
         
           
           <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
@@ -1559,7 +1555,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1577,7 +1573,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1605,7 +1601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../code-of-conduct/" class="md-nav__link">
+      <a href="../../code-of-conduct/" class="md-nav__link">
         
   
   
@@ -1630,37 +1626,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Security Policy
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../security-policy/" class="md-nav__link">
         
   
   
@@ -1676,87 +1645,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#supported-versions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supported Versions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reporting-a-vulnerability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reporting a Vulnerability
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Reporting a Vulnerability">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#what-to-include" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What to Include
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#response-timeline" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Response Timeline
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#security-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Security Design
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1769,7 +1657,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../roadmap/" class="md-nav__link">
+      <a href="../../roadmap/" class="md-nav__link">
         
   
   
@@ -1797,7 +1685,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -1852,10 +1740,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supported-versions" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Supported Versions
+        Status
       
     </span>
   </a>
@@ -1863,22 +1751,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#reporting-a-vulnerability" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reporting a Vulnerability
+        Context
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Reporting a Vulnerability">
+    <nav class="md-nav" aria-label="Context">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#what-to-include" class="md-nav__link">
+  <a href="#how-self-hosted-sandboxes-work" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What to Include
+        How self-hosted sandboxes work
       
     </span>
   </a>
@@ -1886,10 +1774,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#response-timeline" class="md-nav__link">
+  <a href="#security-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Response Timeline
+        Security model
       
     </span>
   </a>
@@ -1902,10 +1790,71 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#security-design" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Security Design
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prototype-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prototype scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rejected-alternatives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rejected alternatives
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
       
     </span>
   </a>
@@ -1929,7 +1878,7 @@
 
 
   
-    <a href="https://github.com/unitaryai/osmia/edit/main/docs/security-policy.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/unitaryai/osmia/edit/main/docs/adr/0002-managed-agents-self-hosted-sandbox-interop.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1937,41 +1886,155 @@
   
 
 
-<h1 id="security-policy">Security Policy<a class="headerlink" href="#security-policy" title="Permanent link">&para;</a></h1>
-<h2 id="supported-versions">Supported Versions<a class="headerlink" href="#supported-versions" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Version</th>
-<th>Supported</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.x</td>
-<td><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /></td>
-</tr>
-</tbody>
-</table>
-<h2 id="reporting-a-vulnerability">Reporting a Vulnerability<a class="headerlink" href="#reporting-a-vulnerability" title="Permanent link">&para;</a></h2>
-<p>If you discover a security vulnerability in Osmia, please report it responsibly.</p>
-<p><strong>Do not open a public GitHub issue for security vulnerabilities.</strong></p>
-<p>Instead, please email: <strong>security@osmia.dev</strong> (placeholder)</p>
-<h3 id="what-to-include">What to Include<a class="headerlink" href="#what-to-include" title="Permanent link">&para;</a></h3>
+<h1 id="adr-0002-managed-agents-self-hosted-sandbox-interop">ADR 0002: Managed Agents self-hosted sandbox interop<a class="headerlink" href="#adr-0002-managed-agents-self-hosted-sandbox-interop" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Proposed. This records the outcome of a research spike: a timeboxed prototype is
+approved, there is no product commitment.</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Anthropic's Managed Agents platform lets a customer keep orchestration (the model,
+session state, and the work queue) on Anthropic's side while running the tool
+execution itself on infrastructure the customer controls. This is exposed through a
+<code>self_hosted</code> environment type. We evaluated whether this interoperates with Osmia's
+existing architecture, and whether adopting it would add anything Osmia does not
+already have.</p>
+<p>All evidence below was gathered from Anthropic's official documentation on
+2026-07-16:</p>
 <ul>
-<li>Description of the vulnerability</li>
-<li>Steps to reproduce</li>
-<li>Potential impact</li>
-<li>Suggested fix (if any)</li>
+<li><a href="https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes">https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes</a></li>
+<li><a href="https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes-security">https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes-security</a></li>
 </ul>
-<h3 id="response-timeline">Response Timeline<a class="headerlink" href="#response-timeline" title="Permanent link">&para;</a></h3>
+<h3 id="how-self-hosted-sandboxes-work">How self-hosted sandboxes work<a class="headerlink" href="#how-self-hosted-sandboxes-work" title="Permanent link">&para;</a></h3>
+<p>A <code>self_hosted</code> environment acts as a work queue. When a session is assigned to it,
+Anthropic enqueues the session as a work item. An "environment worker" (a process the
+customer runs) claims work items, downloads the agent's skills to
+<code>&lt;workdir&gt;/skills/&lt;name&gt;/</code>, executes tool calls locally against the standard toolset
+(bash, read, write, edit, glob, grep), and posts results back. Tool inputs and
+outputs flow through Anthropic's control plane so the model can decide what to do
+next, but the filesystem, spawned processes, and network egress all stay entirely
+local to the worker.</p>
+<p>There are two worker patterns:</p>
 <ul>
-<li><strong>Acknowledgement:</strong> within 48 hours</li>
-<li><strong>Initial assessment:</strong> within 1 week</li>
-<li><strong>Fix and disclosure:</strong> coordinated with reporter</li>
+<li><strong>Always-on poller</strong> (<code>ant beta:worker poll</code>): a long-running process that only
+  needs outbound HTTPS.</li>
+<li><strong>Webhook-triggered sandbox-per-session</strong>: a <code>session.status_run_started</code> webhook
+  fires, the customer spawns an execution context (Anthropic's docs show a
+  <code>docker run</code> example), and the SDK worker's handle-item call processes that one
+  session and exits.</li>
 </ul>
-<h2 id="security-design">Security Design<a class="headerlink" href="#security-design" title="Permanent link">&para;</a></h2>
-<p>Osmia follows a defence-in-depth approach. See the <a href="../security/">Security Model</a> for the full security model and threat analysis.</p>
+<p>Pre-built workers ship in the CLI and in the Python, TypeScript, and Go SDKs
+(<code>EnvironmentWorker</code>, with <code>HandleItem</code> in Go). Customers who need more control can
+call the Environments Work endpoints directly and implement their own worker.</p>
+<p>Authentication is an environment-scoped service key (<code>ANTHROPIC_ENVIRONMENT_KEY</code> plus
+<code>ANTHROPIC_ENVIRONMENT_ID</code>), not a full API key. It authorises only claiming that
+environment's work and posting results back for it.</p>
+<p>Anthropic mounts no files or repositories itself: session <code>metadata</code> carries
+references (for example an S3 path or a commit SHA), and the customer's spawn script
+is responsible for staging files before execution. Workers can also serve custom
+tools (SDK worker only) and wrap internal MCP servers as custom tools, so the MCP
+server itself needs no inbound connectivity.</p>
+<h3 id="security-model">Security model<a class="headerlink" href="#security-model" title="Permanent link">&para;</a></h3>
+<p>The security model is an explicit shared responsibility split. The customer owns:</p>
+<ul>
+<li>sandbox image hardening (Anthropic explicitly recommends non-root, read-only root
+  filesystem, and dropped capabilities)</li>
+<li>network egress restriction</li>
+<li>key storage and rotation (via a secrets manager)</li>
+<li>separation of environments across trust boundaries</li>
+<li>the blast radius of any tool the worker executes</li>
+<li>retention of logs and session content</li>
+</ul>
+<p>Anthropic states plainly that it cannot instantly invalidate a leaked environment
+key, cannot verify the customer's sandbox image, and that its security boundary
+stops at the sandbox.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p><strong>Go ahead with a timeboxed prototype. No product commitment.</strong></p>
+<p>The rationale:</p>
+<ol>
+<li><strong>Shape match is strong.</strong> The webhook-triggered sandbox-per-session pattern maps
+   nearly one-to-one onto Osmia's existing architecture. Osmia already has a webhook
+   receiver, a jobbuilder that launches one hardened Kubernetes Job per task, and
+   per-task secret injection. A "Managed Agents" flow would look like: MA webhook →
+   a new use-case descriptor (the in-progress use-case abstraction makes this a
+   registration, not a fork) → a Job whose container runs the Go SDK's
+   <code>EnvironmentWorker.HandleItem</code> for that session → the Job exits when the session
+   ends. The presumed mismatch between a long-lived session and a one-shot Job
+   largely dissolves once you notice a Job can simply live for the duration of the
+   session.</li>
+<li><strong>Osmia's security posture already implements Anthropic's hardening
+   recommendations.</strong> <code>runAsNonRoot</code>, <code>readOnlyRootFilesystem</code>, dropping all
+   capabilities, and NetworkPolicy-based egress control are Osmia's existing
+   defaults, not new work. Most of the shared-responsibility list Anthropic hands
+   the customer is already satisfied.</li>
+<li><strong>The intelligence layer survives, locally.</strong> Because the worker executes every
+   tool call inside the pod, Osmia can wrap the SDK toolset to emit its existing
+   NDJSON telemetry envelopes (tool_use, cost, result) from the worker, feeding the
+   PRM, watchdog, cost tracking, and transcript sink exactly as for native engines.
+   This is the differentiated angle: supervising Managed Agents sessions with
+   Osmia's own reward model, on Osmia's own infrastructure, rather than ceding that
+   supervision to a black-box managed runtime.</li>
+<li><strong>Strategic hedge.</strong> This positions Osmia as complementary to Anthropic's
+   platform rather than competing with it, and it derisks the scenario where
+   Managed Agents commoditises self-hosted harnesses over time.</li>
+</ol>
+<h3 id="prototype-scope">Prototype scope<a class="headerlink" href="#prototype-scope" title="Permanent link">&para;</a></h3>
+<ul>
+<li>One new engine image: a Go worker wrapping the SDK toolset with telemetry
+  emission.</li>
+<li>One use-case descriptor for Managed Agents sessions.</li>
+<li>Environment key delivered via existing secret plumbing (no new secret mechanism).</li>
+<li>Skills staging that honours the session's <code>metadata</code> (the customer-supplied
+  references Anthropic itself does not resolve).</li>
+</ul>
+<p>Success criterion: a Managed Agents session executes on an Osmia-launched Job with
+its tool telemetry visible in Osmia's transcript and watchdog.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>No changes to the controller, jobbuilder, or any other Go package are made by this
+  ADR. It records a decision to prototype; implementation is out of scope here.</li>
+<li>If the prototype succeeds, a follow-up ADR (or an update to this one) should record
+  the design of the engine image, the use-case descriptor, and any changes needed to
+  the secret resolver or telemetry pipeline.</li>
+<li>If the prototype fails or the unknowns below prove blocking, this ADR should be
+  superseded with a rejection recorded and the reason documented.</li>
+</ul>
+<h2 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
+<p>These are unknowns the prototype is expected to resolve, not blockers to starting
+it:</p>
+<ul>
+<li>Maturity of the Go SDK worker: this is a beta surface and its stability is
+  unverified.</li>
+<li>Work-queue claim semantics under concurrent workers, and whether retries are
+  at-least-once.</li>
+<li>Startup-latency expectations for webhook-triggered spawns. This is undocumented:
+  it is not yet known whether a Kubernetes Job cold start is acceptable within
+  Anthropic's expected response window.</li>
+<li>Pricing interaction: whether the published $0.08 per session-hour managed-agents
+  fee applies unchanged when execution itself happens on self-hosted infrastructure.</li>
+<li>How a Managed Agents session identity maps to an Osmia TaskRun, and what
+  idempotency guarantees are needed.</li>
+<li>How session interrupt or cancellation propagates to the worker.</li>
+<li>Whether tool-result size limits constrain large file reads.</li>
+</ul>
+<h2 id="rejected-alternatives">Rejected alternatives<a class="headerlink" href="#rejected-alternatives" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Do nothing.</strong> Misses both the strategic hedge and the local-supervision
+  differentiator described above.</li>
+<li><strong>Full product commitment now.</strong> Premature given the open questions above and
+  given that the underlying API is still beta.</li>
+<li><strong>Always-on poller deployment instead of per-session Jobs.</strong> A weaker fit for
+  Osmia: an idle poller per environment loses Osmia's per-task isolation and its
+  per-session hardware accounting, both of which the Job-per-session pattern
+  preserves.</li>
+</ul>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Anthropic, "Self-hosted sandboxes",
+  <a href="https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes">https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes</a>
+  (read 2026-07-16)</li>
+<li>Anthropic, "Self-hosted sandboxes: security",
+  <a href="https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes-security">https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes-security</a>
+  (read 2026-07-16)</li>
+</ul>
 
 
 
@@ -2047,10 +2110,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
