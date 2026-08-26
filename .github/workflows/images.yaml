@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  # Weekly rebuild so base-image and toolchain security patches reach the
+  # published edge images even in a week with no commits. Nothing here pins a
+  # base-image digest, so a rebuild is the only way an upstream CVE fix in
+  # node:22-slim or the Go builder actually ships.
+  schedule:
+    - cron: '0 5 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -49,6 +55,9 @@ jobs:
           context: .
           file: docker/controller/Dockerfile
           push: true
+          # Without this the runner may reuse a cached base image and the
+          # weekly rebuild republishes the same bits it already had.
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -82,6 +91,9 @@ jobs:
           context: docker/engine-claude-code
           file: docker/engine-claude-code/Dockerfile
           push: true
+          # Without this the runner may reuse a cached base image and the
+          # weekly rebuild republishes the same bits it already had.
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -115,6 +127,9 @@ jobs:
           context: docker/engine-codex
           file: docker/engine-codex/Dockerfile
           push: true
+          # Without this the runner may reuse a cached base image and the
+          # weekly rebuild republishes the same bits it already had.
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -148,6 +163,9 @@ jobs:
           context: docker/engine-opencode
           file: docker/engine-opencode/Dockerfile
           push: true
+          # Without this the runner may reuse a cached base image and the
+          # weekly rebuild republishes the same bits it already had.
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
