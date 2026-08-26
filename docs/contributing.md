@@ -159,6 +159,31 @@ The `0.0.0-edge` chart is always overwritten with the latest `main` commit. Its
 `appVersion` is set to the full git SHA so you can trace exactly which commit is
 running.
 
+### Weekly image rebuild
+
+The image workflow also runs on a schedule, Mondays at 05:17 UTC, rebuilding
+every image with `pull: true` so a fresh base layer is fetched. Nothing pins a
+base-image digest, so this is the only way a security fix in `node:22-slim` or
+the Go builder reaches the published images during a week with no commits.
+
+**The schedule turns itself off if the repository goes quiet.** GitHub
+disables scheduled workflows in a public repository after 60 days with no
+repository activity. That is the one situation the rebuild is for, so it is
+worth knowing rather than discovering: a long gap between commits is both when
+a stale base image matters most and when the rebuild stops running.
+
+There is no way to opt out of that behaviour. If the images look stale, check
+whether the workflow is disabled:
+
+```bash
+gh workflow list --all
+gh workflow enable images.yaml
+```
+
+It can also be re-enabled from the Actions tab. Pushing any commit to the
+default branch resets the 60-day clock, but adding a keepalive commit purely
+to hold the schedule open is not worth the noise in the history.
+
 ### Consuming the edge chart
 
 ```bash

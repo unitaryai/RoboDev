@@ -8,8 +8,22 @@ on:
   # published edge images even in a week with no commits. Nothing here pins a
   # base-image digest, so a rebuild is the only way an upstream CVE fix in
   # node:22-slim or the Go builder actually ships.
+  #
+  # Not on the hour: GitHub delays scheduled runs during high load and names
+  # the start of every hour as a high-load window, so :17 is materially more
+  # likely to actually fire.
+  #
+  # This trigger switches itself off if the repository goes quiet. GitHub
+  # disables scheduled workflows in a public repository after 60 days with no
+  # repository activity, which is exactly the situation the schedule exists
+  # for: a long gap between commits is when a stale base image matters most,
+  # and is also when the rebuild stops running. There is no opt-out, so this
+  # is documented rather than worked around — a keepalive commit is a worse
+  # thing to carry than the gap. Re-enable from the Actions tab or with
+  # `gh workflow enable images.yaml`. See
+  # docs/contributing.md#weekly-image-rebuild.
   schedule:
-    - cron: '0 5 * * 1'
+    - cron: '17 5 * * 1'
   workflow_dispatch:
 
 permissions:
