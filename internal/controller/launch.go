@@ -131,18 +131,47 @@ func (r *Reconciler) launchTaskRun(ctx context.Context, spec launchSpec) (*taskr
 		return nil, fmt.Errorf("building execution spec: %w", err)
 	}
 
+	// Task-scoped secrets are resolved after the engine has built its spec,
+	// so that a task cannot shadow an environment variable the engine sets
+	// for itself. Resolution is fail-closed: a policy violation aborts the
+	// launch rather than starting the agent without the secret.
+	secretPlan, err := r.resolveTaskSecrets(ctx, spec.Task)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.createTaskSecret(ctx, tr.ID, spec.EngineName, secretPlan); err != nil {
+		return nil, err
+	}
+	if err := applyTaskSecrets(execSpec, secretPlan, taskSecretName(tr.ID)); err != nil {
+		r.discardTaskSecret(ctx, tr.ID, secretPlan)
+		return nil, err
+	}
+
 	if r.jobBuilder == nil {
+		r.discardTaskSecret(ctx, tr.ID, secretPlan)
 		return nil, fmt.Errorf("no job builder configured")
 	}
 
 	job, err := r.jobBuilder.Build(tr.ID, spec.EngineName, execSpec)
 	if err != nil {
+		r.discardTaskSecret(ctx, tr.ID, secretPlan)
 		return nil, fmt.Errorf("building k8s job: %w", err)
 	}
 
 	if r.k8sClient != nil {
-		if _, err := r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
+		created, err := r.k8sClient.BatchV1().Jobs(r.namespace).Create(ctx, job, metav1.CreateOptions{})
+		if err != nil {
+			r.discardTaskSecret(ctx, tr.ID, secretPlan)
 			return nil, fmt.Errorf("creating k8s job: %w", err)
+		}
+		// Hand ownership of the ephemeral secret to the Job so that
+		// Kubernetes garbage-collects it alongside the run. An orphaned
+		// secret is untidy, not fatal, so this only logs on failure.
+		if err := r.adoptTaskSecret(ctx, tr.ID, created, secretPlan); err != nil {
+			r.logger.WarnContext(ctx, "failed to set job as owner of task secret",
+				"task_run_id", tr.ID,
+				"error", err,
+			)
 		}
 	}
 

@@ -72,15 +72,27 @@ func NewResolver(opts ...Option) *Resolver {
 // It returns the resolved secrets ready for injection into an execution
 // environment.
 func (r *Resolver) Resolve(ctx context.Context, requests []SecretRequest) ([]ResolvedSecret, error) {
-	// Expand aliases first so that policy validation applies to concrete URIs.
+	// Whether a task may name a secret directly is a property of what the
+	// task asked for, so it is checked before expansion. Checking it after
+	// would reject every alias whenever AllowRawRefs is false, because an
+	// alias expands into exactly the concrete URI that setting forbids,
+	// which would leave the recommended fail-closed policy resolving
+	// nothing at all.
+	for _, req := range requests {
+		if err := ValidateRawRef(r.policy, req); err != nil {
+			return nil, fmt.Errorf("policy violation for %q: %w", requestLabel(req), err)
+		}
+	}
+
 	expanded, err := r.expandAliases(requests)
 	if err != nil {
 		return nil, fmt.Errorf("expanding aliases: %w", err)
 	}
 
-	// Validate each request against policy.
+	// Scheme and environment-variable rules apply to the concrete URI an
+	// alias resolves to, so they are checked after expansion.
 	for _, req := range expanded {
-		if err := ValidateRequest(r.policy, req); err != nil {
+		if err := ValidateResolved(r.policy, req); err != nil {
 			return nil, fmt.Errorf("policy violation for %q: %w", req.EnvName, err)
 		}
 	}
@@ -96,6 +108,15 @@ func (r *Resolver) Resolve(ctx context.Context, requests []SecretRequest) ([]Res
 	}
 
 	return resolved, nil
+}
+
+// requestLabel names a request in an error message. An alias-only request
+// has no environment variable name yet, so its URI identifies it.
+func requestLabel(req SecretRequest) string {
+	if req.EnvName != "" {
+		return req.EnvName
+	}
+	return req.URI
 }
 
 // expandAliases replaces alias:// URIs with concrete URIs from the alias map.
@@ -120,13 +141,17 @@ func (r *Resolver) expandAliases(requests []SecretRequest) ([]SecretRequest, err
 			return nil, err
 		}
 
-		// If the original request had an env name, use it; otherwise the
-		// alias must provide one via its URI + the caller's context.
+		// A task referencing an alias may name the target environment
+		// variable itself; otherwise the alias supplies it. Falling back to
+		// the alias's own name is a last resort for aliases that predate
+		// EnvName and happen to be named like an environment variable: an
+		// alias called "anthropic-key" would otherwise inject a variable of
+		// that name and be rejected by the env-name policy.
 		envName := req.EnvName
 		if envName == "" {
-			// Alias expansion: the env name comes from the alias itself
-			// in the configuration layer. For inline alias references,
-			// the env name should come from the alias config.
+			envName = alias.EnvName
+		}
+		if envName == "" {
 			envName = alias.Name
 		}
 
@@ -146,15 +171,14 @@ func (r *Resolver) resolveOne(ctx context.Context, req SecretRequest) (ResolvedS
 		return ResolvedSecret{}, fmt.Errorf("invalid URI %q: missing scheme", req.URI)
 	}
 
-	backend, ok := r.backends[scheme]
-	if !ok {
-		return ResolvedSecret{}, fmt.Errorf("no backend registered for scheme %q", scheme)
-	}
-
 	// Parse the key from the URI. The key is everything after "scheme://".
 	key := strings.TrimPrefix(req.URI, scheme+"://")
 
-	// For K8s backend, return a SecretKeyRef for native injection.
+	// K8s references are injected natively as a secretKeyRef, so the
+	// controller never reads the value and no backend call is made. This is
+	// deliberately handled before the backend lookup: requiring a
+	// registered k8s backend to emit a reference that never uses it would
+	// make k8s:// refs fail for operators who configure no backends at all.
 	if scheme == "k8s" {
 		return ResolvedSecret{
 			EnvName: req.EnvName,
@@ -163,6 +187,11 @@ func (r *Resolver) resolveOne(ctx context.Context, req SecretRequest) (ResolvedS
 				Key:        parseK8sSecretKey(key),
 			},
 		}, nil
+	}
+
+	backend, ok := r.backends[scheme]
+	if !ok {
+		return ResolvedSecret{}, fmt.Errorf("no backend registered for scheme %q", scheme)
 	}
 
 	// For other backends, fetch the value.

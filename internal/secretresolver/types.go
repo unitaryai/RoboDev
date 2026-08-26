@@ -14,7 +14,16 @@ type SecretRequest struct {
 
 // SecretAlias maps a friendly name to a concrete secret URI with optional tenant scoping.
 type SecretAlias struct {
-	Name      string
+	// Name is the alias's own identifier, the value a task references as
+	// "alias://<name>". It names the alias, not the environment variable.
+	Name string
+	// EnvName is the environment variable the alias injects into when a task
+	// references it without naming one itself. Aliases exist so that a task
+	// author names only the alias and the operator decides everything else,
+	// including the target variable, so this is normally set. When empty,
+	// Name is used, which only works where the alias is itself a valid
+	// environment variable name.
+	EnvName   string
 	URI       string
 	TenantID  string // empty means available to all tenants
 	AllowedBy string // policy rule that permitted this alias

@@ -1510,6 +1510,22 @@ func initSecretsResolver(cfg *config.Config, k8sClient kubernetes.Interface, nam
 	// Always include a logger.
 	opts = append(opts, secretresolver.WithLogger(logger))
 
+	// Wire aliases from config. Aliases are the only secret references
+	// permitted when policy.allow_raw_refs is false, so without this the
+	// fail-closed default would reject every task-scoped secret.
+	if len(cfg.SecretResolver.Aliases) > 0 {
+		aliases := make(map[string]secretresolver.SecretAlias, len(cfg.SecretResolver.Aliases))
+		for name, ac := range cfg.SecretResolver.Aliases {
+			aliases[name] = secretresolver.SecretAlias{
+				Name:     name,
+				EnvName:  ac.Env,
+				URI:      ac.URI,
+				TenantID: ac.TenantID,
+			}
+		}
+		opts = append(opts, secretresolver.WithAliases(aliases))
+	}
+
 	// Wire policy from config.
 	policy := secretresolver.Policy{
 		AllowRawRefs:       cfg.SecretResolver.Policy.AllowRawRefs,
