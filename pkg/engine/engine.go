@@ -5,7 +5,10 @@
 // Kubernetes Jobs or other runtime constructs.
 package engine
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 // TokenUsage tracks token consumption for cost accounting.
 type TokenUsage struct {
@@ -22,6 +25,13 @@ type TaskResult struct {
 	TokenUsage      *TokenUsage `json:"token_usage,omitempty"`
 	CostEstimateUSD float64     `json:"cost_estimate_usd,omitempty"`
 	ExitCode        int         `json:"exit_code"` // 0=success, 1=agent failure, 2=guard rail blocked
+	// RawStructured carries the agent's full structured_output object as raw
+	// JSON when a JSON schema was configured for the run. The typed fields
+	// above cover what every flow has in common; this carries whatever a
+	// particular flow's schema declares on top, so a new flow can define its
+	// own result shape without widening this struct. Nil when the run had no
+	// schema.
+	RawStructured json.RawMessage `json:"raw_structured,omitempty"`
 }
 
 // Resources describes CPU and memory requirements.
