@@ -396,8 +396,15 @@ type SkillConfig struct {
 	// ~/.claude/skills/ at container startup. Use for large or independently
 	// managed skills that should not be inlined in the controller config.
 	ConfigMap string `yaml:"configmap,omitempty"`
+	// MultiFile indicates the ConfigMap holds a directory-style skill: a
+	// SKILL.md entry plus one or more sibling reference files, one ConfigMap
+	// key per file. The whole ConfigMap is mounted as a directory and every
+	// Markdown file is copied into the skill's directory at startup. Only
+	// meaningful with ConfigMap set; it is ignored for Inline and Path skills.
+	// When false (the default) the ConfigMap is a single-file skill keyed by Key.
+	MultiFile bool `yaml:"multi_file,omitempty"`
 	// Key is the key within the ConfigMap that holds the skill content.
-	// Defaults to "<name>.md" when omitted.
+	// Defaults to "<name>.md" when omitted. Ignored when MultiFile is true.
 	Key string `yaml:"key,omitempty"`
 }
 

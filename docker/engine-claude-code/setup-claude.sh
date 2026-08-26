@@ -37,6 +37,41 @@ CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}"
 # the ephemeral emptyDir home.
 mkdir -p "${CLAUDE_DIR}"
 
+# Canonicalise before validating. The skill and sub-agent directories below
+# are cleared with rm -rf before being regenerated, so the path they are
+# derived from has to be checked after "..", symlinks and repeated separators
+# are resolved, not as written. A literal check would pass "/tmp/.." and "//",
+# both of which put the skills path at "/skills" — where the ConfigMap
+# volumes are mounted. `cd && pwd -P` is the portable POSIX way to resolve a
+# path; realpath is not guaranteed present.
+CLAUDE_DIR=$(cd "${CLAUDE_DIR}" && pwd -P) || {
+    echo "setup-claude.sh: refusing to run: cannot resolve CLAUDE_DIR" >&2
+    exit 1
+}
+
+# Squeeze repeated separators. POSIX leaves a leading "//" implementation-
+# defined and some shells return it from `pwd -P` verbatim, which would then
+# satisfy the nested-path check below while still meaning the root.
+CLAUDE_DIR=$(printf '%s' "${CLAUDE_DIR}" | tr -s '/')
+
+# Require at least one directory below the root. "/" and "/skills" are both
+# too close to the mount points this script writes to and deletes.
+case "${CLAUDE_DIR}" in
+    /*/*) ;;
+    *)
+        echo "setup-claude.sh: refusing to run: CLAUDE_DIR resolves to '${CLAUDE_DIR}', which is not a nested absolute path" >&2
+        exit 1
+        ;;
+esac
+
+# Clear the managed directories unconditionally, before the per-kind guards
+# below. Doing it inside them would skip the clear in exactly the case that
+# needs it most: an operator removing the last configured skill leaves no
+# CLAUDE_SKILL_* variable, so nothing would run, and the stale skill would
+# stay readable on a persisted config directory indefinitely. Everything
+# under these two paths is generated from the environment on every start.
+rm -rf "${CLAUDE_DIR}/skills" "${CLAUDE_DIR}/agents"
+
 # Overwrite settings.json and the MCP config unconditionally — these are
 # controlled by the operator and must reflect the current policy even on
 # resumed sessions.  Session JSONL files are left untouched.
@@ -65,26 +100,28 @@ fi
 # path is in use.  A no-op when CLAUDE_CONFIG_DIR was already set in the env.
 export CLAUDE_CONFIG_DIR="${CLAUDE_DIR}"
 
-# Write custom skill files if any skill env vars are present. Skills go
-# to ${HOME}/.claude/skills/<name>/SKILL.md — directory per skill, file
-# named exactly SKILL.md — because that is Claude Code's documented
-# discovery layout (the same shape used for plugin-provided skills under
-# ~/.claude/plugins/.../skills/<name>/SKILL.md). A flat
-# ${SKILLS_DIR}/<name>.md file is not discovered by the slash-command
-# loader; invocations fail with "Unknown skill: <name>" even when the
-# file exists.
+# Write custom skill files if any skill env vars are present. Skills go to
+# ${CLAUDE_DIR}/skills/<name>/SKILL.md — directory per skill, file named
+# exactly SKILL.md. A flat <name>.md is not discovered by the slash-command
+# loader; invocations fail with "Unknown skill: <name>" even though the file
+# exists.
 #
-# Skills are deterministically regenerated from the CLAUDE_SKILL_* env
-# vars at every pod start, so they live on the pod's ephemeral
-# ${HOME}/.claude/ rather than under CLAUDE_CONFIG_DIR. The relevant
-# discovery paths are documented at
-# https://code.claude.com/docs/en/skills.md and are not relocatable
-# via env var today (see anthropics/claude-code#22902).
+# On the directory: when CLAUDE_CONFIG_DIR is set, Claude Code reads
+# user-scoped skills from ${CLAUDE_CONFIG_DIR}/skills/ and does NOT read
+# ${HOME}/.claude/skills/. Writing them under ${HOME} unconditionally, as
+# this script did between #47 and this change, made every skill invisible on
+# any deployment with session persistence enabled — which is the only case
+# where CLAUDE_CONFIG_DIR is set at all. Verified by direct repro against
+# claude-code 2.0.28, 2.1.145 and 2.1.160: with CLAUDE_CONFIG_DIR set, only
+# the skill under it is listed; with it unset, only the one under ${HOME}.
+# Sub-agents behave identically.
 #
-# Inline skills: CLAUDE_SKILL_INLINE_<NAME>=<base64-encoded Markdown>
-# Path skills:   CLAUDE_SKILL_PATH_<NAME>=<path on image>
+# Skill env vars:
+#   CLAUDE_SKILL_INLINE_<NAME>=<base64-encoded Markdown>
+#   CLAUDE_SKILL_PATH_<NAME>=<path on image or single-key ConfigMap mount>
+#   CLAUDE_SKILL_DIR_<NAME>=<directory mount of a multi-file ConfigMap>
 if env | grep -q '^CLAUDE_SKILL_'; then
-    SKILLS_DIR="${HOME}/.claude/skills"
+    SKILLS_DIR="${CLAUDE_DIR}/skills"
     mkdir -p "${SKILLS_DIR}"
 
     # Write inline skills (base64-decoded content).
@@ -94,7 +131,8 @@ if env | grep -q '^CLAUDE_SKILL_'; then
         printenv "$var" | base64 -d > "${SKILLS_DIR}/${name}/SKILL.md"
     done
 
-    # Copy path-based skills from the image.
+    # Copy single-file skills, either from the image or from a one-key
+    # ConfigMap mounted at /skills/<name>.md.
     for var in $(env | grep '^CLAUDE_SKILL_PATH_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SKILL_PATH_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
         path=$(printenv "$var")
@@ -103,17 +141,38 @@ if env | grep -q '^CLAUDE_SKILL_'; then
             cp "$path" "${SKILLS_DIR}/${name}/SKILL.md"
         fi
     done
+
+    # Copy directory-style (multi-file) skills from a mounted ConfigMap. The
+    # whole ConfigMap is mounted as a directory; copy every Markdown file
+    # (SKILL.md plus its sibling reference files) into the skill directory.
+    # `cp -L` dereferences the symlinks a ConfigMap projection creates, and
+    # the *.md glob skips the projection's own ..data entries.
+    for var in $(env | grep '^CLAUDE_SKILL_DIR_' | sed 's/=.*//'); do
+        name=$(printf '%s' "$var" | sed 's/^CLAUDE_SKILL_DIR_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+        dir=$(printenv "$var")
+        if [ -d "$dir" ]; then
+            mkdir -p "${SKILLS_DIR}/${name}"
+            # An unmatched glob stays literal under sh, so guard each entry.
+            # A real copy failure of an existing file still aborts (set -eu)
+            # rather than starting the agent with a half-written skill.
+            for f in "$dir"/*.md; do
+                [ -e "$f" ] || continue
+                cp -L "$f" "${SKILLS_DIR}/${name}/"
+            done
+            if [ ! -f "${SKILLS_DIR}/${name}/SKILL.md" ]; then
+                echo "setup-claude.sh: WARNING: multi-file skill '${name}' has no SKILL.md in ${dir}" >&2
+            fi
+        fi
+    done
 fi
 
-# Write ConfigMap-backed sub-agent files to ${HOME}/.claude/agents/.
-# Same HOME-relative reasoning as skills above: Claude Code's sub-agent
-# discovery uses the HOME-relative path regardless of CLAUDE_CONFIG_DIR,
-# so writing under ${CLAUDE_DIR} when session persistence is on would
-# make the sub-agent invisible to the agent.
+# Write ConfigMap-backed sub-agent files to ${CLAUDE_DIR}/agents/<name>.md —
+# a flat file per sub-agent, unlike skills. Same CLAUDE_CONFIG_DIR reasoning
+# as skills above; the directory was already cleared near the top.
 #
 # Sub-agent env vars: CLAUDE_SUBAGENT_PATH_<NAME>=<path on volume>
 if env | grep -q '^CLAUDE_SUBAGENT_PATH_'; then
-    AGENTS_DIR="${HOME}/.claude/agents"
+    AGENTS_DIR="${CLAUDE_DIR}/agents"
     mkdir -p "${AGENTS_DIR}"
     for var in $(env | grep '^CLAUDE_SUBAGENT_PATH_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SUBAGENT_PATH_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')

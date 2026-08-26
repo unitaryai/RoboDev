@@ -202,6 +202,7 @@ func main() {
 				Inline:    sc.Inline,
 				ConfigMap: sc.ConfigMap,
 				Key:       sc.Key,
+				MultiFile: sc.MultiFile,
 			})
 		}
 		claudeOpts = append(claudeOpts, claudecode.WithSkills(skills))

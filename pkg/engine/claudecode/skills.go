@@ -34,7 +34,19 @@ type Skill struct {
 	ConfigMap string
 
 	// Key is the key within the ConfigMap (defaults to "<name>.md").
+	// Ignored when MultiFile is true.
 	Key string
+
+	// MultiFile indicates the ConfigMap holds a directory-style skill: a
+	// SKILL.md entry plus sibling reference files, one ConfigMap key per file.
+	// The whole ConfigMap is mounted as a directory and setup-claude.sh copies
+	// every Markdown file into the skill's directory. Only meaningful with
+	// ConfigMap set; ignored for Inline and Path skills.
+	//
+	// A skill whose instructions run to thousands of words is better split
+	// into a short SKILL.md that points at reference files, so the agent
+	// loads the detail only when it needs it.
+	MultiFile bool
 }
 
 // nonAlphanumRe matches characters that are not letters or digits.
@@ -53,6 +65,10 @@ var nonAlphanumRe = regexp.MustCompile(`[^a-zA-Z0-9]`)
 //
 //	CLAUDE_SKILL_PATH_<SAFE_NAME>=<path>
 //
+// Directory-style (multi-file) ConfigMap skills use:
+//
+//	CLAUDE_SKILL_DIR_<SAFE_NAME>=<mount-directory>
+//
 // SAFE_NAME is the skill name with all non-alphanumeric characters replaced by
 // underscores and converted to uppercase (e.g. "create-changelog" → "CREATE_CHANGELOG").
 func SkillEnvVars(skills []Skill) map[string]string {
@@ -65,8 +81,13 @@ func SkillEnvVars(skills []Skill) map[string]string {
 		switch {
 		case s.Inline != "":
 			env["CLAUDE_SKILL_INLINE_"+safe] = base64.StdEncoding.EncodeToString([]byte(s.Inline))
+		case s.ConfigMap != "" && s.MultiFile:
+			// Directory-style skill: the whole ConfigMap is mounted as a
+			// directory; point setup-claude.sh at that directory so it copies
+			// every Markdown file into the skill's directory.
+			env["CLAUDE_SKILL_DIR_"+safe] = "/skills/" + s.Name
 		case s.ConfigMap != "":
-			// ConfigMap skills are volume-mounted; point setup-claude.sh at the mount path.
+			// Single-file ConfigMap skill; point setup-claude.sh at the mounted file.
 			env["CLAUDE_SKILL_PATH_"+safe] = "/skills/" + s.Name + ".md"
 		case s.Path != "":
 			env["CLAUDE_SKILL_PATH_"+safe] = s.Path
@@ -75,13 +96,26 @@ func SkillEnvVars(skills []Skill) map[string]string {
 	return env
 }
 
-// SkillVolumes returns volume mounts for ConfigMap-backed skills. Each skill
-// with a ConfigMap set gets a dedicated volume mount with SubPath so that
-// skills from different ConfigMaps do not collide.
+// SkillVolumes returns volume mounts for ConfigMap-backed skills. A single-file
+// skill gets a SubPath mount of one ConfigMap key at "/skills/<name>.md". A
+// multi-file skill mounts the whole ConfigMap as a directory at "/skills/<name>"
+// so every key is projected as a file. Distinct mount paths keep skills from
+// different ConfigMaps from colliding.
 func SkillVolumes(skills []Skill) []engine.VolumeMount {
 	var mounts []engine.VolumeMount
 	for _, s := range skills {
 		if s.ConfigMap == "" {
+			continue
+		}
+		if s.MultiFile {
+			// Whole-ConfigMap directory mount: leaving ConfigMapKey and SubPath
+			// empty makes buildVolumes project every key as a file under MountPath.
+			mounts = append(mounts, engine.VolumeMount{
+				Name:          "skill-" + toSafeVolumeName(s.Name),
+				MountPath:     "/skills/" + s.Name,
+				ReadOnly:      true,
+				ConfigMapName: s.ConfigMap,
+			})
 			continue
 		}
 		key := s.Key
