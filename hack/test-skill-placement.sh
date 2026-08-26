@@ -169,6 +169,71 @@ assert_contains "${STALE_OUT}" "/session/claude/skills/probe/SKILL.md" \
   "the configured skill is still written after the clear"
 
 echo ""
+echo "=== Case 5: the last skill removed still clears the directory ==="
+# No CLAUDE_SKILL_* variables at all. The clear must still run, otherwise a
+# skill removed from the controller's config stays readable forever.
+EMPTY_OUT="$(docker run --rm \
+  -v "${FIXTURE_DIR}/mcp.json:/etc/claude-code/mcp.json:ro" \
+  -v "${FIXTURE_DIR}/settings.json:/etc/claude-code/settings.json:ro" \
+  -v "${FIXTURE_DIR}/setup-claude.sh:/usr/local/bin/setup-claude.sh:ro" \
+  -w /workspace \
+  -e HOME=/home/osmia \
+  -e "CLAUDE_CONFIG_DIR=/session/claude" \
+  --entrypoint /bin/sh \
+  alpine:3.20 \
+  -c '
+    set -e
+    mkdir -p /workspace /home/osmia /session/claude/skills/leftover /session/claude/agents
+    printf -- "stale\n" > /session/claude/skills/leftover/SKILL.md
+    printf -- "stale\n" > /session/claude/agents/leftover.md
+    printf "#!/bin/sh\n" > /usr/local/bin/claude
+    chmod +x /usr/local/bin/claude
+    cp /usr/local/bin/setup-claude.sh /tmp/setup-claude.sh
+    chmod +x /tmp/setup-claude.sh
+    /tmp/setup-claude.sh >/dev/null 2>&1
+    find /session -type f -name "*.md" | sort
+  ' 2>/dev/null)"
+assert_absent "${EMPTY_OUT}" "/session/claude/skills/leftover/SKILL.md" \
+  "removing the last skill clears the skills directory"
+assert_absent "${EMPTY_OUT}" "/session/claude/agents/leftover.md" \
+  "removing the last sub-agent clears the agents directory"
+
+echo ""
+echo "=== Case 6: a config dir that normalises outside itself is refused ==="
+# "/tmp/.." passes a naive "nested absolute path" check but resolves to "/",
+# which would put the skills path at /skills — the ConfigMap mount point.
+for bad in "/tmp/.." "//" "/"; do
+  if docker run --rm \
+      -v "${FIXTURE_DIR}/mcp.json:/etc/claude-code/mcp.json:ro" \
+      -v "${FIXTURE_DIR}/settings.json:/etc/claude-code/settings.json:ro" \
+      -v "${FIXTURE_DIR}/setup-claude.sh:/usr/local/bin/setup-claude.sh:ro" \
+      -w /workspace \
+      -e HOME=/home/osmia \
+      -e "CLAUDE_CONFIG_DIR=${bad}" \
+      -e "CLAUDE_SKILL_INLINE_PROBE=${INLINE_B64}" \
+      --entrypoint /bin/sh \
+      alpine:3.20 \
+      -c '
+        set -e
+        mkdir -p /workspace /home/osmia /skills/canary
+        printf -- "canary\n" > /skills/canary/SKILL.md
+        printf "#!/bin/sh\n" > /usr/local/bin/claude
+        chmod +x /usr/local/bin/claude
+        cp /usr/local/bin/setup-claude.sh /tmp/setup-claude.sh
+        chmod +x /tmp/setup-claude.sh
+        /tmp/setup-claude.sh >/dev/null 2>&1
+        # Reaching here means the script ran; the canary proves whether the
+        # ConfigMap mount point survived.
+        test -f /skills/canary/SKILL.md
+      ' >/dev/null 2>&1; then
+    echo "FAIL: CLAUDE_CONFIG_DIR=${bad} was accepted"
+    FAILURES=$((FAILURES + 1))
+  else
+    echo "PASS: CLAUDE_CONFIG_DIR=${bad} is refused"
+  fi
+done
+
+echo ""
 if [ "${FAILURES}" -eq 0 ]; then
   echo "All skill placement checks passed."
 else

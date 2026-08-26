@@ -33,22 +33,44 @@ set -eu
 # Use CLAUDE_CONFIG_DIR when set (session persistence), otherwise ~/.claude.
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}"
 
-# The skill and sub-agent directories below are cleared before being
-# regenerated, so refuse to run at all rather than compute that path from a
-# broken CLAUDE_DIR. An empty HOME with no CLAUDE_CONFIG_DIR would yield
-# "/.claude"; an empty CLAUDE_DIR would make the skills path "/skills",
-# which is where the ConfigMap volumes are mounted.
+# Always create the directory — it will either be the PVC-backed path or
+# the ephemeral emptyDir home.
+mkdir -p "${CLAUDE_DIR}"
+
+# Canonicalise before validating. The skill and sub-agent directories below
+# are cleared with rm -rf before being regenerated, so the path they are
+# derived from has to be checked after "..", symlinks and repeated separators
+# are resolved, not as written. A literal check would pass "/tmp/.." and "//",
+# both of which put the skills path at "/skills" — where the ConfigMap
+# volumes are mounted. `cd && pwd -P` is the portable POSIX way to resolve a
+# path; realpath is not guaranteed present.
+CLAUDE_DIR=$(cd "${CLAUDE_DIR}" && pwd -P) || {
+    echo "setup-claude.sh: refusing to run: cannot resolve CLAUDE_DIR" >&2
+    exit 1
+}
+
+# Squeeze repeated separators. POSIX leaves a leading "//" implementation-
+# defined and some shells return it from `pwd -P` verbatim, which would then
+# satisfy the nested-path check below while still meaning the root.
+CLAUDE_DIR=$(printf '%s' "${CLAUDE_DIR}" | tr -s '/')
+
+# Require at least one directory below the root. "/" and "/skills" are both
+# too close to the mount points this script writes to and deletes.
 case "${CLAUDE_DIR}" in
     /*/*) ;;
     *)
-        echo "setup-claude.sh: refusing to run: CLAUDE_DIR=${CLAUDE_DIR} is not a nested absolute path" >&2
+        echo "setup-claude.sh: refusing to run: CLAUDE_DIR resolves to '${CLAUDE_DIR}', which is not a nested absolute path" >&2
         exit 1
         ;;
 esac
 
-# Always create the directory — it will either be the PVC-backed path or
-# the ephemeral emptyDir home.
-mkdir -p "${CLAUDE_DIR}"
+# Clear the managed directories unconditionally, before the per-kind guards
+# below. Doing it inside them would skip the clear in exactly the case that
+# needs it most: an operator removing the last configured skill leaves no
+# CLAUDE_SKILL_* variable, so nothing would run, and the stale skill would
+# stay readable on a persisted config directory indefinitely. Everything
+# under these two paths is generated from the environment on every start.
+rm -rf "${CLAUDE_DIR}/skills" "${CLAUDE_DIR}/agents"
 
 # Overwrite settings.json and the MCP config unconditionally — these are
 # controlled by the operator and must reflect the current policy even on
@@ -100,12 +122,6 @@ export CLAUDE_CONFIG_DIR="${CLAUDE_DIR}"
 #   CLAUDE_SKILL_DIR_<NAME>=<directory mount of a multi-file ConfigMap>
 if env | grep -q '^CLAUDE_SKILL_'; then
     SKILLS_DIR="${CLAUDE_DIR}/skills"
-
-    # Regenerate from scratch. ${CLAUDE_DIR} can be a persisted volume, so a
-    # skill removed from the controller's config would otherwise survive as a
-    # stale file from an earlier run of the same TaskRun. The env vars are the
-    # single source of truth and are re-read below.
-    rm -rf "${SKILLS_DIR}"
     mkdir -p "${SKILLS_DIR}"
 
     # Write inline skills (base64-decoded content).
@@ -152,12 +168,11 @@ fi
 
 # Write ConfigMap-backed sub-agent files to ${CLAUDE_DIR}/agents/<name>.md —
 # a flat file per sub-agent, unlike skills. Same CLAUDE_CONFIG_DIR reasoning
-# as skills above, and regenerated from scratch for the same reason.
+# as skills above; the directory was already cleared near the top.
 #
 # Sub-agent env vars: CLAUDE_SUBAGENT_PATH_<NAME>=<path on volume>
 if env | grep -q '^CLAUDE_SUBAGENT_PATH_'; then
     AGENTS_DIR="${CLAUDE_DIR}/agents"
-    rm -rf "${AGENTS_DIR}"
     mkdir -p "${AGENTS_DIR}"
     for var in $(env | grep '^CLAUDE_SUBAGENT_PATH_' | sed 's/=.*//'); do
         name=$(printf '%s' "$var" | sed 's/^CLAUDE_SUBAGENT_PATH_//' | tr '[:upper:]' '[:lower:]' | tr '_' '-')

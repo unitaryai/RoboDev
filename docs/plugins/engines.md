@@ -280,7 +280,7 @@ The `PostToolUse` hook writes heartbeat telemetry to `/workspace/heartbeat.json`
 
 #### Skills
 
-Skills are custom Markdown instruction files that the agent can invoke via `/skill-name` in its prompts. They are written to `~/.claude/skills/<name>.md` before the agent starts.
+Skills are custom Markdown instruction files that the agent can invoke via `/skill-name` in its prompts. They are written to the agent's Claude configuration directory before it starts; the exact path is covered below.
 
 Each skill has a `name` (lowercase letters, digits, and hyphens only) and exactly one of:
 
@@ -288,13 +288,13 @@ Each skill has a `name` (lowercase letters, digits, and hyphens only) and exactl
 - **`path`** — a path to a Markdown file on the container image (e.g. `/opt/osmia/skills/review-checklist.md`). The controller passes it as `CLAUDE_SKILL_PATH_<NAME>`.
 - **`configmap`** — the name of a Kubernetes ConfigMap containing the skill. The controller mounts the ConfigMap as a volume at `/skills/<name>.md` and sets `CLAUDE_SKILL_PATH_<NAME>` to the mount path. Optionally specify `key` to select a specific key within the ConfigMap (defaults to `<name>.md`).
 
-- **`multi_file`** — set alongside `configmap` when the ConfigMap holds a whole skill directory rather than one file. See [Multi-file skills](#multi-file-skills) below.
+A `configmap` skill may additionally set **`multi_file: true`** when the ConfigMap holds a whole skill directory rather than one file. See [Multi-file skills](#multi-file-skills) below.
 
 At container startup, `setup-claude.sh` reads these environment variables, decodes or copies the files, and writes each skill to `<config-dir>/skills/<name>/SKILL.md`. The `<NAME>` suffix is converted to lowercase with hyphens (e.g. `CLAUDE_SKILL_INLINE_CREATE_CHANGELOG` → `skills/create-changelog/SKILL.md`).
 
 `<config-dir>` is `$CLAUDE_CONFIG_DIR` when session persistence is enabled, and `~/.claude` otherwise. Claude Code reads user-scoped skills from whichever of those is in force and does not fall back between them, so the skill must be written to the one it will read.
 
-Skills are regenerated from the environment variables on every pod start, and the directory is cleared first. A skill removed from the configuration therefore disappears on the next run rather than lingering on a persisted volume. Do not edit skill files inside a running pod: the next start overwrites them.
+The skill and sub-agent directories are cleared on every pod start and rebuilt from the environment variables. That happens whether or not any skills are configured, so removing the last one still clears what was there. A skill removed from the configuration disappears on the next run rather than lingering on a persisted volume. Do not edit skill files inside a running pod: the next start deletes them.
 
 **Example — inline skill:**
 
