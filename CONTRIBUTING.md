@@ -92,8 +92,26 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 - Keep PRs focused — one logical change per PR
 - Update documentation as needed
-- Add an entry to `CHANGELOG.md` under "Unreleased"
+- Add a changelog fragment (see below)
 - Ensure CI passes before requesting review
+
+### Changelog fragments
+
+Do not edit `CHANGELOG.md`. Add a new file under `changelog.d/` instead,
+named `+<slug>.<category>.md`, where the category is one of `added`,
+`changed`, `deprecated`, `removed`, `fixed` or `security`:
+
+```text
+changelog.d/+wire-task-scoped-secrets.added.md
+```
+
+The contents are the entry as it should read in the released notes, written
+as prose without a leading `-`. One file per change means two PRs in flight
+never touch the same lines.
+
+See [changelog.d/README.md](changelog.d/README.md) for the full conventions.
+You do not need `towncrier` installed; it is run once per release, by a
+maintainer.
 
 ## Plugin Contributions
 

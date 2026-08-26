@@ -6,7 +6,7 @@ deliberate production contract rather than stale expectations:
 `fsGroup` for EBS volume ownership, not the old `1000`);
 `TestAllEnginesProduceValidSpecs` now accepts either `SecretEnv` or
 `SecretKeyRefs` (claude-code injects secrets exclusively via the latter);
-`TestReconcilerJobFailureAndRetry` now polls for the terminal `Running`
+`TestReconcilerJobFailureAndRetry` now polls for the resulting `Running`
 state reached after a successful retry launch instead of racing to catch
 the transient `Retrying` state, which `handleJobFailed` supersedes
 synchronously within the same reconcile tick.
