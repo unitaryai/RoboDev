@@ -8,7 +8,9 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/unitaryai/osmia/internal/jobbuilder"
 	"github.com/unitaryai/osmia/internal/secretresolver"
@@ -20,6 +22,22 @@ import (
 // owned by the agent Job, so Kubernetes garbage-collects it when the Job is
 // deleted.
 const taskSecretNamePrefix = "osmia-task-secrets-"
+
+// Labels applied to every ephemeral task Secret. labelSecretPurpose is what
+// the orphan sweep selects on: matching by name prefix is not possible in a
+// label selector, and managed-by alone would also match any other Secret
+// Osmia comes to own.
+const (
+	labelComponent = "app.kubernetes.io/component"
+	labelManagedBy = "app.kubernetes.io/managed-by"
+	labelEngine    = "osmia.io/engine"
+
+	labelSecretPurpose = "osmia.io/secret-purpose"
+
+	componentAgent          = "agent"
+	managedByOsmia          = "osmia"
+	secretPurposeTaskSecret = "task-secrets"
+)
 
 // taskSecrets is the outcome of resolving a task's secret references: the
 // env-name-to-SecretKeyRef mapping to merge into the ExecutionSpec, plus the
@@ -163,6 +181,21 @@ func checkEnvCollision(spec *engine.ExecutionSpec, envName string) error {
 	if _, ok := spec.SecretKeyRefs[envName]; ok {
 		return fmt.Errorf("task-scoped secret %q collides with a secret reference set by the engine", envName)
 	}
+	// Known limitation. spec.SecretEnv maps a name to a Kubernetes Secret
+	// that the job builder mounts with envFrom, which injects *every* key in
+	// that Secret as an environment variable. The Go map key is a naming
+	// convention, not an enumeration of what the Secret actually contains,
+	// so this check cannot see a key the Secret holds under some other name.
+	// Because Kubernetes gives an explicit env[] entry precedence over
+	// envFrom, a task naming such a key would shadow it and this guard would
+	// not notice.
+	//
+	// Closing it properly would mean the controller reading every referenced
+	// Secret at launch, which trades a real cost for a case the env-name
+	// policy already covers: blocked_env_patterns is the intended control for
+	// "tasks may never name this variable", and it does not depend on
+	// knowing what any Secret contains. Documented in
+	// docs/getting-started/configuration.md rather than papered over here.
 	if _, ok := spec.SecretEnv[envName]; ok {
 		return fmt.Errorf("task-scoped secret %q collides with a secret mount set by the engine", envName)
 	}
@@ -195,10 +228,11 @@ func (r *Reconciler) createTaskSecret(ctx context.Context, taskRunID, engineName
 			Name:      taskSecretName(taskRunID),
 			Namespace: r.namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/component":  "agent",
-				"app.kubernetes.io/managed-by": "osmia",
-				"osmia.io/engine":              engineName,
-				jobbuilder.LabelTaskRunID:      taskRunID,
+				labelComponent:            componentAgent,
+				labelManagedBy:            managedByOsmia,
+				labelSecretPurpose:        secretPurposeTaskSecret,
+				labelEngine:               engineName,
+				jobbuilder.LabelTaskRunID: taskRunID,
 			},
 		},
 		Type:       corev1.SecretTypeOpaque,
@@ -297,4 +331,73 @@ func (r *Reconciler) deleteTaskSecret(ctx context.Context, taskRunID string, pla
 		return fmt.Errorf("deleting task secret %s: %w", name, err)
 	}
 	return nil
+}
+
+// taskSecretOrphanGrace is how long an unadopted ephemeral Secret is left
+// alone before the sweep treats it as stranded. Adoption normally happens
+// within a second or so of creation, immediately after the Job is created,
+// so this is far longer than the legitimate window; it only has to exceed
+// the worst case of a slow Job create against a struggling API server.
+const taskSecretOrphanGrace = 15 * time.Minute
+
+// sweepOrphanedTaskSecrets deletes ephemeral task Secrets that were created
+// for a launch which then died before the Job could adopt them.
+//
+// A Secret that reached adoption carries an ownerReference to its Job, and
+// Kubernetes garbage-collects it when that Job goes away. The abort paths in
+// launchTaskRun delete the Secret when a launch fails in-process. Neither
+// covers the controller being killed between creating the Secret and either
+// of those happening, which strands a Secret full of plaintext credentials
+// that nothing will ever collect.
+//
+// The sweep therefore looks only for Secrets with no ownerReferences at all,
+// past the grace period. That needs no cross-referencing against live Jobs
+// and cannot race with an adoption in progress: a Secret either has an owner,
+// in which case Kubernetes owns its lifecycle, or it never got one and no
+// longer will.
+//
+// Failures are logged rather than returned. This runs on every reconcile
+// tick, so a transient API error simply means the next tick tries again.
+func (r *Reconciler) sweepOrphanedTaskSecrets(ctx context.Context) {
+	if r.k8sClient == nil {
+		return
+	}
+
+	secrets := r.k8sClient.CoreV1().Secrets(r.namespace)
+	list, err := secrets.List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set{
+			labelManagedBy:     managedByOsmia,
+			labelSecretPurpose: secretPurposeTaskSecret,
+		}.String(),
+	})
+	if err != nil {
+		r.logger.WarnContext(ctx, "failed to list task secrets for orphan sweep", "error", err)
+		return
+	}
+
+	for i := range list.Items {
+		secret := &list.Items[i]
+		if len(secret.OwnerReferences) > 0 {
+			continue
+		}
+		if time.Since(secret.CreationTimestamp.Time) < taskSecretOrphanGrace {
+			continue
+		}
+
+		if err := secrets.Delete(ctx, secret.Name, metav1.DeleteOptions{}); err != nil {
+			if !apierrors.IsNotFound(err) {
+				r.logger.WarnContext(ctx, "failed to delete orphaned task secret",
+					"secret", secret.Name,
+					"error", err,
+				)
+			}
+			continue
+		}
+
+		r.logger.InfoContext(ctx, "deleted orphaned task secret",
+			"secret", secret.Name,
+			"task_run_id", secret.Labels[jobbuilder.LabelTaskRunID],
+			"age", time.Since(secret.CreationTimestamp.Time).String(),
+		)
+	}
 }

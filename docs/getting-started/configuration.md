@@ -380,10 +380,39 @@ Both forms are read for every task, and the results are combined.
 - **Values from other backends** (Vault, AWS Secrets Manager) are written to
   an ephemeral Secret named `osmia-task-secrets-<task-run-id>`, owned by the
   agent Job so Kubernetes deletes it with the run. Resolved values never
-  appear as plaintext in the Job manifest.
+  appear as plaintext in the Job manifest. A Secret stranded by a controller
+  crash before its Job could adopt it is deleted by a sweep on the
+  reconciliation loop, 15 minutes after creation.
 - **A task cannot shadow the engine's own environment.** If a declared
   environment variable collides with one the engine already sets (for example
-  `ANTHROPIC_API_KEY`), the launch is rejected.
+  `ANTHROPIC_API_KEY`), the launch is rejected. See the limit on this below.
+- **A task may declare at most 32 secrets**, and a single `osmia:secrets`
+  block is capped at 64 KiB, since both originate in ticket or incident text.
+
+### Limit of the collision check
+
+The collision check compares a task's declared variable names against what
+the engine puts in its execution spec. It cannot see inside a Kubernetes
+Secret that the engine mounts wholesale.
+
+Engines can attach a whole Secret to the pod with `envFrom`, which injects
+every key in that Secret as an environment variable. Osmia knows the Secret's
+name, not its contents, so it cannot tell that the Secret happens to contain
+a key called, say, `GITLAB_TOKEN`. Kubernetes gives an explicit variable
+precedence over one from `envFrom`, so a task naming that variable would
+shadow it and the check would not object.
+
+Closing this would mean reading every referenced Secret on every launch.
+`blocked_env_patterns` is the intended control instead, and it is the
+stronger one: it does not depend on knowing what any Secret contains.
+
+```yaml
+  policy:
+    blocked_env_patterns: ["ANTHROPIC_*", "GITLAB_*", "GITHUB_*", "AWS_*"]
+```
+
+Set it for any credential a task must never be able to name, whether or not
+the collision check would catch it.
 
 ## Quality Gate
 
