@@ -1,0 +1,54 @@
+# Towncrier assembles CHANGELOG.md from one file per change in changelog.d/,
+# rather than every pull request editing a shared "Unreleased" section. That
+# shared section was the single largest source of merge conflicts in this
+# repository: two open pull requests both appending a bullet always conflict,
+# and every merge then forces a rebase on everything still in flight.
+#
+# Contributors never need this tool installed. They add one file, which
+# cannot conflict with anyone else's. It is run once per release, by a
+# maintainer:
+#
+#     uvx towncrier build --version vX.Y.Z
+#
+# A standalone towncrier.toml is used rather than a [tool.towncrier] block
+# because this is a Go project with no pyproject.toml. See
+# docs/contributing.md for the contributor and release workflows.
+
+[tool.towncrier]
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+title_format = "## [{version}] - {project_date}"
+underlines = ["", "", ""]
+
+# The category set matches the Keep a Changelog headings this file has always
+# used, so released sections keep the shape every prior release has.
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true
