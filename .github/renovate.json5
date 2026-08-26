@@ -1,0 +1,45 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended"],
+
+  // Run by the Renovate GitHub App, which is free for public repositories.
+  // There is deliberately no workflow alongside this file: a scheduled job in
+  // a public repo would need a long-lived token in repository secrets, and
+  // every fork would inherit a workflow that can never authenticate.
+  dependencyDashboard: true,
+
+  // Scoped to what actually goes stale here rather than everything at once.
+  // The engine image had been on a glab release from March until it was
+  // noticed by hand; the Go module graph and the Actions we pin have the same
+  // exposure. Widen one manager at a time.
+  enabledManagers: ["dockerfile", "gomod", "github-actions", "custom.regex"],
+  postUpdateOptions: ["gomodTidy"],
+
+  packageRules: [
+    {
+      description: "Let a release sit for a week before bumping to it, so a broken publish is someone else's problem first.",
+      matchManagers: ["dockerfile", "gomod", "github-actions", "custom.regex"],
+      minimumReleaseAge: "7 days",
+    },
+    {
+      description: "Go itself moves on its own schedule and a toolchain bump deserves a human, so keep it off the automatic path.",
+      matchManagers: ["gomod"],
+      matchDepNames: ["go"],
+      enabled: false,
+    },
+  ],
+
+  customManagers: [
+    {
+      // glab is installed by curl from an ARG in the engine image, so no
+      // built-in manager can see it. This is the pin that drifted thirty
+      // releases; without this block nothing here would have caught it.
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)docker/engine-claude-code/Dockerfile$/"],
+      matchStrings: ['GLAB_VERSION="(?<currentValue>[0-9][0-9.]+)"'],
+      datasourceTemplate: "gitlab-releases",
+      depNameTemplate: "gitlab-org/cli",
+      versioningTemplate: "semver",
+    },
+  ],
+}
