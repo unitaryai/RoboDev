@@ -331,13 +331,53 @@ secret_resolver:
         address: "https://vault.example.com"
   aliases:
     anthropic-key:
-      uri: "k8s://osmia/osmia-anthropic-key/api_key"
+      uri: "k8s://osmia-anthropic-key/api_key"
   policy:
     allowed_env_patterns: ["ANTHROPIC_*", "OPENAI_*", "GITHUB_*"]
     blocked_env_patterns: ["AWS_SECRET_*"]
     allow_raw_refs: false
     allowed_schemes: ["k8s", "vault"]
 ```
+
+A `k8s://` URI is `k8s://<secret-name>/<data-key>`, resolved within the
+controller's own namespace.
+
+### Declaring secrets on a task
+
+A task asks for a secret either in an `osmia:secrets` comment block in the
+ticket description:
+
+```markdown
+<!-- osmia:secrets
+- ref: vault://secret/data/staging-db#url
+  env: DATABASE_URL
+- alias: anthropic-key
+-->
+```
+
+or with a label, using `osmia:secret:<ENV_NAME>=<URI>`:
+
+```text
+osmia:secret:DATABASE_URL=k8s://staging-db/url
+```
+
+Both forms are read for every task, and the results are combined.
+
+### How resolution behaves
+
+- **Fail-closed.** A reference the policy rejects aborts the launch. The
+  agent is never started without a secret it asked for. With the default
+  `allow_raw_refs: false`, only `alias:` entries are accepted, so aliases are
+  the practical way to grant access.
+- **`k8s://` references are injected natively** as an `env[].valueFrom.
+  secretKeyRef`. The controller never reads the value.
+- **Values from other backends** (Vault, AWS Secrets Manager) are written to
+  an ephemeral Secret named `osmia-task-secrets-<task-run-id>`, owned by the
+  agent Job so Kubernetes deletes it with the run. Resolved values never
+  appear as plaintext in the Job manifest.
+- **A task cannot shadow the engine's own environment.** If a declared
+  environment variable collides with one the engine already sets (for example
+  `ANTHROPIC_API_KEY`), the launch is rejected.
 
 ## Quality Gate
 

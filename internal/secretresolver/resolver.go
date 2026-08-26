@@ -146,15 +146,14 @@ func (r *Resolver) resolveOne(ctx context.Context, req SecretRequest) (ResolvedS
 		return ResolvedSecret{}, fmt.Errorf("invalid URI %q: missing scheme", req.URI)
 	}
 
-	backend, ok := r.backends[scheme]
-	if !ok {
-		return ResolvedSecret{}, fmt.Errorf("no backend registered for scheme %q", scheme)
-	}
-
 	// Parse the key from the URI. The key is everything after "scheme://".
 	key := strings.TrimPrefix(req.URI, scheme+"://")
 
-	// For K8s backend, return a SecretKeyRef for native injection.
+	// K8s references are injected natively as a secretKeyRef, so the
+	// controller never reads the value and no backend call is made. This is
+	// deliberately handled before the backend lookup: requiring a
+	// registered k8s backend to emit a reference that never uses it would
+	// make k8s:// refs fail for operators who configure no backends at all.
 	if scheme == "k8s" {
 		return ResolvedSecret{
 			EnvName: req.EnvName,
@@ -163,6 +162,11 @@ func (r *Resolver) resolveOne(ctx context.Context, req SecretRequest) (ResolvedS
 				Key:        parseK8sSecretKey(key),
 			},
 		}, nil
+	}
+
+	backend, ok := r.backends[scheme]
+	if !ok {
+		return ResolvedSecret{}, fmt.Errorf("no backend registered for scheme %q", scheme)
 	}
 
 	// For other backends, fetch the value.

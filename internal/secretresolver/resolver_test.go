@@ -201,6 +201,28 @@ func TestResolverResolve(t *testing.T) {
 	}
 }
 
+// TestResolveK8sRefWithoutRegisteredBackend pins that a k8s:// reference
+// resolves to a native secretKeyRef even when no k8s backend is registered.
+// The controller never reads the value for these, so requiring a backend
+// would fail operators who rely solely on in-cluster Secrets.
+func TestResolveK8sRefWithoutRegisteredBackend(t *testing.T) {
+	resolver := NewResolver(
+		WithPolicy(Policy{AllowRawRefs: true, AllowedSchemes: []string{"k8s"}}),
+	)
+
+	got, err := resolver.Resolve(context.Background(), []SecretRequest{
+		{EnvName: "DATABASE_URL", URI: "k8s://db-secret/url"},
+	})
+
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "DATABASE_URL", got[0].EnvName)
+	assert.Empty(t, got[0].Value)
+	require.NotNil(t, got[0].SecretKeyRef)
+	assert.Equal(t, "db-secret", got[0].SecretKeyRef.SecretName)
+	assert.Equal(t, "url", got[0].SecretKeyRef.Key)
+}
+
 func TestParseScheme(t *testing.T) {
 	tests := []struct {
 		uri  string
