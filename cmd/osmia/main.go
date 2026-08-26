@@ -1518,6 +1518,7 @@ func initSecretsResolver(cfg *config.Config, k8sClient kubernetes.Interface, nam
 		for name, ac := range cfg.SecretResolver.Aliases {
 			aliases[name] = secretresolver.SecretAlias{
 				Name:     name,
+				EnvName:  ac.Env,
 				URI:      ac.URI,
 				TenantID: ac.TenantID,
 			}

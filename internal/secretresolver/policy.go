@@ -6,18 +6,39 @@ import (
 	"strings"
 )
 
-// ValidateRequest checks a secret request against the given policy.
-// It validates the environment variable name against allowed and blocked
-// patterns, the URI scheme against allowed schemes, and raw reference
-// permissions.
+// ValidateRequest checks a secret request against the given policy in full:
+// raw reference permission, URI scheme, and environment variable name.
+//
+// It is only correct for a request that has not been through alias
+// expansion. Resolve splits the two halves deliberately, applying
+// ValidateRawRef before expansion and ValidateResolved after, because an
+// expanded alias is indistinguishable from a raw reference.
 func ValidateRequest(policy Policy, req SecretRequest) error {
-	scheme := parseScheme(req.URI)
+	if err := ValidateRawRef(policy, req); err != nil {
+		return err
+	}
+	return ValidateResolved(policy, req)
+}
 
-	// Check raw reference policy. If raw refs are disallowed, only alias://
-	// URIs are permitted.
-	if !policy.AllowRawRefs && scheme != "alias" {
+// ValidateRawRef checks whether a task is permitted to name this secret
+// directly. When AllowRawRefs is false only alias:// references are
+// accepted, so an operator can decide in configuration which secrets exist
+// and a task may only choose from that set.
+//
+// This must be evaluated against what the task actually wrote, before alias
+// expansion rewrites it into a concrete URI.
+func ValidateRawRef(policy Policy, req SecretRequest) error {
+	if !policy.AllowRawRefs && parseScheme(req.URI) != "alias" {
 		return fmt.Errorf("raw secret references are not permitted; use alias:// URIs instead")
 	}
+	return nil
+}
+
+// ValidateResolved checks the parts of the policy that apply to a concrete
+// secret reference: the URI scheme against the allowed list, and the
+// environment variable name against the blocked and allowed patterns.
+func ValidateResolved(policy Policy, req SecretRequest) error {
+	scheme := parseScheme(req.URI)
 
 	// Validate URI scheme against the allowed list.
 	if len(policy.AllowedSchemes) > 0 {

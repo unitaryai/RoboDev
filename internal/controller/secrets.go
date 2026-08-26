@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -211,14 +212,35 @@ func (r *Reconciler) createTaskSecret(ctx context.Context, taskRunID, engineName
 	return nil
 }
 
+// taskSecretCleanupTimeout bounds the detached context used for the two
+// secret operations that must still run when the launch context is being
+// torn down.
+const taskSecretCleanupTimeout = 15 * time.Second
+
+// detachedCleanupContext returns a bounded context that survives ctx's
+// cancellation, keeping ctx's values (trace and log correlation) but not its
+// deadline. Both remaining secret operations are finishing-up work: by the
+// time they run, an ephemeral Secret holding plaintext already exists in the
+// cluster, and inheriting a cancelled context would leave it there.
+func detachedCleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), taskSecretCleanupTimeout)
+}
+
 // adoptTaskSecret sets job as the owner of the TaskRun's ephemeral Secret so
 // that deleting the Job garbage-collects the Secret with it. A failure here
 // leaves an orphaned Secret rather than a broken run, so it is logged by the
 // caller and not treated as fatal.
+//
+// It runs on a detached context: the Job already exists and will run whatever
+// happens to the caller's context, so abandoning adoption on cancellation
+// would orphan the Secret permanently.
 func (r *Reconciler) adoptTaskSecret(ctx context.Context, taskRunID string, job *batchv1.Job, plan *taskSecrets) error {
 	if r.k8sClient == nil || plan == nil || len(plan.Values) == 0 {
 		return nil
 	}
+
+	ctx, cancel := detachedCleanupContext(ctx)
+	defer cancel()
 
 	name := taskSecretName(taskRunID)
 	secrets := r.k8sClient.CoreV1().Secrets(r.namespace)
@@ -257,10 +279,18 @@ func (r *Reconciler) discardTaskSecret(ctx context.Context, taskRunID string, pl
 // deleteTaskSecret removes the TaskRun's ephemeral Secret. It is used to
 // clean up when Job creation fails after the Secret was already written, at
 // which point no Job exists to own it.
+//
+// It runs on a detached context. A launch aborted by cancellation is exactly
+// when this matters most: inheriting the cancelled context would fail the
+// delete and leave a Secret full of plaintext credentials with no owner to
+// garbage-collect it.
 func (r *Reconciler) deleteTaskSecret(ctx context.Context, taskRunID string, plan *taskSecrets) error {
 	if r.k8sClient == nil || plan == nil || len(plan.Values) == 0 {
 		return nil
 	}
+
+	ctx, cancel := detachedCleanupContext(ctx)
+	defer cancel()
 
 	name := taskSecretName(taskRunID)
 	if err := r.k8sClient.CoreV1().Secrets(r.namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {

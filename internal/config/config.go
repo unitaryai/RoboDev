@@ -240,7 +240,13 @@ type BackendRef struct {
 
 // AliasConfig maps a friendly alias name to a concrete secret URI.
 type AliasConfig struct {
-	URI      string `yaml:"uri"`
+	URI string `yaml:"uri"`
+	// Env is the environment variable this alias injects into when a task
+	// references the alias without naming one. Set it whenever the alias key
+	// is not itself a valid environment variable name: an alias keyed
+	// "anthropic-key" with no Env would try to inject a variable of that
+	// name and be rejected by the env-name policy.
+	Env      string `yaml:"env,omitempty"`
 	TenantID string `yaml:"tenant_id,omitempty"`
 }
 

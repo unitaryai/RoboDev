@@ -164,6 +164,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The fail-closed secret policy rejected aliases as well as raw
+  references.** `Resolver.Resolve` expanded aliases before validating, so by
+  the time the raw-reference rule was applied an `alias://` request had
+  already become the concrete URI that `allow_raw_refs: false` forbids.
+  Under the recommended configuration this rejected every secret, including
+  the aliases that setting exists to permit. The check is now split:
+  `ValidateRawRef` runs against what the task actually wrote, and
+  `ValidateResolved` (scheme and env-name patterns) runs against the
+  expanded URI.
+
+- **An alias could not name its target environment variable.** A task
+  referencing an alias without naming a variable fell back to the alias's
+  own key, so the documented `anthropic-key` alias tried to inject a
+  variable of that name and failed `allowed_env_patterns`. `AliasConfig`
+  gains an `env` field, carried through to `SecretAlias.EnvName`.
+
 - **Secret aliases declared in config were never loaded.**
   `initSecretsResolver` built backends and policy from
   `secret_resolver`, but never called `WithAliases`, so the `aliases:`

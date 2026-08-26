@@ -332,6 +332,7 @@ secret_resolver:
   aliases:
     anthropic-key:
       uri: "k8s://osmia-anthropic-key/api_key"
+      env: "ANTHROPIC_API_KEY"
   policy:
     allowed_env_patterns: ["ANTHROPIC_*", "OPENAI_*", "GITHUB_*"]
     blocked_env_patterns: ["AWS_SECRET_*"]
@@ -341,6 +342,11 @@ secret_resolver:
 
 A `k8s://` URI is `k8s://<secret-name>/<data-key>`, resolved within the
 controller's own namespace.
+
+An alias's `env` is the variable it injects into when a task references the
+alias without naming one. Set it unless the alias key is itself a valid
+environment variable name, since the key is otherwise used and will not match
+`allowed_env_patterns`.
 
 ### Declaring secrets on a task
 
@@ -369,8 +375,8 @@ Both forms are read for every task, and the results are combined.
   agent is never started without a secret it asked for. With the default
   `allow_raw_refs: false`, only `alias:` entries are accepted, so aliases are
   the practical way to grant access.
-- **`k8s://` references are injected natively** as an `env[].valueFrom.
-  secretKeyRef`. The controller never reads the value.
+- **`k8s://` references are injected natively** as an
+  `env[].valueFrom.secretKeyRef`. The controller never reads the value.
 - **Values from other backends** (Vault, AWS Secrets Manager) are written to
   an ephemeral Secret named `osmia-task-secrets-<task-run-id>`, owned by the
   agent Job so Kubernetes deletes it with the run. Resolved values never

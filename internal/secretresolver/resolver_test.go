@@ -201,6 +201,106 @@ func TestResolverResolve(t *testing.T) {
 	}
 }
 
+// TestAliasEnvNameResolution covers which environment variable an alias
+// reference injects into. An alias exists so the task author names only the
+// alias, which means the alias must be able to carry the target variable;
+// falling back to the alias's own key would inject something like
+// "anthropic-key" and be rejected by allowed_env_patterns.
+func TestAliasEnvNameResolution(t *testing.T) {
+	tests := []struct {
+		name    string
+		alias   SecretAlias
+		request SecretRequest
+		want    string
+	}{
+		{
+			name:    "alias supplies the env name",
+			alias:   SecretAlias{Name: "anthropic-key", EnvName: "ANTHROPIC_API_KEY", URI: "k8s://anthropic/api_key"},
+			request: SecretRequest{URI: "alias://anthropic-key"},
+			want:    "ANTHROPIC_API_KEY",
+		},
+		{
+			name:    "request env name wins over the alias default",
+			alias:   SecretAlias{Name: "anthropic-key", EnvName: "ANTHROPIC_API_KEY", URI: "k8s://anthropic/api_key"},
+			request: SecretRequest{EnvName: "ANTHROPIC_OVERRIDE", URI: "alias://anthropic-key"},
+			want:    "ANTHROPIC_OVERRIDE",
+		},
+		{
+			name:    "alias without an env name falls back to its own key",
+			alias:   SecretAlias{Name: "ANTHROPIC_API_KEY", URI: "k8s://anthropic/api_key"},
+			request: SecretRequest{URI: "alias://ANTHROPIC_API_KEY"},
+			want:    "ANTHROPIC_API_KEY",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := NewResolver(
+				WithPolicy(Policy{
+					AllowedSchemes:     []string{"alias", "k8s"},
+					AllowedEnvPatterns: []string{"ANTHROPIC_*"},
+				}),
+				WithAliases(map[string]SecretAlias{tt.alias.Name: tt.alias}),
+			)
+
+			got, err := resolver.Resolve(context.Background(), []SecretRequest{tt.request})
+
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			assert.Equal(t, tt.want, got[0].EnvName)
+		})
+	}
+}
+
+// TestAliasesResolveUnderFailClosedPolicy pins the central contract of the
+// recommended configuration: with allow_raw_refs false, an alias resolves and
+// a raw reference does not. Validating the raw-ref rule after alias expansion
+// rejected both, because an expanded alias is a concrete URI, which left the
+// fail-closed policy resolving nothing at all.
+func TestAliasesResolveUnderFailClosedPolicy(t *testing.T) {
+	newResolver := func() *Resolver {
+		return NewResolver(
+			WithPolicy(Policy{
+				AllowRawRefs:   false,
+				AllowedSchemes: []string{"k8s"},
+			}),
+			WithAliases(map[string]SecretAlias{
+				"staging-db": {Name: "staging-db", EnvName: "DATABASE_URL", URI: "k8s://staging-db/url"},
+			}),
+		)
+	}
+
+	t.Run("alias resolves", func(t *testing.T) {
+		got, err := newResolver().Resolve(context.Background(), []SecretRequest{
+			{URI: "alias://staging-db"},
+		})
+
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "DATABASE_URL", got[0].EnvName)
+		require.NotNil(t, got[0].SecretKeyRef)
+		assert.Equal(t, "staging-db", got[0].SecretKeyRef.SecretName)
+	})
+
+	t.Run("raw reference is still rejected", func(t *testing.T) {
+		_, err := newResolver().Resolve(context.Background(), []SecretRequest{
+			{EnvName: "DATABASE_URL", URI: "k8s://staging-db/url"},
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "raw secret references are not permitted")
+	})
+
+	t.Run("an unknown alias is rejected", func(t *testing.T) {
+		_, err := newResolver().Resolve(context.Background(), []SecretRequest{
+			{URI: "alias://not-configured"},
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unknown secret alias")
+	})
+}
+
 // TestResolveK8sRefWithoutRegisteredBackend pins that a k8s:// reference
 // resolves to a native secretKeyRef even when no k8s backend is registered.
 // The controller never reads the value for these, so requiring a backend
