@@ -180,3 +180,77 @@ func TestToSafeEnvName(t *testing.T) {
 		})
 	}
 }
+
+// TestSkillEnvVars_MultiFileConfigMap covers the directory-style skill: the
+// env var names the mount directory rather than a single file, so
+// setup-claude.sh knows to copy every Markdown file out of it.
+func TestSkillEnvVars_MultiFileConfigMap(t *testing.T) {
+	env := SkillEnvVars([]Skill{
+		{Name: "incident-classifier", ConfigMap: "classifier-cm", MultiFile: true},
+	})
+
+	assert.Equal(t, "/skills/incident-classifier", env["CLAUDE_SKILL_DIR_INCIDENT_CLASSIFIER"])
+	assert.NotContains(t, env, "CLAUDE_SKILL_PATH_INCIDENT_CLASSIFIER",
+		"a multi-file skill must not also emit the single-file path var")
+}
+
+// TestSkillEnvVars_MultiFileIgnoredWithoutConfigMap pins that MultiFile is
+// meaningful only alongside a ConfigMap. Inline and path skills are single
+// files by construction, so setting the flag on them changes nothing.
+func TestSkillEnvVars_MultiFileIgnoredWithoutConfigMap(t *testing.T) {
+	env := SkillEnvVars([]Skill{
+		{Name: "inline-skill", Inline: "# Inline", MultiFile: true},
+		{Name: "path-skill", Path: "/opt/osmia/skills/path-skill.md", MultiFile: true},
+	})
+
+	assert.Contains(t, env, "CLAUDE_SKILL_INLINE_INLINE_SKILL")
+	assert.Equal(t, "/opt/osmia/skills/path-skill.md", env["CLAUDE_SKILL_PATH_PATH_SKILL"])
+	assert.NotContains(t, env, "CLAUDE_SKILL_DIR_INLINE_SKILL")
+	assert.NotContains(t, env, "CLAUDE_SKILL_DIR_PATH_SKILL")
+}
+
+// TestSkillVolumes_MultiFile covers the volume shape a directory-style skill
+// needs: the whole ConfigMap mounted at a directory. Leaving SubPath and
+// ConfigMapKey empty is what makes the job builder project every key as its
+// own file, so both are asserted explicitly rather than left implied.
+func TestSkillVolumes_MultiFile(t *testing.T) {
+	mounts := SkillVolumes([]Skill{
+		{Name: "incident-classifier", ConfigMap: "classifier-cm", MultiFile: true},
+	})
+
+	require.Len(t, mounts, 1)
+	assert.Equal(t, "skill-incident-classifier", mounts[0].Name)
+	assert.Equal(t, "/skills/incident-classifier", mounts[0].MountPath)
+	assert.Equal(t, "classifier-cm", mounts[0].ConfigMapName)
+	assert.True(t, mounts[0].ReadOnly)
+	assert.Empty(t, mounts[0].SubPath, "a directory mount must not set SubPath")
+	assert.Empty(t, mounts[0].ConfigMapKey, "a directory mount must not project a single key")
+}
+
+// TestSkillVolumes_MultiFileIgnoresKey pins that Key is dead for a
+// directory-style skill, so an operator who leaves a stale key in config does
+// not silently get a single-file mount.
+func TestSkillVolumes_MultiFileIgnoresKey(t *testing.T) {
+	mounts := SkillVolumes([]Skill{
+		{Name: "multi", ConfigMap: "cm", Key: "leftover.md", MultiFile: true},
+	})
+
+	require.Len(t, mounts, 1)
+	assert.Equal(t, "/skills/multi", mounts[0].MountPath)
+	assert.Empty(t, mounts[0].ConfigMapKey)
+}
+
+// TestSkillVolumes_SingleAndMultiFileMix verifies the two shapes coexist,
+// since a deployment can reasonably have both.
+func TestSkillVolumes_SingleAndMultiFileMix(t *testing.T) {
+	mounts := SkillVolumes([]Skill{
+		{Name: "single", ConfigMap: "single-cm"},
+		{Name: "multi", ConfigMap: "multi-cm", MultiFile: true},
+	})
+
+	require.Len(t, mounts, 2)
+	assert.Equal(t, "/skills/single.md", mounts[0].MountPath)
+	assert.Equal(t, "single.md", mounts[0].SubPath)
+	assert.Equal(t, "/skills/multi", mounts[1].MountPath)
+	assert.Empty(t, mounts[1].SubPath)
+}
