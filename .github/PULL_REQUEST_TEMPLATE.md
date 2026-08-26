@@ -16,7 +16,7 @@ Brief description of the changes.
 - [ ] I have added tests that prove my fix is effective or my feature works
 - [ ] New and existing unit tests pass locally with my changes (`go test ./...`)
 - [ ] I have updated documentation as needed
-- [ ] I have added an entry to CHANGELOG.md under "Unreleased"
+- [ ] I have added a changelog fragment under `changelog.d/` (see `changelog.d/README.md`), or this change is not user-visible
 
 ## Related Issues
 

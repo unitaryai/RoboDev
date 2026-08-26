@@ -120,8 +120,33 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 - Keep PRs focused — one logical change per PR
 - Update documentation as needed
-- Add an entry to `CHANGELOG.md` under "Unreleased"
+- Add a changelog fragment (see below)
 - Ensure CI passes before requesting review
+
+### Changelog fragments
+
+Do not edit `CHANGELOG.md`. Add a new file under `changelog.d/` instead,
+named `+<slug>.<category>.md`, where the category is one of `added`,
+`changed`, `deprecated`, `removed`, `fixed` or `security`:
+
+```text
+changelog.d/+wire-task-scoped-secrets.added.md
+```
+
+The contents are the entry as it should read in the released notes, written
+as prose without a leading `-`. See
+[`changelog.d/README.md`](https://github.com/unitaryai/osmia/blob/main/changelog.d/README.md)
+for the full conventions.
+
+One file per change means two PRs in flight never touch the same lines.
+Appending to a shared "Unreleased" section conflicted every time, and every
+merge then forced a rebase on everything behind it.
+
+You do not need `towncrier` installed to add a fragment. It is run once per
+release, by a maintainer.
+
+Purely internal changes that no user or operator would notice need no
+fragment. A refactor that changes observable behaviour does.
 
 ## Dev Releases (Edge Deployments)
 
@@ -207,8 +232,25 @@ repository (`https://unitaryai.github.io/osmia`).
    - Patch (`x.y.Z`) for bug fixes
    - Minor (`x.Y.0`) for new features (backward-compatible)
    - Major (`X.0.0`) for breaking changes
-3. **Stamp `CHANGELOG.md`** — move the `[Unreleased]` section to a new
-   `[x.y.z] - YYYY-MM-DD` heading. Add a fresh empty `[Unreleased]` above it.
+3. **Build `CHANGELOG.md`** — assemble the fragments in `changelog.d/` into a
+   new release section:
+
+   ```bash
+   uvx towncrier build --version x.y.z
+   ```
+
+   Pass the version **without** the `v` prefix, so the heading matches every
+   prior release. Preview first with `--draft`, which writes nothing. The
+   build consumes the fragments, so their deletion is part of the release
+   commit. Configuration is in `towncrier.toml`.
+
+   Entries are ordered alphabetically within each category, not by
+   importance. Reorder by hand afterwards if a release has an entry that
+   should lead.
+
+   On a machine configured against Unitary's private package index, `uvx`
+   will not find `towncrier` on that index. Prefix the command with
+   `UV_NO_CONFIG=1` and add `--default-index https://pypi.org/simple`.
 4. **Bump `charts/osmia/Chart.yaml`** — set both `version` and `appVersion` to
    the new version (without the `v` prefix). The `chart-releaser-action` uses
    this to decide whether to publish; if it matches an already-published version

@@ -98,5 +98,10 @@ proto/                    — Protobuf definitions (source of truth for all inte
 - Do not add Kubernetes CRD types until explicitly decided (see open question 7 in the plan)
 
 ## Changelog
-- keep a CHANGELOG.md in the root dir and update it regularly. 
+- Never edit `CHANGELOG.md` directly. It is assembled by `towncrier` at
+  release time from the fragments in `changelog.d/`.
+- Add one fragment per user-visible change: `changelog.d/+<slug>.<category>.md`,
+  category being one of `added`, `changed`, `deprecated`, `removed`, `fixed`,
+  `security`. The contents are the entry as prose, with no leading `-`.
+- See `changelog.d/README.md` for conventions and `towncrier.toml` for config.
 
