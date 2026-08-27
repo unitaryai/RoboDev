@@ -13,6 +13,401 @@ to add one.
 
 <!-- towncrier release notes start -->
 
+## [0.5.0] - 2026-08-27
+
+### Added
+
+- **Task-scoped secrets are now actually resolved and injected.** The
+  `internal/secretresolver` package, its config schema and its policy
+  enforcement have shipped since the secrets work landed, and `main.go`
+  built a `Resolver` and handed it to the reconciler via
+  `WithSecretsResolver`, but nothing ever called `Resolve`, so every
+  `osmia:secrets` block and `osmia:secret:ENV=URI` label was silently
+  ignored. The launch pipeline now parses a task's declarations from its
+  description and labels, resolves them, and merges them into the
+  `ExecutionSpec` before the Job is built. Resolution is fail-closed: a
+  policy violation or backend failure aborts the launch rather than
+  starting an agent without the secret it asked for. `k8s://` references
+  are injected natively as a `secretKeyRef`; values from other backends
+  (Vault, AWS Secrets Manager) are staged into an ephemeral Secret named
+  `osmia-task-secrets-<task-run-id>`, owned by the agent Job so Kubernetes
+  garbage-collects it with the run, so resolved plaintext never appears in
+  the Job manifest. A task may not shadow an environment variable the
+  engine already sets, which stops a ticket author overriding the agent's
+  own credentials.
+- **ADR 0002: Managed Agents self-hosted sandbox interop**: documents the
+  outcome of a research spike into Anthropic's Managed Agents `self_hosted`
+  environment type. Decision is to go ahead with a timeboxed prototype, with
+  no product commitment yet. See `docs/adr/0002-managed-agents-self-hosted-sandbox-interop.md`.
+- **Dependency updates are now configured, via Renovate.** The repository had
+  no dependency automation at all: no Dependabot, no Renovate, and no bot pull
+  request had ever been opened against it, which is how the agent image came to
+  sit on a GitLab CLI release from March. `.github/renovate.json5` enables the
+  Dockerfile, Go module, GitHub Actions and custom-regex managers, holds each
+  release for seven days before proposing it, and excludes the Go toolchain
+  itself so a language bump still needs a person. A custom manager tracks the
+  `GLAB_VERSION` pin in the engine image, which no built-in manager can see
+  because it is an `ARG` consumed by `curl`. There is deliberately no workflow
+  alongside it: this runs as the Renovate GitHub App, so a public repository
+  needs no long-lived token in its secrets and forks inherit nothing that
+  cannot authenticate.
+- **Design doc for the use-case abstraction and shadow mode**:
+  `docs/designs/use-case-abstraction.md` specifies a `Definition`/`Gates`/
+  `ResultHandler` model for generalising `ProcessTicket` and
+  `ProcessIncidentEvent` behind a shared dispatch pipeline, an
+  execution-mode taxonomy (`clone_push_mr`/`read_only`/`api_read`), a
+  result-handler taxonomy that fixes the incident-UUID
+  `MarkComplete`/`MarkFailed` warts, and a shadow-mode design with an
+  honest assessment of which enforcement layers are hard controls versus
+  aspirational. Fulfils the design-doc requirement in
+  [roadmap item 24](https://github.com/unitaryai/osmia/blob/main/docs/roadmap.md#24-non-standard-task-types-analysis-reporting-review).
+  No behaviour changes; this is a design document only.
+- **Incident-triage contract test suite**: unit and integration tests
+  pinning the externally observable behaviour of the incident.io webhook
+  flow (`ProcessIncidentEvent`), covering webhook signature verification,
+  config parsing, idempotency, TaskRun/Job naming, the ticketing-only
+  gates the flow deliberately skips (engine selection, cost estimation,
+  tournaments, approval, memory, notifications, `MarkInProgress`),
+  completion handling, stream-reader gating, and a golden-file prompt for
+  the no-repo-URL shape. Ahead of the planned use-case abstraction
+  refactor, so downstream deployments relying on this flow are not broken
+  silently. No production code changed.
+- **SQLite `TaskRunStore` backend**: `internal/taskrun/sqlite.go` adds a
+  `SQLiteStore` implementing the existing `TaskRunStore` interface,
+  following the same pattern as the other in-house SQLite-backed stores
+  (`modernc.org/sqlite`, WAL mode, JSON-blob content column with promoted
+  query columns). `MemoryStore` remains the default, so no existing
+  deployment changes behaviour; selecting `SQLiteStore` is done through
+  `taskrun_store.backend`, which has its own entry in this release. See
+  `docs/adr/0001-taskrun-store-sqlite-not-crd.md` for the decision to use
+  SQLite rather than a `TaskRun` CRD.
+- **Skills can now be a directory rather than a single file.** Set
+  `multi_file: true` on a ConfigMap-backed skill and the whole ConfigMap is
+  mounted as a directory, with every Markdown key copied into the skill's
+  directory. That allows a short `SKILL.md` that points at reference files the
+  agent loads only when it needs them, instead of one file that costs context
+  on every run. `key` is ignored for these; the skill directory must contain a
+  `SKILL.md`, and `setup-claude.sh` warns when it does not. Ported from the
+  First Responder fork, where the incident-classifier skill outgrew a single
+  file. Single-file skills are unchanged.
+- **The agent's full `structured_output` is preserved.** Previously, when a run
+  configured a JSON schema, `ParseEvent` merged `structured_output` into
+  `ResultEvent` through that struct's own typed fields and then discarded the
+  original, so any field a schema declared beyond the handful `ResultEvent`
+  knows about was silently dropped. That made `ResultEvent` an implicit ceiling
+  on what any flow's output schema could contain. `ResultEvent` and
+  `engine.TaskResult` now carry `RawStructured`, the whole object as raw JSON,
+  captured before the typed merge and threaded through to `TaskRun.Result`. The
+  typed merge itself is unchanged, so existing consumers see exactly what they
+  saw before.
+  `RawStructured` is not serialised on `ResultEvent`, to avoid re-emitting the
+  payload on every forwarded stream event. Ported from the First Responder
+  fork, where it was written to carry an incident classification.
+- **Translator seam in `internal/agentstream`**: a new `Translator` interface
+  converts one raw stdout line from an agent pod into zero or more stream
+  events, so a future engine's native output format (e.g. Codex JSONL) can
+  be normalised into Osmia's NDJSON envelopes without teaching the core
+  package about engine-specific formats. `internal/agentstream/adapters`
+  registers a `Translator` per `engine.StreamFormat`; only
+  `StreamFormatOsmia` is registered so far, mapping to a new
+  `passthroughTranslator` that wraps the existing `ParseEvent` unchanged.
+  `Reader` gains a `WithTranslator` option (default passthrough), and the
+  controller's `startStreamReader` resolves the dispatched engine's
+  translator via `adapters.For` and passes it through. `engineEmitsStream`
+  is refactored onto the same lookup (via `streamTranslatorFor`) so the
+  stream-reader gate and the reader construction cannot disagree. This PR
+  is passthrough-only: behaviour is byte-identical to before, and no Codex
+  adapter is added yet.
+- **Use-case registry and `TaskRun.UseCase` tagging**: a new
+  `internal/usecase` package implements the `Definition`/`Gates`/
+  `ResultHandler` model from `docs/designs/use-case-abstraction.md`
+  (`ExecutionMode`, `Gates`, `Registry`), registered at reconciler
+  construction with two Definitions, `ticketing` (all gates on,
+  `clone_push_mr`) and `incident-triage` (all gates off, `api_read`).
+  `TaskRun` gains a persisted `UseCase` field, set at creation time for
+  both `ProcessTicket` and `ProcessIncidentEvent`. A `useCaseFor` shim
+  infers the use case for TaskRuns persisted before this field existed,
+  from the `tr-incident-` ID prefix. This PR is inert: nothing consumes
+  `Gates` or `Results` yet, and completion/failure handling is
+  unchanged; dispatching through the registry is a follow-up PR.
+- **`taskrun_store` config wired into controller startup**: `cmd/osmia/main.go`
+  now reads `taskrun_store.backend` and constructs the matching
+  `taskrun.TaskRunStore`. `""`/`"memory"` (the default) is unchanged
+  behaviour; `"sqlite"` opens `taskrun.NewSQLiteStore` at
+  `taskrun_store.sqlite.path` (defaulting to `/data/taskruns.db`) and closes
+  it on shutdown; any other value (including `"postgres"`, which the config
+  comment has long advertised but nothing implements) fails fast at
+  startup. `internal/config` validates the backend name and requires an
+  absolute path when `sqlite.path` is set. This only persists state for
+  post-mortem inspection today — startup recovery of in-flight TaskRuns is
+  separate follow-up work. See
+  `docs/concepts/taskrun-lifecycle.md#durable-taskrun-state` and
+  `charts/osmia/values.yaml` for the persistence PVC this backend expects.
+
+### Changed
+
+- **Corrected what the memory docs claim about tenancy.**
+  `docs/concepts/memory.md` described per-customer isolation ("tenant A's
+  knowledge is never exposed to tenant B"), which was never the design: a
+  tenant is a use case, and there is no per-customer or per-repository
+  partition. It also documented `tenant_isolation` as a working switch. That
+  field is declared in the config struct and read by nothing; isolation is
+  unconditional and setting it to `false` does nothing. Both are now stated
+  plainly, along with what a tenant actually is and the fail-open behaviour of
+  an untenanted query.
+- **Documentation accuracy pass**: clarified implemented-vs-planned status for
+  multi-tenancy, guardrails.md prompt injection, and leader-election RBAC
+  across docs/scaling.md, docs/index.md, README.md, docs/security.md,
+  docs/architecture.md, CLAUDE.md, and the `TenancyConfig` doc comment in
+  internal/config/config.go. Replaced dangling references to the removed
+  `oss-prd.md` file with pointers to `oss-plan.md`.
+- **Documented the limit of the task-secret collision check.** The check
+  compares a task's declared environment variable names against the engine's
+  execution spec, but an engine can attach a whole Kubernetes Secret with
+  `envFrom`, which injects every key it contains. Osmia knows that Secret's
+  name and not its contents, so a task naming one of those keys would shadow it
+  undetected, since Kubernetes gives an explicit variable precedence over one
+  from `envFrom`. Closing this would mean reading every referenced Secret on
+  every launch; `blocked_env_patterns` is the intended control and is stronger,
+  because it does not depend on knowing what any Secret holds. Written up in
+  `docs/getting-started/configuration.md` and at the check itself.
+- **Engine auth merge now uses a capability interface instead of a
+  hard-coded claude-code lookup**: added `engine.CredentialHints`
+  (`pkg/engine/capabilities.go`), which an engine implements to declare the
+  environment variable its CLI reads its API key from and the well-known
+  secret key names to probe when no explicit `api_key_key` is configured.
+  `ClaudeCodeEngine` implements it with the same values (`ANTHROPIC_API_KEY`
+  env, `ANTHROPIC_API_KEY` then `api_key` probe order) it always used.
+  `EnginesConfig.AuthFor` (`internal/config/config.go`) mirrors the existing
+  `ImageFor` per-engine-name lookup for the `AuthConfig` block. In
+  `Reconciler.baseEngineConfig`, the `engineName == "claude-code"` literal is
+  replaced by a lookup that consults the registered engine's
+  `CredentialHints` (falling back to claude-code's own defaults when the
+  engine isn't registered or doesn't implement the interface), so engines
+  without hints keep relying on `SecretEnv` in `BuildExecutionSpec` exactly
+  as before. Behaviour for claude-code is byte-identical, pinned by the
+  `pkg/engine/claudecode` golden tests plus new focused unit tests in
+  `internal/controller/engine_auth_test.go` covering the probe order,
+  explicit-key bypass, and the unchanged-for-other-engines case. Codex
+  gaining its own `CredentialHints` is left for its own modernisation PR.
+- **Extracted the shared task-launch tail from `ProcessTicket` and
+  `ProcessIncidentEvent`**: added `internal/controller/launch.go` with
+  `Reconciler.launchTaskRun`, which now runs `prepareSession`,
+  `BuildExecutionSpec`, `JobBuilder.Build`, the Kubernetes `Job` create,
+  the transition to `Running`, the `taskRuns`/`engineChains` bookkeeping,
+  the re-save to the `TaskRunStore`, metrics, and the `engineEmitsStream`
+  stream-reader gate — previously duplicated near-identically at the end
+  of both flows. A small companion, `newLaunchTaskRun`, extracts the
+  shared `TaskRun` construction and initial save that both flows perform
+  before their own gate/override logic runs. Genuine per-flow variation
+  (the ticketing engine fallback chain versus incident triage's
+  single-engine chain, ticketing's `MarkInProgress` call, and the
+  per-flow completion log message/fields) is captured explicitly via a
+  new `launchSpec` struct rather than branched on inside the shared
+  helper. This is a behaviour-frozen refactor: the incident-triage
+  contract tests and the claude-code golden tests pin the two flows'
+  externally observable behaviour and pass unmodified.
+- **Skill and sub-agent directories are cleared on every pod start.** They are
+  rebuilt from the `CLAUDE_SKILL_*` and `CLAUDE_SUBAGENT_PATH_*` environment
+  variables, but were previously written over whatever was already there. On a
+  persisted configuration directory that meant a skill removed from the
+  controller's configuration survived as a stale file into later runs. The
+  clear runs unconditionally rather than only when those variables are present,
+  so removing the *last* configured skill also takes effect; guarding it would
+  have skipped exactly the case that needs it. `setup-claude.sh` additionally
+  canonicalises the configuration directory before deriving those paths and
+  refuses to start if it does not resolve to a nested absolute path, so a
+  malformed value such as `/tmp/..` cannot point the clear at `/skills`, where
+  the ConfigMap volumes are mounted.
+- **Stream-reader gating now uses an engine capability instead of an engine
+  name string**: introduced `engine.StreamEmitter`
+  (`pkg/engine/capabilities.go`), a capability interface engines implement
+  when their agent pods write a machine-readable event stream to stdout.
+  `ClaudeCodeEngine` implements it. The reconciler's eight stream-reader
+  gates (previously `engineName == "claude-code"` checks scattered across
+  `internal/controller/controller.go` and `internal/controller/incident.go`)
+  now go through one helper, `Reconciler.engineEmitsStream`, which looks up
+  the dispatched engine and asserts the interface. Behaviour for claude-code
+  is byte-identical, pinned by new golden tests in `pkg/engine/claudecode`
+  covering `BuildExecutionSpec` and `BuildPrompt` for five task shapes.
+  Other `"claude-code"` string comparisons (auth config merge, engine
+  defaults, continuation config) are unrelated to stream gating and are left
+  for follow-up PRs.
+
+### Fixed
+
+- **Custom skills and sub-agents were invisible to the agent whenever session
+  persistence was enabled.** A previous fix moved them to `${HOME}/.claude/`
+  unconditionally, on the stated grounds that Claude Code's discovery ignored
+  `CLAUDE_CONFIG_DIR`. That is not true: when `CLAUDE_CONFIG_DIR` is set,
+  Claude Code reads user-scoped skills and sub-agents from under it and does
+  not fall back to `${HOME}`. Since `CLAUDE_CONFIG_DIR` is set only by the
+  session-persistence backends, every such deployment delivered its skills to
+  a directory the agent never read. The failure was silent: the skill simply
+  never appeared, and the first `/<name>` invocation returned "Unknown skill"
+  before the agent burned turns recovering by hand. Verified by direct repro
+  against claude-code 2.0.28, 2.1.145 and 2.1.160, and pinned by
+  `hack/test-skill-placement.sh`. Deployments with session persistence
+  disabled were unaffected, which is why the default path never showed it.
+- **An alias could not name its target environment variable.** A task
+  referencing an alias without naming a variable fell back to the alias's
+  own key, so the documented `anthropic-key` alias tried to inject a
+  variable of that name and failed `allowed_env_patterns`. `AliasConfig`
+  gains an `env` field, carried through to `SecretAlias.EnvName`.
+- **An ephemeral task Secret stranded by a controller crash is now collected.**
+  A Secret that reaches adoption carries an ownerReference to its Job and is
+  garbage-collected with it, and a launch that fails in-process deletes its own
+  Secret. Neither covers the controller being killed between the two, which
+  left a Secret holding plaintext credentials that nothing would ever remove.
+  `sweepOrphanedTaskSecrets` runs on every reconciliation tick and deletes task
+  Secrets that have no ownerReferences and are more than 15 minutes old. It
+  selects on a new `osmia.io/secret-purpose` label rather than cross-referencing
+  live Jobs, so it cannot race with an adoption in progress: a Secret either has
+  an owner, in which case Kubernetes owns its lifecycle, or it never got one and
+  never will. It runs unconditionally, including when the controller is at its
+  concurrent job limit.
+- **Episodic memory was not actually partitioned by tenant.** The graph query
+  filtered on tenant and the store enforced it, but nothing ever set one: the
+  extractor hardcoded `TenantID: ""` on every node it produced, and all three
+  controller query sites passed an empty tenant, which matches everything. The
+  docs described working multi-tenant isolation throughout. In practice the
+  ticketing flow and the incident-triage flow shared one undifferentiated pool
+  of facts, so an incident classification could be offered as prior knowledge
+  in a code-change prompt.
+
+  `TaskRun` now carries a `TenantID`, assigned at creation from the use case
+  that made it (`ticketing` or `incident-triage`). Extraction stamps every node
+  with it and the controller's queries filter on it. Partitioning is per use
+  case rather than per deployment, so it still holds if the two flows are ever
+  consolidated into one binary.
+
+  Facts written before this change carry no tenant and a tenanted query will
+  not return them. A memory graph re-accumulates within a few runs, so no
+  migration is provided.
+
+  `Graph.Query` still treats an empty query tenant as "match every tenant",
+  for whole-graph administrative reads. That default is fail-open, so it is now
+  documented as such at both the field and the filter, and every controller
+  query passes a tenant.
+- **Four launch paths built TaskRuns without a use case or a memory tenant.**
+  Review follow-ups, tournament candidates, the tournament judge and the
+  repo-URL poll all construct a `TaskRun` directly rather than going through
+  the shared launch pipeline, so none of them were tagged. Their extracted
+  facts were written under no tenant, where no tenanted query returns them:
+  nothing errored, and the knowledge was quietly lost. The `UseCase` field
+  added alongside the use-case registry had the same gap, masked until now by
+  the legacy inference that treats an untagged TaskRun as ticketing. All four
+  now call a single `tagTaskRun` helper that sets both fields together.
+  `extractMemory` warns when it is handed an untenanted TaskRun, so a launch
+  path added later that skips the helper says so in the logs instead of
+  silently discarding what it learned.
+- **Integration test drift in `tests/integration`**: repaired a compile
+  break in `webhook_reconciler_test.go` left by `internal/webhook.NewServer`
+  returning `(*Server, error)`, then aligned three tests with the current,
+  deliberate production contract rather than stale expectations:
+  `TestJobBuilderSecurityHardening` now expects `RunAsUser: 10000` (matching
+  `fsGroup` for EBS volume ownership, not the old `1000`);
+  `TestAllEnginesProduceValidSpecs` now accepts either `SecretEnv` or
+  `SecretKeyRefs` (claude-code injects secrets exclusively via the latter);
+  `TestReconcilerJobFailureAndRetry` now polls for the resulting `Running`
+  state reached after a successful retry launch instead of racing to catch
+  the transient `Retrying` state, which `handleJobFailed` supersedes
+  synchronously within the same reconcile tick.
+- **Repo-URL fixtures in `tests/integration`**: nine tests predated the
+  hard gate in `ProcessTicket`/`resolveRepoURL` (`internal/controller`)
+  that requires a resolvable repository URL — either on `ticket.RepoURL`
+  or extractable from the description — before a ticket is processed, and
+  now fail with "no repository URL found in ticket description and no
+  interactive channel configured to ask" unless a URL is present. Added
+  `RepoURL: "https://github.com/org/repo"` to the affected ticket
+  fixtures in `guardrails_test.go`, `engine_fallback_test.go`,
+  `prm_controller_test.go`, and `memory_controller_test.go`, matching the
+  convention already used by the passing tests in the same files.
+  `TestTaskRunInvalidTransitions` (`taskrun_lifecycle_test.go`) failed for
+  an unrelated reason surfaced by running the full suite: it asserted
+  `NeedsHuman→Failed` was an invalid transition, but that transition has
+  been legitimately allowed since `internal/taskrun`'s state machine was
+  extended (so the repo-URL poller can fail a TaskRun directly from
+  `NeedsHuman`); the stale case was removed from the test's invalid-
+  transition table.
+- **Secret aliases declared in config were never loaded.**
+  `initSecretsResolver` built backends and policy from
+  `secret_resolver`, but never called `WithAliases`, so the `aliases:`
+  block was inert. With the fail-closed default (`allow_raw_refs: false`)
+  permitting only `alias:` references, this meant no task-scoped secret
+  could resolve at all under the recommended configuration.
+- **Task secret declarations are now bounded.** The `osmia:secrets` comment
+  block is parsed straight out of ticket and incident descriptions, which are
+  semi-trusted input, with no limit on how much of it reached the YAML decoder
+  or how many backend calls the result could trigger. A single block is now
+  capped at 64 KiB and a task may declare at most 32 secrets across its
+  description and labels combined, enforced in `Resolver.Resolve` so every
+  caller is covered. Recursive anchor expansion was already handled twice over,
+  by the decode target type and by `gopkg.in/yaml.v3`'s own aliasing guard;
+  `TestAliasBombIsRejected` now pins both so a future change cannot quietly
+  remove them.
+- **The Helm chart never granted the RBAC that task-scoped secrets need.** The
+  controller ClusterRole allowed only `get`, `list` and `watch` on Secrets, but
+  staging a resolved value into an ephemeral Secret needs `create`, adding the
+  owning Job's reference needs `update`, and both the abort path and the new
+  orphan sweep need `delete`. Any chart-deployed controller would have failed
+  with a 403 the first time a task declared a secret from a non-Kubernetes
+  backend. The verbs are now granted, with a comment saying which operation
+  needs each.
+- **The agent image was one base-image bump away from shipping a broken Claude
+  Code.** The CLI installs a thin JS launcher and downloads its platform-native
+  binary from a postinstall script. npm 11 and later block install scripts by
+  default, so the postinstall is skipped, the native binary never arrives, and
+  `claude` fails at launch with "native binary not installed" — from an image
+  that built perfectly cleanly. `node:22-slim` still pins npm 10, where scripts
+  run, so this was latent rather than live; the First Responder fork hit it in
+  production on 2026-07-31 after upgrading npm. The install now passes
+  `--allow-scripts` for the package, verified working on both npm 10 and npm
+  12, and the build runs `claude --version` afterwards so a missing native
+  binary fails the build instead of reaching a registry.
+- **The fail-closed secret policy rejected aliases as well as raw
+  references.** `Resolver.Resolve` expanded aliases before validating, so by
+  the time the raw-reference rule was applied an `alias://` request had
+  already become the concrete URI that `allow_raw_refs: false` forbids.
+  Under the recommended configuration this rejected every secret, including
+  the aliases that setting exists to permit. The check is now split:
+  `ValidateRawRef` runs against what the task actually wrote, and
+  `ValidateResolved` (scheme and env-name patterns) runs against the
+  expanded URI.
+- **`k8s://` secret references required a redundant registered backend.**
+  `Resolver.resolveOne` looked the backend up before the Kubernetes
+  branch, so a `k8s://` reference failed with "no backend registered for
+  scheme" unless an operator configured a `k8s` backend that the
+  Kubernetes-native path then never called. The branch now runs before the
+  lookup, matching its intent: these references become a `secretKeyRef`
+  and are never read by the controller.
+
+### Security
+
+- **Edge images are rebuilt weekly so upstream security patches actually
+  ship.** The images were built only on a push to `main`, and nothing pins a
+  base-image digest, so a fix landing in `node:22-slim` or the Go builder
+  reached the published images only when someone happened to commit. A quiet
+  week meant the agent image kept running whatever the base looked like when it
+  was last touched. A Monday 05:17 UTC schedule now rebuilds them, deliberately off the hour because GitHub delays scheduled runs during the high-load window at the top of every hour, and every
+  build passes `pull: true` so the runner fetches the base afresh rather than
+  republishing the same bits from cache.
+
+  GitHub disables scheduled workflows in a public repository after 60 days
+  without repository activity, so the rebuild stops in exactly the quiet stretch
+  it exists for. That cannot be opted out of; `docs/contributing.md` records how
+  to spot it and re-enable.
+- **The GitLab CLI in the agent image is bumped and its download is now
+  verified.** `glab` was pinned at 1.79.0, over thirty minor releases behind,
+  and the tarball was fetched over `curl` with no integrity check at all before
+  being installed and run with the agent's GitLab token. It is now 1.115.0,
+  verified against the `checksums.txt` published with the release, with the
+  match anchored so a filename that merely contains the expected one cannot
+  satisfy it. The build fails if the checksum line is missing, if it does not
+  match, or if the resulting binary will not report its version. Renovate
+  metadata is attached to the pin so the version does not drift this far again.
+
+
 ## [0.4.0] - 2026-07-16
 
 ### Added

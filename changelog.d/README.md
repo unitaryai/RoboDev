@@ -31,6 +31,14 @@ changed and why it mattered, not just which files moved.
 Purely internal changes that no user or operator would notice need no
 fragment. A refactor that changes observable behaviour does.
 
+**Write any link as a full `https://github.com/unitaryai/osmia/...` URL.**
+`CHANGELOG.md` is rendered in two places: on GitHub, where a repo-relative
+path like `docs/roadmap.md` resolves, and in the docs site, where the file is
+included at `docs/changelog.md` and the same path resolves to
+`docs/docs/roadmap.md` and does not exist. That fails the site build under
+`--strict`, at release time rather than in the pull request that introduced
+it. An absolute URL works in both.
+
 ## Building the changelog
 
 Only done at release time, by a maintainer. Contributors never run this.
